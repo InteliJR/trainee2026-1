@@ -9,5 +9,53 @@ Documentação sobre a noção geral do projeto, ideias e observações relevant
 - Acompanhar o status da coleta solicitada seria uma funcionalidade muito útil, semelhante a plataformas de entrega e marketplace.
 - Pensar no público-alvo é essencial: os coletores autônomos podem representar um diferencial importante para o produto.
 - Para garantir engajamento, é importante criar uma experiência simples, clara e motivadora para o usuário e pensar em formas de motivar a reciclagem como checkin diário
-- Pensar em como será feito e categorias de reciclagem
+- Gamificação poderia ser o diferencial !!
+Focar puramente em gatilhos visuais e psicológicos diretos.
+(Sistema de Streak por semana seguida reciclando)
+Definir metas do mês - Uma barra visual que diz: "Faltam apenas 2 descartes para você atingir a meta do mês".
+Feedback instantâneo 
+Como funciona: Quando o usuário clica em "Doação Concluída" ou "Coleta Agendada", a tela solta confetes digitais, faz um som agradável de moedas ou exibe uma animação rápida de uma árvore crescendo.
+- Criação de um mascote(Duolingo)
+-diferencial, pensar no login e acessibilidade para catadores autonomos
 
+## Aplicativos para Benchmark
+Existem alguns apps que realizam ou têm a mesma proposta que a nossa porém, eles são pouco avaliados e possuem poucavisibilidade
+
+ O grande motor para manter os usuários ativos é a mistura de recompensas financeiras (bonificações), gamificação e senso de comunidade.
+
+Humanização e Impacto Social Visível: Ao contrário de jogar o lixo em uma caçamba pública anônima, no Cataki você vê o rosto, o nome e a história do trabalhador que você está ajudando financeiramente. 
+
+- Cataki 
+Coisas legais: Dicas de Reciclagem, área apenas para aprender a reciclar (papel, plástico, vidro)
+
+Construção de telas sugeridas: 
+
+O que cada tela do morador precisa ter:
+
+Cadastro/login — nome, e-mail (simples, não existe na API da EcoRota, é modelagem própria de vocês)
+Descoberta — mapa ou lista dos pontos de coleta (GET /v1/points), com indicação de demanda se quiserem
+Solicitar coleta — escolha do ponto, tipo de material, data desejada → chama POST /v1/requests
+Acompanhar status — tradução do status técnico pro morador ("aguardando coletor", "coletor a caminho"), atualização via polling a cada 5s, botão de cancelar
+Histórico + engajamento — coletas passadas filtradas por usuário, pontos/badges acumulados
+
+O que cada tela do coletor precisa ter:
+
+Login — identificação simples (separado do morador)
+Painel do dia — lista das coletas atribuídas a ele, com ponto e status (GET /v1/requests filtrado)
+Detalhe da coleta — informações do ponto e material esperado
+Confirmar/cancelar — botão que chama POST /v1/requests/{id}/complete (só funciona pra coletor custom, depois que status vira in_service) ou POST /v1/requests/{id}/cancel
+
+O que o dashboard operacional precisa ter:
+
+Indicadores no topo — coletas ativas agora, concluídas no dia/semana, taxa de cancelamento, coletores disponíveis vs. total
+Mapa operacional — pontos de coleta e posição dos coletores em tempo real
+Demanda x oferta por região — comparação entre demanda pendente e coletores disponíveis por área
+Linha do tempo de coletas — evolução de coletas concluídas, usada como prova de tração
+Lista de solicitações recentes — últimas solicitações com status e coletor responsável, útil para debug e demonstração
+
+Prioridade se o prazo apertar:
+
+1. Indicadores no topo — rápido de implementar, alto impacto visual
+2. Mapa operacional — impressiona na demo, mostra a operação acontecendo
+3. Lista de solicitações recentes — útil desde já para debugar o sistema
+4. Demanda x oferta e linha do tempo — deixar como melhoria, só se sobrar tempo
