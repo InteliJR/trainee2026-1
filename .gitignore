@@ -1,1 +1,15 @@
 *docs/
+
+# Secrets — nunca commitar credenciais
+.env
+.env.*
+!.env.example
+
+# NPM/Node
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+build/
+**/build/
+.vitest/

@@ -99,10 +99,11 @@ Este documento registra as decisões de arquitetura e, principalmente, o **porqu
 
 ## 9. Modelagem própria do banco
 
-**Decisão:** `User` (papel/credencial), `CollectorProfile` (id EcoRota + disponibilidade), `Request` (externalReference ↔ id EcoRota + cache de status), `PointsLog`/`Badge`/`Goal` (gamificação), `SystemState` (última revision).
+**Decisão:** `User` (papel/credencial), `Address` (endereço do morador), `CollectorProfile` (id EcoRota + disponibilidade), `Request` (externalReference ↔ id EcoRota + cache de status), `PointsLog`/`Badge`/`Goal` (gamificação), `SystemState` (última revision). A gamificação (pontos/badges/streak) é **virtual** — nada de recompensa em dinheiro real no escopo atual.
 
 **Por quê:**
-- **`User`** — login não existe na API externa; é nossa obrigação.
+- **`User`** — login não existe na API externa; é nossa obrigação (RF01/RF02).
+- **`Address`** — a EcoRota não modela endereço de morador; é exclusivamente nosso (RF03). É o endereço que define o "bairro/região" usado na demanda×oferta do dashboard (RF18.2).
 - **`CollectorProfile`** — coletores `custom` são cadastrados pelo time e o time controla disponibilidade (`available`/`unavailable`). Precisamos relacionar nosso usuário coletor ao id da EcoRota. A regra "para excluir, ele deve estar indisponível e sem trabalho atribuído" fica checável na nossa camada.
 - **`Request`** — a doc permite colagem de pedidos: **reenviar a mesma `externalReference` para o mesmo ponto recupera o pedido existente, sem duplicar**. Guardar o mapeamento garante idempotência e um histórico filtrado por usuário.
 - **Gamificação** (`PointsLog`/`Badge`/`Goal`) — é o diferencial de produto proposto no benchmark (streak, meta do mês, confete, mascote). Nada disso vem da EcoRota; precisa de tabelas próprias.
@@ -110,7 +111,61 @@ Este documento registra as decisões de arquitetura e, principalmente, o **porqu
 
 ---
 
-## 10. Frontend único responsivo/PWA (web, não nativo)
+## 10. Fluxo de telas atravessando a arquitetura
+
+As telas definidas na `docs_mafe` (e os requisitos RF/RN/RNF derivados delas) mapeiam 1:1 nos componentes desta arquitetura. Toda tela percorre o mesmo caminho padrão — **nunca** pular a camada de serviço e **nunca** tocar a EcoRota diretamente:
+
+```
+Tela (React) → rota da nossa API (Fastify) → serviço de domínio → repositório/banco → EcoRotaClient → EcoRota
+                                                      ↓
+                                        (evento request.completed) → gamificação (PointsLog/Badge)
+```
+
+### 10.1 Área do morador (`/morador`)
+
+**Cadastro/Login (RF01, RF02)** — tela → `POST /auth/register` · `POST /auth/login` (API própria) → `AuthService` grava/valida `User` (nome, e-mail, senha hash) → JWT em cookie httpOnly com role `MORADOR`. A EcoRota não participa: login é modelagem própria. O RBAC (RNF05) já decide para qual área redirecionar.
+
+**Endereço (RF03)** — tela → `PUT /me/address` → tabela `Address` (bairro/região + texto da coordenada). É o endereço que alimenta a demanda×oferta por região do dashboard (RF18.2) e a regra de não-duplicidade RN08.
+
+**Descoberta de pontos/coletores (RF07)** — tela (mapa MapLibre ou lista) → `GET /points` (API própria) → **responde do cache operacional** (`OperationState` mantido pelo consumidor WS), em GeoJSON. Ler de cache = a mesma consulta serve N moradores, sem gastar a cota de 300 req/min por cada usuário. "Indicação de demanda" por ponto vem da agregação dos `Request`.
+
+**Solicitar coleta (RF04, RF05, RN08)** — tela → `POST /requests` (ponto, material, data) → `RequestService`: valida RN08 (não haver solicitação aberta para o mesmo endereço na mesma data) → gera `externalReference` único (`pedido-<uuid>`) → grava `Request` pendente → `EcoRotaClient.createRequest` chama `POST /v1/requests` → persiste o id da EcoRota + status. Se for agendamento, o pedido é enviado à EcoRota no horário previsto (regra do guia), não na tela.
+
+**Acompanhar status (RF06, RF15, RN09)** — atualização por **via dupla**:
+- ativa: Socket.IO (room do morador) repassa eventos `request.*` vindos do consumidor WS do backend;
+- passiva: polling `GET /requests` a cada 5 s como fallback/recuperação de estado.
+A tradução técnico→amigável (`pending` → "aguardando coletor", `in_service` → "coletor a caminho") vive em `packages/shared` — definida uma vez, usada por todas as telas. Cancelamento: `POST /requests/{id}/cancel` com **confirmação dupla** (RN01) e janela mínima de 2 h antes do agendado (RN02).
+
+**Histórico + engajamento (RF12, RF13, RF16, RF17, RN03)** — `GET /me/requests` + `GET /me/rewards` → `Request`, `PointsLog`, `Badge`, `Goal`. Pontos são creditados **somente pelo listener de `request.completed` no backend** — nunca por chamada da tela — garantindo RN03 (nada de recompensa antes da coleta confirmada). É gamificação virtual (streak, meta do mês, confete, mascote); sem dinheiro real no escopo atual.
+
+### 10.2 Área do coletor (`/coletor`)
+
+**Login (RF02)** — mesmo `AuthService`, role `COLETOR` vinculada ao `CollectorProfile` (que guarda o id da EcoRota do coletor `custom`). RNF08: a interface do coletor usa textos curtos, ícones, alto contraste e botões grandes — é decisão de frontend, sem impacto na arquitetura.
+
+**Painel do dia (RF08, RN05)** — tela → `GET /collector/requests` → `RequestService` filtra as coletas cujo `CollectorProfile.ecoRotaId` é o logado. Disponibilidade: `POST /collector/availability` → atualiza `CollectorProfile` → `EcoRotaClient.updateCollector({available})` — indisponível para de receber trabalho na EcoRota (RN05).
+
+**Detalhe da coleta (RF09)** — `GET /collector/requests/:id` → ponto (da `OperationState`) + material esperado. Confirmação: `POST /collector/requests/:id/complete` → serviço valida que o coletor é `custom` **e** o status é `in_service` (regra do guia) → `EcoRotaClient.completeRequest`. Cancelar: `POST /collector/requests/:id/cancel`.
+
+**Morador ausente (RN06)** — variante do cancelamento que exige registro do motivo e oferece reagendamento (cancela + cria nova solicitação com nova `externalReference`).
+
+### 10.3 Dashboard operacional (`/dashboard`)
+
+Tudo alimentado pelo **estado operacional do backend** — nenhuma requisição de dashboard vira chamada direta à EcoRota:
+
+1. **KPIs (RF18.1, RF18.3)** — `GET /dashboard/stats`: agregados pré-computados sobre o cache (coletas ativas, concluídas dia/semana, taxa de cancelamento, coletores disponíveis vs total). Pré-computados = dashboard em < 3 s (RNF03).
+2. **Mapa em tempo real (RF18.2)** — pipeline:
+   ```
+   EcoRota WS → EcoRotaClient (snapshot+eventos, dedup) → OperationState → Socket.IO → telas autorizadas
+   ```
+   O evento `collector.position_updated` chega ao browser; posição com `observedAt` antigo é marcada como congelada no mapa — nunca esconder telemetria velha.
+3. **Solicitações recentes** — `GET /dashboard/requests` (leitura do cache; útil para debug e demo).
+4. **Demanda×oferta e linha do tempo** — agregação do cache por região (RF18.2) + histórico persistido de `request.completed` para a timeline/prova de tração (RF18.3).
+
+**Resultado:** entre as áreas muda apenas rota e autorização (RNF05); o fluxo por baixo é o mesmo caminho de camadas — eliminando o risco de "atalhos" (ex.: chamar a EcoRota direto do front), que quebrariam a cota e a segurança.
+
+---
+
+## 11. Frontend único responsivo/PWA (web, não nativo)
 
 **Decisão:** uma única app React + Vite + Tailwind, responsiva e instalável (PWA), com rotas `/morador`, `/coletor` e `/dashboard`. Mapa com MapLibre.
 
@@ -122,7 +177,7 @@ Este documento registra as decisões de arquitetura e, principalmente, o **porqu
 
 ---
 
-## 11. Dashboard: mesma base, ordem de prioridade clara
+## 12. Dashboard: mesma base, ordem de prioridade clara
 
 **Decisão:** o dashboard prioriza, nesta ordem: (1) KPIs no topo → (2) mapa operacional em tempo real → (3) lista de solicitações recentes → (4) demanda×oferta e linha do tempo.
 
@@ -132,7 +187,7 @@ Este documento registra as decisões de arquitetura e, principalmente, o **porqu
 
 ---
 
-## 12. Deploy único (Railway/Render), mesmo domínio, Docker opcional
+## 13. Deploy único (Railway/Render), mesmo domínio, Docker opcional
 
 **Decisão:** um serviço só servindo a API e o bundle do frontend; Docker apenas se o time já dominar.
 
@@ -140,6 +195,22 @@ Este documento registra as decisões de arquitetura e, principalmente, o **porqu
 - Múltiplos serviços/deploys são complexidade que não rende nada aqui (ver item 1).
 - **Mesmo domínio** elimina problemas de CORS e simplifica o JWT em cookie para toda a app.
 - Docker ajuda a reproduzir o ambiente da EcoRota localmente, mas é opcional — o foco é demo.
+
+---
+
+## 14. Matriz de Escolhas Técnicas da Stack (Por que cada tecnologia?)
+
+| Camada / Ferramenta | Escolha Técnica | Justificativa & Por Quê da Escolha |
+|---|---|---|
+| **Gerenciamento do Repo** | Monorepo com `pnpm` Workspaces | Permite compartilhar o pacote `@ecorota/shared` (tipos da EcoRota, enums e tradução de status) entre API e Web sem duplicação. O `pnpm` é mais rápido e usa menos espaço em disco que o `npm`. |
+| **Linguagem (Full Stack)** | TypeScript | Garante tipagem estática ponta a ponta. Erros de envio no contrato com a EcoRota são capturados em tempo de compilação, eliminando bugs de execução na demo. |
+| **Backend Framework** | Fastify em Node.js | A doc da EcoRota fornece o código de referência em Node.js (`ws`). O Fastify é até 2x mais rápido que o Express, possui validação de schemas embutida e excelente integração com TS. |
+| **Banco de Dados & ORM** | PostgreSQL + Prisma ORM | A EcoRota **não possui banco de dados próprio para nossos usuários** (sem login, e-mails, endereços, histórica por morador ou gamificação). O Postgres armazena esses dados próprios com consistência relacional e o Prisma oferece migrations versionadas para o time. |
+| **Frontend Framework** | React + Vite | O Vite proporciona reinicialização e compilação instantânea (HMR), essencial para acelerar o desenvolvimento no prazo emergencial de 1,5 semana. O React facilita a divisão dos 3 fluxos (`/morador`, `/coletor`, `/dashboard`) em componentes isolados. |
+| **Estilização** | Tailwind CSS | Agiliza a criação de layouts responsivos (PWA) e permite criar a interface acessível do coletor (botões grandes, ícones e alto contraste) exigida no requisito RNF08 sem perder tempo escrevendo CSS do zero. |
+| **Biblioteca de Mapas** | MapLibre GL JS | Open-source e 100% gratuita (sem necessidade de cadastrar cartão de crédito ou chaves pagas como Mapbox/Google Maps). Renderiza pontos e posições em formato GeoJSON `Point [lng, lat]` nativamente. |
+| **Tempo Real (API ➔ Web)** | Socket.IO | O case restringe a 5 conexões WebSocket simultâneas com a EcoRota. O backend estabelece 1 conexão WS com a EcoRota, guarda no cache `OperationState` e o Socket.IO retransmite para N moradores e dashboards conectados sem estourar o limite. |
+| **Autenticação & Sessão** | JWT em Cookies `httpOnly` | Armazena o token de sessão com proteção contra ataques XSS (o JS do browser não lê o cookie). Por estar no mesmo domínio, o cookie viaja automaticamente sem complicar com CORS. |
 
 ---
 
@@ -154,4 +225,8 @@ Este documento registra as decisões de arquitetura e, principalmente, o **porqu
 | Login, histórico, gamificação não existem na EcoRota | Modelagem própria no banco (User, Request, badges, etc.) |
 | `externalReference` garante não-duplicação | Tabela `Request` com mapeamento idempotente |
 | reset do cenário pela EJ | `SystemState` com última `generation`/`revision` |
+| Caso: login, endereço e gamificação são nossos | Tabelas próprias `User`, `Address`, `PointsLog`/`Badge`/`Goal` |
+| Sincronizar status em tempo (quase) real (RF15/RN09) | Socket.IO (eventos WS) + polling de 5 s de fallback |
+| Dashboard sem queimar a cota (RNF03) | Leitura do cache `OperationState` + agregados pré-computados |
+| Pontos só após coleta concluída (RN03) | Listener de `request.completed` no backend credita recompensa |
 | Prazo/demo | Monolito em camadas, deploy único, priorização do dashboard |
