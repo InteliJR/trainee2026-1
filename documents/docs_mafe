@@ -1,0 +1,124 @@
+# Documentação geral do projeto
+
+Documentação sobre a noção geral do projeto, ideias e observações relevantes para o desenvolvimento.
+
+## Insights durante a leitura do material
+
+- Para o usuário coletor, seria interessante ter uma interface mais acessível, considerando o uso do app durante o trabalho. Botões maiores ajudariam a evitar erros de clique.
+- Como o público já está acostumado com o uso do WhatsApp, uma interface com essa familiaridade poderia aumentar a usabilidade e a adoção do produto.
+- Acompanhar o status da coleta solicitada seria uma funcionalidade muito útil, semelhante a plataformas de entrega e marketplace.
+- Pensar no público-alvo é essencial: os coletores autônomos podem representar um diferencial importante para o produto.
+- Para garantir engajamento, é importante criar uma experiência simples, clara e motivadora para o usuário e pensar em formas de motivar a reciclagem como checkin diário
+- Gamificação poderia ser o diferencial !!
+Focar puramente em gatilhos visuais e psicológicos diretos.
+(Sistema de Streak por semana seguida reciclando)
+Definir metas do mês - Uma barra visual que diz: "Faltam apenas 2 descartes para você atingir a meta do mês".
+Feedback instantâneo 
+Como funciona: Quando o usuário clica em "Doação Concluída" ou "Coleta Agendada", a tela solta confetes digitais, faz um som agradável de moedas ou exibe uma animação rápida de uma árvore crescendo.
+- Criação de um mascote(Duolingo)
+-diferencial, pensar no login e acessibilidade para catadores autonomos
+
+## Aplicativos para Benchmark
+Existem alguns apps que realizam ou têm a mesma proposta que a nossa porém, eles são pouco avaliados e possuem poucavisibilidade
+
+ O grande motor para manter os usuários ativos é a mistura de recompensas financeiras (bonificações), gamificação e senso de comunidade.
+
+Humanização e Impacto Social Visível: Ao contrário de jogar o lixo em uma caçamba pública anônima, no Cataki você vê o rosto, o nome e a história do trabalhador que você está ajudando financeiramente. 
+
+- Cataki 
+Coisas legais: Dicas de Reciclagem, área apenas para aprender a reciclar (papel, plástico, vidro)
+
+Construção de telas sugeridas: 
+
+O que cada tela do morador precisa ter:
+
+Cadastro/login — nome, e-mail (simples, não existe na API da EcoRota, é modelagem própria de vocês)
+Descoberta — mapa ou lista dos pontos de coleta (GET /v1/points), com indicação de demanda se quiserem
+Solicitar coleta — escolha do ponto, tipo de material, data desejada → chama POST /v1/requests
+Acompanhar status — tradução do status técnico pro morador ("aguardando coletor", "coletor a caminho"), atualização via polling a cada 5s, botão de cancelar
+Histórico + engajamento — coletas passadas filtradas por usuário, pontos/badges acumulados
+
+O que cada tela do coletor precisa ter:
+
+Login — identificação simples (separado do morador)
+Painel do dia — lista das coletas atribuídas a ele, com ponto e status (GET /v1/requests filtrado)
+Detalhe da coleta — informações do ponto e material esperado
+Confirmar/cancelar — botão que chama POST /v1/requests/{id}/complete (só funciona pra coletor custom, depois que status vira in_service) ou POST /v1/requests/{id}/cancel
+
+O que o dashboard operacional precisa ter:
+
+Indicadores no topo — coletas ativas agora, concluídas no dia/semana, taxa de cancelamento, coletores disponíveis vs. total
+Mapa operacional — pontos de coleta e posição dos coletores em tempo real
+Demanda x oferta por região — comparação entre demanda pendente e coletores disponíveis por área
+Linha do tempo de coletas — evolução de coletas concluídas, usada como prova de tração
+Lista de solicitações recentes — últimas solicitações com status e coletor responsável, útil para debug e demonstração
+
+Prioridade se o prazo apertar:
+
+1. Indicadores no topo — rápido de implementar, alto impacto visual
+2. Mapa operacional — impressiona na demo, mostra a operação acontecendo
+3. Lista de solicitações recentes — útil desde já para debugar o sistema
+4. Demanda x oferta e linha do tempo — deixar como melhoria, só se sobrar tempo
+
+
+## Requisitos do Sistema
+
+Esta seção descreve os requisitos funcionais e não funcionais da aplicação EcoRota, bem como as regras de negócio que orientam seu comportamento, servindo como base técnica para o desenvolvimento da solução.
+
+### Requisitos Funcionais
+
+| ID | Requisito Funcional | Prioridade |
+|---|---|---|
+| RF01 | Permitir cadastro e login de usuários | Essencial |
+| RF02 | Permitir identificar o perfil do usuário: morador ou coletor | Essencial |
+| RF03 | Permitir ao morador cadastrar/selecionar um endereço | Essencial |
+| RF04 | Permitir ao morador solicitar uma coleta | Essencial |
+| RF05 | Permitir informar material e data desejada | Essencial |
+| RF06 | Permitir acompanhar o status da coleta | Essencial |
+| RF07 | Permitir localizar pontos ou coletores disponíveis | Essencial |
+| RF08 | Permitir ao coletor visualizar as coletas atribuídas | Essencial |
+| RF09 | Permitir ao coletor visualizar detalhes da coleta | Essencial |
+| RF10 | Permitir ao coletor confirmar/concluir uma coleta | Essencial |
+| RF11 | Permitir o cancelamento de uma coleta | Essencial |
+| RF12 | Registrar o histórico de coletas do morador | Essencial |
+| RF13 | Dar algum retorno ao morador após uma coleta concluída | Essencial |
+| RF14 | Integrar as solicitações com a API EcoRota | Essencial |
+| RF15 | Sincronizar status da coleta entre sistema e API EcoRota | Essencial |
+| RF16 | Garantir que pontos/recompensas só sejam concedidos após conclusão | Importante |
+| RF17 | Permitir visualizar saldo/pontos/reconhecimento | Importante |
+| RF18 | Permitir à EcoRota acompanhar informações básicas da operação em um dashboard | Importante |
+| RF18.1 | Exibir no dashboard o número de coletas realizadas por período (dia/semana/mês) | Importante |
+| RF18.2 | Exibir demanda por bairro/região, comparando volume solicitado x capacidade de coleta ofertada | Importante |
+| RF18.3 | Exibir indicadores de tração (novos moradores cadastrados, taxa de coletas concluídas vs canceladas) | Importante |
+| RF21 | O sistema deve ser responsivo, adaptando-se a diferentes tamanhos de tela (desktop, tablet e celular) | Essencial |
+| RF22 | A aplicação web deve ter aparência e comportamento próximos aos de um app mobile quando acessada por celular (ex.: navegação simplificada, botões grandes, layout otimizado para toque) | Essencial |
+
+---
+
+### Regras de Negócio
+
+| ID | Descrição | RF associado |
+|---|---|---|
+| RN01 | Exigir confirmação dupla para cancelar uma coleta, evitando cancelamentos acidentais | RF11 |
+| RN02 | Permitir cancelamento apenas até um prazo mínimo antes do horário agendado (ex.: 2h) | RF11 |
+| RN03 | Creditar pontos/recompensa ao morador somente após a coleta ser confirmada como concluída pelo coletor | RF13, RF16 |
+| RN05 | Impedir que um coletor tenha mais coletas atribuídas do que sua capacidade disponível na API | RF08, RF14 |
+| RN06 | Ao marcar "morador ausente", exigir registro do motivo e oferecer opção de reagendamento | RF10, RF11 |
+| RN07 | Manter o histórico de coletas (inclusive canceladas) mesmo após qualquer alteração de status, para rastreabilidade | RF12 |
+| RN08 | Impedir duplicidade: não permitir duas solicitações abertas para o mesmo endereço na mesma data | RF04 |
+| RN09 | Sincronizar o status da coleta entre o sistema e a API EcoRota em tempo (quase) real, via WebSocket quando disponível | RF15 |
+
+---
+
+### Requisitos Não Funcionais — Eixos ISO/IEC 25010
+
+| ID | Eixo (ISO 25010) | Requisito | RF/RN associado |
+|---|---|---|---|
+| RNF01 | USAB | O morador deve conseguir solicitar uma coleta em no máximo 3 telas, sem necessidade de treinamento | RF04, RN01 |
+| RNF02 | CONF | O sistema deve continuar operando (com dados em cache/local) caso a API EcoRota fique indisponível temporariamente | RF14, RF15 |
+| RNF03 | DES | O dashboard deve carregar os indicadores agregados em até 3 segundos | RF18.1–RF18.3 |
+| RNF04 | CAP | O sistema deve suportar o crescimento do número de bairros/coletores sem redesenho de arquitetura | RF07, RF08 |
+| RNF05 | SEG | O sistema deve autenticar e restringir funcionalidades por perfil (morador x coletor x EcoRota) | RF02 |
+| RNF06 | REST | A integração com coleta deve usar obrigatoriamente a API EcoRota fornecida | RF14 |
+| RNF07 | SUP | A arquitetura deve separar claramente a lógica de negócio da integração com a API externa (EcoRota), permitindo evoluí-la sem afetar as demais camadas | RF14 |
+| RNF08 | USAB | A interface do coletor deve ser acessível a coletores autônomos, com baixo letramento digital, priorizando textos curtos, ícones claros, alto contraste e poucos passos por ação (evitando fluxos complexos ou dependentes de leitura extensa) | RF08, RF09, RF10 |

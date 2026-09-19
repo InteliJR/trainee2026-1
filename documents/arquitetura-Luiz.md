@@ -198,6 +198,22 @@ Tudo alimentado pelo **estado operacional do backend** — nenhuma requisição 
 
 ---
 
+## 14. Matriz de Escolhas Técnicas da Stack (Por que cada tecnologia?)
+
+| Camada / Ferramenta | Escolha Técnica | Justificativa & Por Quê da Escolha |
+|---|---|---|
+| **Gerenciamento do Repo** | Monorepo com `pnpm` Workspaces | Permite compartilhar o pacote `@ecorota/shared` (tipos da EcoRota, enums e tradução de status) entre API e Web sem duplicação. O `pnpm` é mais rápido e usa menos espaço em disco que o `npm`. |
+| **Linguagem (Full Stack)** | TypeScript | Garante tipagem estática ponta a ponta. Erros de envio no contrato com a EcoRota são capturados em tempo de compilação, eliminando bugs de execução na demo. |
+| **Backend Framework** | Fastify em Node.js | A doc da EcoRota fornece o código de referência em Node.js (`ws`). O Fastify é até 2x mais rápido que o Express, possui validação de schemas embutida e excelente integração com TS. |
+| **Banco de Dados & ORM** | PostgreSQL + Prisma ORM | A EcoRota **não possui banco de dados próprio para nossos usuários** (sem login, e-mails, endereços, histórica por morador ou gamificação). O Postgres armazena esses dados próprios com consistência relacional e o Prisma oferece migrations versionadas para o time. |
+| **Frontend Framework** | React + Vite | O Vite proporciona reinicialização e compilação instantânea (HMR), essencial para acelerar o desenvolvimento no prazo emergencial de 1,5 semana. O React facilita a divisão dos 3 fluxos (`/morador`, `/coletor`, `/dashboard`) em componentes isolados. |
+| **Estilização** | Tailwind CSS | Agiliza a criação de layouts responsivos (PWA) e permite criar a interface acessível do coletor (botões grandes, ícones e alto contraste) exigida no requisito RNF08 sem perder tempo escrevendo CSS do zero. |
+| **Biblioteca de Mapas** | MapLibre GL JS | Open-source e 100% gratuita (sem necessidade de cadastrar cartão de crédito ou chaves pagas como Mapbox/Google Maps). Renderiza pontos e posições em formato GeoJSON `Point [lng, lat]` nativamente. |
+| **Tempo Real (API ➔ Web)** | Socket.IO | O case restringe a 5 conexões WebSocket simultâneas com a EcoRota. O backend estabelece 1 conexão WS com a EcoRota, guarda no cache `OperationState` e o Socket.IO retransmite para N moradores e dashboards conectados sem estourar o limite. |
+| **Autenticação & Sessão** | JWT em Cookies `httpOnly` | Armazena o token de sessão com proteção contra ataques XSS (o JS do browser não lê o cookie). Por estar no mesmo domínio, o cookie viaja automaticamente sem complicar com CORS. |
+
+---
+
 ## Resumo das forças do case que moldam tudo
 
 | Restrição do case | Resposta arquitetural |

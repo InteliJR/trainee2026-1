@@ -1,0 +1,22 @@
+// EcoRota — banco da aplicação (modelagem própria do time).
+// Fase 4 (PLANO.md) expande os models: User/Address/CollectorProfile/Request/Gamification/SystemState.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}
