@@ -211,6 +211,7 @@ Tudo alimentado pelo **estado operacional do backend** — nenhuma requisição 
 | **Biblioteca de Mapas** | MapLibre GL JS | Open-source e 100% gratuita (sem necessidade de cadastrar cartão de crédito ou chaves pagas como Mapbox/Google Maps). Renderiza pontos e posições em formato GeoJSON `Point [lng, lat]` nativamente. |
 | **Tempo Real (API ➔ Web)** | Socket.IO | O case restringe a 5 conexões WebSocket simultâneas com a EcoRota. O backend estabelece 1 conexão WS com a EcoRota, guarda no cache `OperationState` e o Socket.IO retransmite para N moradores e dashboards conectados sem estourar o limite. |
 | **Autenticação & Sessão** | JWT em Cookies `httpOnly` | Armazena o token de sessão com proteção contra ataques XSS (o JS do browser não lê o cookie). Por estar no mesmo domínio, o cookie viaja automaticamente sem complicar com CORS. |
+| **Resiliência Offline (Front)** | PWA + `offlineQueue` (LocalStorage/IndexedDB) | Garante que o coletor consiga registrar confirmações de coleta mesmo sem sinal de celular no campo (RNF02). As ações ficam salvas localmente e sincronizam automaticamente ao detectar sinal de rede (`window.addEventListener('online')`). |
 
 ---
 
@@ -227,6 +228,7 @@ Tudo alimentado pelo **estado operacional do backend** — nenhuma requisição 
 | reset do cenário pela EJ | `SystemState` com última `generation`/`revision` |
 | Caso: login, endereço e gamificação são nossos | Tabelas próprias `User`, `Address`, `PointsLog`/`Badge`/`Goal` |
 | Sincronizar status em tempo (quase) real (RF15/RN09) | Socket.IO (eventos WS) + polling de 5 s de fallback |
+| Operação offline em campo pelo coletor (RNF02) | PWA Service Worker + `offlineQueue` local com auto-sync ao reconectar |
 | Dashboard sem queimar a cota (RNF03) | Leitura do cache `OperationState` + agregados pré-computados |
 | Pontos só após coleta concluída (RN03) | Listener de `request.completed` no backend credita recompensa |
 | Prazo/demo | Monolito em camadas, deploy único, priorização do dashboard |

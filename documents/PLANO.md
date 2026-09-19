@@ -25,7 +25,7 @@ trainee2026-1/
 │           └── index.ts          # Exportações centrais do pacote
 │
 └── apps/
-    ├── api/                      # ⚙️ BACKEND (Dev 1 + Dev 4/Você)
+    ├── api/                      # ⚙️ BACKEND (Dev 1 + Dev 4)
     │   ├── prisma/
     │   │   └── schema.prisma     # Tabela de User, Address, Request e Points (Dev 1)
     │   └── src/
@@ -38,18 +38,18 @@ trainee2026-1/
     │       │   ├── ws/               # Consumidor WSS com dedup por ID e controle de revision
     │       │   └── operation-state/  # Cache em memória do estado dos pontos e coletores
     │       │
-    │       ├── realtime/         # ⚙️ DEV 4 / VOCÊ (Broker de Tempo Real)
+    │       ├── realtime/         # ⚙️ DEV 4 (Broker de Tempo Real)
     │       │   └── socketServer.ts   # Servidor Socket.IO que transmite o OperationState pro front
     │       │
-    │       └── modules/          # ⚙️ MÓDULOS DE NEGÓCIO (Dev 1 & Dev 4/Você)
+    │       └── modules/          # ⚙️ MÓDULOS DE NEGÓCIO (Dev 1 & Dev 4)
     │           ├── auth/         # Login, Register, Cookies JWT, guards RBAC (Dev 1)
     │           ├── users/        # Perfil e Endereço do Morador (Dev 1)
     │           ├── requests/     # Regras de agendamento e cancelamento (Dev 1 & Dev 4)
     │           ├── collectors/   # Regras de disponibilidade do coletor custom (Dev 1)
-    │           ├── dashboard/    # Rota GET /dashboard/stats pré-computada (Dev 4 / Você)
+    │           ├── dashboard/    # Rota GET /dashboard/stats pré-computada (Dev 4)
     │           └── gamification/ # Credito de pontos no evento request.completed (Dev 1)
     │
-    └── web/                      # 🎨 FRONTEND (Dev 2 + Dev 3 + Dev 4/Você)
+    └── web/                      # 🎨 FRONTEND (Dev 2 + Dev 3 + Dev 4)
         └── src/
             ├── App.tsx           # Roteador principal (/morador, /coletor, /dashboard)
             │
@@ -62,14 +62,14 @@ trainee2026-1/
             │   │   ├── components/  # Botões grandes estilo WhatsApp, Card de tarefa do dia
             │   │   └── pages/       # Login simplificado, Painel do dia, Detalhes e Confirmação
             │   │
-            │   └── dashboard/    # 🎨 DEV 4 / VOCÊ (Dashboard Operacional)
+            │   └── dashboard/    # 🎨 DEV 4 (Dashboard Operacional)
             │       ├── components/  # Cards de KPIs, Tabela de solicitações recentes
             │       └── pages/       # Visão Geral do Dashboard + Integração MapLibre
             │
-            ├── map/              # 🎨 DEV 4 / VOCÊ (Mapeamento)
+            ├── map/              # 🎨 DEV 4 (Mapeamento)
             │   └── MapContainer.tsx # Componente MapLibre que desenha os 12 pontos e coletores
             │
-            └── lib/              # 🤝 DEV 4 / VOCÊ
+            └── lib/              # 🤝 DEV 4
                 ├── socketClient.ts  # Conexão Socket.IO com a API
                 └── apiClient.ts     # Cliente HTTP (fetch/axios com credenciais)
 ```
@@ -108,11 +108,12 @@ trainee2026-1/
 * [ ] **Task 3.1 (Dias 1–3):** Criar o layout da Área do Coletor em `apps/web/src/features/coletor/` com **botões grandes, ícones claros e alto contraste**.
 * [ ] **Task 3.2 (Dias 4–5):** Desenvolver o **Painel do Dia**: lista de tarefas atribuídas ao coletor logado (usando dados mockados).
 * [ ] **Task 3.3 (Dias 6–7):** Implementar o fluxo de **Confirmação de Coleta** (botão de conclusão após o status virar `in_service`) e modal de **Morador Ausente** (registro de motivo + reagendamento).
+  * **💡 Suporte Offline (Diferencial RNF02):** Implementar fila local (`offlineQueue` via `LocalStorage`/`IndexedDB`). Se o coletor clicar em confirmar sem sinal de celular, a ação fica salva localmente e é enviada automaticamente assim que a rede voltar (`window.addEventListener('online')`).
 * [ ] **Task 3.4 (Dias 8–9):** Conectar a interface às rotas reais de confirmação (`POST /requests/:id/complete`) e toggle de disponibilidade (`POST /collector/availability`).
 
 ---
 
-### 👑 Dev 4 (Você) — Misto (Backend Realtime + Front Dashboard)
+### 👑 Dev 4 — Misto (Backend Realtime + Front Dashboard)
 > **Foco:** Dashboard em Tempo Real (MapLibre + Socket.IO) e ponte de comunicação.
 
 * [ ] **Task 4.1 (Dias 1–3 - Front):** Criar o componente de mapa com MapLibre em `apps/web/src/map/MapContainer.tsx`.
@@ -149,15 +150,15 @@ trainee2026-1/
 
 # ⏱️ Cronograma de 10 Dias (1,5 Semana)
 
-| Dia | Backend (Dev 1 & Dev 4) | Front Morador (Dev 2) | Front Coletor (Dev 3) | Front Dashboard (Dev 4 / Você) |
+| Dia | Backend (Dev 1 & Dev 4) | Front Morador (Dev 2) | Front Coletor (Dev 3) | Front Dashboard (Dev 4) |
 |---|---|---|---|---|
 | **Dia 1** | Dev 1: Conector WSS EcoRota | Tela Solicitar (Mock) | Layout Botões Grandes | Componente MapLibre + 12 Pontos |
 | **Dia 2** | Dev 1: Dedup ID / Revisions | Formulário de Material | Painel do Dia (Mock) | Marcadores de Coletores (Mock) |
 | **Dia 3** | Dev 1: Cache `OperationState` | Tela Acompanhar Status | Botão Confirmar/Cancelar | Cards de KPIs (Topo) |
-| **Dia 4** | Dev 1: Prisma Schema & DB | Tela de Histórico/Pontos | Modal Morador Ausente | **Você:** Server Socket.IO na API |
-| **Dia 5** | Dev 1: Rotas de Auth (JWT) | Efeito de Confetes (UI) | Toggle Disponibilidade | **Você:** Rota `GET /dashboard/stats` |
-| **Dia 6** | Dev 1: Rotas REST Requests | Conectar Auth no Front | Conectar Auth no Front | **Você:** Conectar Mapa ao Socket.IO |
-| **Dia 7** | Listener `request.completed` | Conectar POST Request | Conectar POST Complete | **Você:** Tratar telemetria desatualizada |
-| **Dia 8** | Ajustes de Erro / Cota 300 | Testes do Morador | Testes do Coletor | **Você:** Tabela Solicitações Recentes |
+| **Dia 4** | Dev 1: Prisma Schema & DB | Tela de Histórico/Pontos | Modal Morador Ausente | **Dev 4:** Server Socket.IO na API |
+| **Dia 5** | Dev 1: Rotas de Auth (JWT) | Efeito de Confetes (UI) | Toggle Disponibilidade | **Dev 4:** Rota `GET /dashboard/stats` |
+| **Dia 6** | Dev 1: Rotas REST Requests | Conectar Auth no Front | Conectar Auth no Front | **Dev 4:** Conectar Mapa ao Socket.IO |
+| **Dia 7** | Listener `request.completed` | Conectar POST Request | Conectar POST Complete | **Dev 4:** Tratar telemetria desatualizada |
+| **Dia 8** | Ajustes de Erro / Cota 300 | Testes do Morador | Testes do Coletor | **Dev 4:** Tabela Solicitações Recentes |
 | **Dia 9** | **TESTE INTEGRADO GERAL:** Morador solicita ➔ EcoRota atribui ➔ Mapa mexe ➔ Coletor conclui |
 | **Dia 10** | **DEPLOY ÚNICO & ENSAIO DA DEMONSTRAÇÃO COM A BANCA** |
