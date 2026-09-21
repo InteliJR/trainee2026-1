@@ -44,6 +44,7 @@ Login — identificação simples (separado do morador)
 Painel do dia — lista das coletas atribuídas a ele, com ponto e status (GET /v1/requests filtrado)
 Detalhe da coleta — informações do ponto e material esperado
 Confirmar/cancelar — botão que chama POST /v1/requests/{id}/complete (só funciona pra coletor custom, depois que status vira in_service) ou POST /v1/requests/{id}/cancel
+Pontos + engajamento — pontos/badges acumulados pelas coletas concluídas (mesmo sistema de pontos do morador)
 
 O que o dashboard operacional precisa ter:
 
@@ -75,17 +76,17 @@ Esta seção descreve os requisitos funcionais e não funcionais da aplicação 
 | RF04 | Permitir ao morador solicitar uma coleta | Essencial |
 | RF05 | Permitir informar material e data desejada | Essencial |
 | RF06 | Permitir acompanhar o status da coleta | Essencial |
-| RF07 | Permitir localizar pontos ou coletores disponíveis | Essencial |
+| RF07 | Permitir localizar pontos de coleta ou coletores disponíveis | Essencial |
 | RF08 | Permitir ao coletor visualizar as coletas atribuídas | Essencial |
 | RF09 | Permitir ao coletor visualizar detalhes da coleta | Essencial |
 | RF10 | Permitir ao coletor confirmar/concluir uma coleta | Essencial |
 | RF11 | Permitir o cancelamento de uma coleta | Essencial |
 | RF12 | Registrar o histórico de coletas do morador | Essencial |
-| RF13 | Dar algum retorno ao morador após uma coleta concluída | Essencial |
+| RF13 | Dar algum retorno ao morador e ao coletor após uma coleta concluída | Essencial |
 | RF14 | Integrar as solicitações com a API EcoRota | Essencial |
 | RF15 | Sincronizar status da coleta entre sistema e API EcoRota | Essencial |
 | RF16 | Garantir que pontos/recompensas só sejam concedidos após conclusão | Importante |
-| RF17 | Permitir visualizar saldo/pontos/reconhecimento | Importante |
+| RF17 | Permitir ao morador e ao coletor visualizar saldo/pontos/reconhecimento | Importante |
 | RF18 | Permitir à EcoRota acompanhar informações básicas da operação em um dashboard | Importante |
 | RF18.1 | Exibir no dashboard o número de coletas realizadas por período (dia/semana/mês) | Importante |
 | RF18.2 | Exibir demanda por bairro/região, comparando volume solicitado x capacidade de coleta ofertada | Importante |
@@ -100,10 +101,9 @@ Esta seção descreve os requisitos funcionais e não funcionais da aplicação 
 | ID | Descrição | RF associado |
 |---|---|---|
 | RN01 | Exigir confirmação dupla para cancelar uma coleta, evitando cancelamentos acidentais | RF11 |
-| RN02 | Permitir cancelamento apenas até um prazo mínimo antes do horário agendado (ex.: 2h) | RF11 |
-| RN03 | Creditar pontos/recompensa ao morador somente após a coleta ser confirmada como concluída pelo coletor | RF13, RF16 |
+| RN02 | Permitir cancelamento apenas até um prazo mínimo antes do horário agendado em 1 dia | RF11 |
+| RN03 | Creditar pontos/recompensa ao morador e ao coletor somente após a coleta ser confirmada como concluída pelo coletor | RF13, RF16 |
 | RN05 | Impedir que um coletor tenha mais coletas atribuídas do que sua capacidade disponível na API | RF08, RF14 |
-| RN06 | Ao marcar "morador ausente", exigir registro do motivo e oferecer opção de reagendamento | RF10, RF11 |
 | RN07 | Manter o histórico de coletas (inclusive canceladas) mesmo após qualquer alteração de status, para rastreabilidade | RF12 |
 | RN08 | Impedir duplicidade: não permitir duas solicitações abertas para o mesmo endereço na mesma data | RF04 |
 | RN09 | Sincronizar o status da coleta entre o sistema e a API EcoRota em tempo (quase) real, via WebSocket quando disponível | RF15 |
