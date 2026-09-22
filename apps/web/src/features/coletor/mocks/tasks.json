@@ -1,0 +1,6 @@
+[
+  { "id": "t1", "status": "in_service", "materials": ["paper", "plastic"], "pointId": "p01", "pointName": "Ecoponto Praça Central", "circuit": 1, "notes": "Sacos na entrada, ao lado do portão." },
+  { "id": "t2", "status": "assigned", "materials": ["glass"], "pointId": "p02", "pointName": "Ecoponto Mercado Municipal", "circuit": 1, "arrivesInMs": 20000 },
+  { "id": "t3", "status": "assigned", "materials": ["metal", "electronics"], "pointId": "p04", "pointName": "Ponto Feira de Domingo", "circuit": 1, "notes": "Volume grande. Levar carrinho.", "arrivesInMs": 45000 },
+  { "id": "t4", "status": "completed", "materials": ["plastic"], "pointId": "p03", "pointName": "Ecoponto Biblioteca Municipal", "circuit": 1 }
+]
