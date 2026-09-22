@@ -2,6 +2,11 @@
 
 Plano em fases para sair do zero à demo final em **10 dias corridos**. Cada fase tem entregáveis diretos, divisão por integrantes do time e dependências explícitas.
 
+> **Premissas & Escopo Derivados do Benchmark (Cataki):**
+> 1. **Sem Processamento Financeiro:** Transações monetárias ocorrem fora do app. O MVP foca 100% em agendamento, roteamento e visibilidade operacional.
+> 2. **Diferencial de Tempo Real:** Cobertura de posições ao vivo via Socket.IO/MapLibre (ausente em concorrentes como o Cataki).
+> 3. **Gamificação + Impacto Social:** Foco em engajamento com barras de metas, pontos virtuais e exibição de impacto ambiental (kg reciclados).
+
 ---
 
 # 📂 Estrutura do Monorepo e Mapeamento de Responsabilidades
@@ -86,7 +91,7 @@ trainee2026-1/
   * Deduplicar eventos por `id` e descartar atualizações com `revision` inferior.
   * Tratar desconexão com backoff exponencial + aleatoriedade (jitter).
 * [ ] **Task 1.2 (Dia 3):** Criar a estrutura `OperationState` em `apps/api/src/integration/operation-state/` para manter os 12 pontos, coletores e rotas salvos em memória.
-* [ ] **Task 1.3 (Dias 4–5):** Configurar o Prisma ORM com PostgreSQL em `apps/api/prisma/schema.prisma` e criar as tabelas `User`, `Address`, `Request` e `PointsLog`.
+* [ ] **Task 1.3 (Dias 4–5):** Configurar o Prisma ORM com PostgreSQL em `apps/api/prisma/schema.prisma` e criar as tabelas `User`, `Address`, `CollectorProfile` (diferenciando `system` vs `custom` e disponibilidade por turno), `Request` e `PointsLog`.
 * [ ] **Task 1.4 (Dias 5–6):** Criar os endpoints de Autenticação (`POST /auth/register`, `POST /auth/login`) com JWT em cookies `httpOnly` e middlewares de permissão (RBAC).
 
 ---
@@ -95,9 +100,9 @@ trainee2026-1/
 > **Foco:** Experiência do cidadão/morador, solicitações e gamificação.
 
 * [ ] **Task 2.1 (Dias 1–3):** Construir a tela de solicitação de coleta em `apps/web/src/features/morador/` usando **dados mockados**.
-  * Formulário para escolher o ponto (entre os 12), tipo de material e data.
+  * Onboarding guiado em 3 etapas simples (Tipo de Material -> Seleção de Ponto/Filtragem -> Data e Turno desejado) para evitar mismatch de expectativa.
 * [ ] **Task 2.2 (Dias 4–5):** Construir a tela de acompanhamento de status com visualizador amigável (traduzindo `pending` -> "Aguardando coletor", `in_service` -> "Coletor no local").
-* [ ] **Task 2.3 (Dias 6–7):** Criar a página de Histórico + Gamificação (exibindo saldo de pontos, metas do mês e efeito visual de confete ao concluir).
+* [ ] **Task 2.3 (Dias 6–7):** Criar a página de Histórico + Gamificação e Impacto Social (exibindo saldo de pontos, kg de material reciclado, metas do mês e efeito visual de confete ao concluir).
 * [ ] **Task 2.4 (Dias 8–9):** Conectar os formulários às chamadas reais da API (`POST /requests`) criadas pelo Dev 1/Dev 4.
 
 ---
@@ -105,11 +110,11 @@ trainee2026-1/
 ### 🎨 Dev 3 — Frontend Puro (Coletor)
 > **Foco:** Interface de campo com alta acessibilidade para catadores autônomos (RNF08).
 
-* [ ] **Task 3.1 (Dias 1–3):** Criar o layout da Área do Coletor em `apps/web/src/features/coletor/` com **botões grandes, ícones claros e alto contraste**.
+* [ ] **Task 3.1 (Dias 1–3):** Criar o layout da Área do Coletor em `apps/web/src/features/coletor/` com **botões grandes, ícones claros, alto contraste e familiaridade visual estilo WhatsApp** (RNF08).
 * [ ] **Task 3.2 (Dias 4–5):** Desenvolver o **Painel do Dia**: lista de tarefas atribuídas ao coletor logado (usando dados mockados).
 * [ ] **Task 3.3 (Dias 6–7):** Implementar o fluxo de **Confirmação de Coleta** (botão de conclusão após o status virar `in_service`) e modal de **Morador Ausente** (registro de motivo + reagendamento).
   * **💡 Suporte Offline (Diferencial RNF02):** Implementar fila local (`offlineQueue` via `LocalStorage`/`IndexedDB`). Se o coletor clicar em confirmar sem sinal de celular, a ação fica salva localmente e é enviada automaticamente assim que a rede voltar (`window.addEventListener('online')`).
-* [ ] **Task 3.4 (Dias 8–9):** Conectar a interface às rotas reais de confirmação (`POST /requests/:id/complete`) e toggle de disponibilidade (`POST /collector/availability`).
+* [ ] **Task 3.4 (Dias 8–9):** Conectar a interface às rotas reais de confirmação (`POST /requests/:id/complete`) e gestão de disponibilidade por dia/turno (`POST /collector/availability`).
 
 ---
 
