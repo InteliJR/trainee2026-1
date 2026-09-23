@@ -1,9 +1,18 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Icon, type IconName } from '../../../components/Icon';
+import { useAuth } from '../auth/AuthContext';
 
 // Casca da área do coletor: cabeçalho de alto contraste, conteúdo de uma coluna e navegação inferior.
-// Guia de estilos: "Hoje, Disponível, Perfil" — Perfil fica de fora até existir login na área do coletor.
+// Guia de estilos: "Hoje, Disponível, Perfil" — a aba Perfil ainda não existe; nome e "Sair" ficam no cabeçalho.
 export function ColetorShell() {
+  const { collector, logout } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    await logout();
+    navigate('/coletor/login', { replace: true });
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-neutral-50">
       <header className="sticky top-0 z-10 bg-brand-700 text-white">
@@ -11,7 +20,17 @@ export function ColetorShell() {
           <Link to="/coletor" className="min-h-touch flex items-center text-xl font-bold">
             EcoRota
           </Link>
-          <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-brand-800">Coletor</span>
+          <div className="flex items-center gap-3">
+            {collector && <span className="text-sm font-semibold">{collector.name.split(' ')[0]}</span>}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex min-h-touch items-center gap-1 rounded-full bg-white px-3 text-sm font-bold text-brand-800 hover:bg-brand-50"
+            >
+              <Icon name="logout" className="h-4 w-4" />
+              Sair
+            </button>
+          </div>
         </div>
       </header>
 

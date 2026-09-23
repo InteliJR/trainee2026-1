@@ -7,6 +7,7 @@ export const MESSAGES = {
   serviceUnstable: 'O serviço está instável agora. Tente de novo em instantes.',
   notOnSite: 'Ainda não dá para confirmar. A coleta precisa estar no local.',
   cannotCancel: 'Esta coleta não pode mais ser cancelada.',
+  wrongCredentials: 'E-mail ou senha incorretos. Confira e tente de novo.',
 } as const;
 
 export function friendlyError(error: unknown, fallback: string = MESSAGES.loadError): string {
