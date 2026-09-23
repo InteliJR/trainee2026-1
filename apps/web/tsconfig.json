@@ -5,7 +5,7 @@
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": ["vite/client", "google.maps"]
   },
   "include": ["src"]
 }
