@@ -31,4 +31,6 @@ export const httpApi: CollectorApi = {
   completeTask: (id) => request('POST', endpoints.completeTask(id)),
   cancelTask: (id) => request('POST', endpoints.cancelTask(id)),
   reportIssue: (id, report) => request('POST', endpoints.reportIssue(id), report),
+  getAvailability: () => request('GET', endpoints.availability),
+  setAvailability: (available) => request('POST', endpoints.availability, { available }),
 };

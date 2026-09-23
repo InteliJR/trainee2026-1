@@ -30,4 +30,7 @@ export interface CollectorApi {
   completeTask(id: string): Promise<void>;
   cancelTask(id: string): Promise<void>;
   reportIssue(id: string, report: PickupIssueReport): Promise<void>;
+  // Task 3.4 (Dia 5): disponibilidade do coletor (arquitetura-Luiz.md §10.2).
+  getAvailability(): Promise<boolean>;
+  setAvailability(available: boolean): Promise<boolean>;
 }

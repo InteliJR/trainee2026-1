@@ -6,4 +6,7 @@ export const endpoints = {
   // POST — coleta não realizada no ponto (+ reagendamento).
   // Rota NOVA: não consta na arquitetura-Luiz.md §10.2. [COMBINAR COM O DEV 1]
   reportIssue: (id: string) => `/collector/requests/${id}/issue`,
+  // POST — disponibilidade do coletor, conforme arquitetura-Luiz.md §10.2.
+  // GET — leitura do estado atual: rota NOVA, não consta na arquitetura-Luiz.md §10.2. [COMBINAR COM O DEV 1]
+  availability: '/collector/availability',
 } as const;

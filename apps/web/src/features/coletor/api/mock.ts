@@ -15,6 +15,7 @@ import { ApiError } from './errors';
 import type { CollectorApi, CollectorTask } from './types';
 
 const STORAGE_KEY = 'ecorota.mock.coletor.v1';
+const AVAILABILITY_KEY = 'ecorota.mock.coletor.availability.v1';
 const LATENCY_MS = 250;
 
 interface SeedTask {
@@ -63,6 +64,29 @@ function save(tasks: StoredTask[]): void {
   memory = tasks;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  } catch {
+    /* idem */
+  }
+}
+
+// Disponibilidade: coletor começa disponível por padrão.
+let availabilityMemory: boolean | null = null;
+
+function loadAvailability(): boolean {
+  if (availabilityMemory !== null) return availabilityMemory;
+  try {
+    const raw = localStorage.getItem(AVAILABILITY_KEY);
+    if (raw) return (availabilityMemory = JSON.parse(raw) as boolean);
+  } catch {
+    /* storage indisponível: segue em memória */
+  }
+  return (availabilityMemory = true);
+}
+
+function saveAvailability(available: boolean): void {
+  availabilityMemory = available;
+  try {
+    localStorage.setItem(AVAILABILITY_KEY, JSON.stringify(available));
   } catch {
     /* idem */
   }
@@ -139,5 +163,16 @@ export const mockApi: CollectorApi = {
     task.arrivesAt = undefined;
     task.updatedAt = new Date().toISOString();
     save(tasks);
+  },
+
+  async getAvailability() {
+    await delay();
+    return loadAvailability();
+  },
+
+  async setAvailability(available) {
+    await delay();
+    saveAvailability(available);
+    return available;
   },
 };

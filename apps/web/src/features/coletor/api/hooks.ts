@@ -64,3 +64,33 @@ export const useTasks = (opts?: { poll?: boolean; pollWhile?: (data: CollectorTa
     pollMs: opts?.poll ? TASK_POLL_MS : undefined,
     pollWhile: opts?.pollWhile,
   });
+
+// Task 3.4 (Dia 5): disponibilidade do coletor, com atualização otimista (desfaz se a chamada falhar).
+export function useAvailability() {
+  const { data, error, loading, reload } = useAsync(() => api.getAvailability(), []);
+  const [optimistic, setOptimistic] = useState<boolean>();
+  const [toggling, setToggling] = useState(false);
+  const [toggleError, setToggleError] = useState<unknown>();
+
+  useEffect(() => setOptimistic(undefined), [data]);
+  const available = optimistic ?? data;
+
+  const toggle = useCallback(async () => {
+    if (available === undefined || toggling) return;
+    const next = !available;
+    setToggling(true);
+    setToggleError(undefined);
+    setOptimistic(next);
+    try {
+      const confirmed = await api.setAvailability(next);
+      setOptimistic(confirmed);
+    } catch (error) {
+      setOptimistic(available);
+      setToggleError(error);
+    } finally {
+      setToggling(false);
+    }
+  }, [available, toggling]);
+
+  return { data: available, error, loading, toggling, toggleError, reload, toggle };
+}
