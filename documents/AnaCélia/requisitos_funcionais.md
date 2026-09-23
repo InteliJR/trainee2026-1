@@ -20,3 +20,64 @@
 | RF16 | Garantir que pontos ou recompensas sejam concedidos somente após a conclusão da coleta | Importante |
 | RF17 | Permitir visualizar saldo, pontos ou reconhecimento | Importante |
 | RF18 | Permitir à EcoRota acompanhar informações básicas da operação em um dashboard | Não definida |
+
+
+### Fluxo de Telas 
+
+
+ECOROTA
+│
+├── Login- dados de contato, telefone
+├── Cadastro
+│
+├── MORADOR
+│   │
+│   ├── Home
+│   │
+│   ├── Nova coleta
+│   │   ├── Endereço-com foto
+│   │   ├── Material
+│   │   ├── Data
+│   │   ├── Revisão
+│   │   └── Confirmação
+│   │
+│   ├── Acompanhar coleta
+│   │   ├── Status da coleta
+│   │   ├── Dados da coleta
+│   │   └── Coletor responsável
+│   │
+│   ├── Explorar
+│   │   ├── Mapa
+│   │   ├── Pontos
+│   │   
+│   │
+│   ├── Histórico
+│   │   ├── Lista de coletas
+│   │   └── Detalhes
+│   │
+│   └── EcoPontos- Ranking
+
+│
+├── COLETOR
+│   │
+│   ├── Home 
+│   ├── Coletas do dia
+│   ├── Detalhes
+│   ├── Atendimento
+│   │   ├── Iniciar atendimento
+│   │   ├── Atualizar status
+│   │   └── Registrar atendimento-foto da coleta
+│   └── Conclusão / Cancelamento
+│
+└── ECOROTA / OPERAÇÃO
+    │
+    ├── Dashboard operacional
+    ├── Solicitações
+    ├── Ver perfis  de Coletores de moradores
+    └── Visão geral da operação e Ranking dos usuários e dos coletores.
+
+
+
+
+
+
