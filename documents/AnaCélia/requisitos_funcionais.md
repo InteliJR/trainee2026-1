@@ -79,5 +79,69 @@ ECOROTA
 
 
 
+### Adiciona divisão das tarefas 
+
+
+Frente
+O que precisa ser feito
+
+
+
+
+
+1. Requisitos e Regras de Negócio
+Definir o que o sistema precisa fazer para morador, coletor e EcoRota
+
+
+2. UX/UI
+Fluxos de Telas;
+
+
+3. Tecnologias
+Escolher frontend, backend, banco de dados, autenticação, mapa e deploy;
+
+
+4. Arquitetura
+Definir como Frontend → Backend → API EcoRota irão se comunicar
+
+
+5. API EcoRota
+Entender endpoints, autenticação, coletores, solicitações, localização, rotas e status.
+
+
+6. Backend
+Criar regras, autenticação, endpoints internos, validações e integração com a API
+
+
+7. Frontend Morador
+Solicitar coleta, acompanhar status, visualizar pontos/coletores, histórico e recompensas
+
+
+8. Frontend Coletor
+Visualizar coletas, confirmar, cancelar, atualizar status e concluir atendimento
+
+
+9. Integração
+Conectar frontend, backend e API da EcoRota
+
+
+10. Testes
+Testar o fluxo completo, erros, cancelamentos, histórico e atualização dos dados
+
+
+11. Deploy
+Colocar frontend e backend disponíveis online;
+
+
+12. Documentação
+Explicar arquitetura, tecnologias, execução, limitações e decisões;
+
+
+
+
+
+
+
+
 
 
