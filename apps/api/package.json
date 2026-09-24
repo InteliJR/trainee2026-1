@@ -12,7 +12,8 @@
     "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
-    "prisma:migrate:deploy": "prisma migrate deploy"
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "database:verify": "tsx scripts/verify-database.ts"
   },
   "dependencies": {
     "@ecorota/shared": "workspace:^",

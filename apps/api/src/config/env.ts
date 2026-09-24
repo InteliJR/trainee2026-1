@@ -1,14 +1,8 @@
 import { config } from 'dotenv';
 import { fileURLToPath } from 'node:url';
+import { validateEnvironment } from './validateEnv.js';
 
 const rootEnvPath = fileURLToPath(new URL('../../../../.env', import.meta.url));
 config({ path: rootEnvPath });
 
-export const env = {
-  nodeEnv: process.env.NODE_ENV ?? 'development',
-  port: Number(process.env.PORT ?? 3000),
-  ecorotaUrl: process.env.ECOROTA_URL ?? '',
-  ecorotaKey: process.env.ECOROTA_KEY ?? '',
-  databaseUrl: process.env.DATABASE_URL ?? '',
-  jwtSecret: process.env.JWT_SECRET ?? '',
-};
+export const env = validateEnvironment(process.env);

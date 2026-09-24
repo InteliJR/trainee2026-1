@@ -491,10 +491,11 @@ Esta seção diferencia o que já existe no repositório da arquitetura-alvo des
 | Área | Estado atual |
 |---|---|
 | Monorepo | Estrutura com `apps/api`, `apps/web` e `packages/shared`, utilizando TypeScript e `pnpm`. |
-| Fastify | Aplicação inicial criada com a rota provisória `GET /health`. |
-| Configuração | Leitura inicial de variáveis como porta, URL EcoRota, credencial, banco e segredo JWT. Ainda não há validação completa. |
-| Prisma | Prisma 7.10 configurado com adapter PostgreSQL, cliente tipado gerado e todos os models do DER implementados no `schema.prisma`. |
-| Migration | Migration inicial gerada com enums, tabelas, índices, unicidades e chaves estrangeiras. A aplicação no Supabase aguarda a URI PostgreSQL. |
+| Fastify | Aplicação configurada com rota modular `GET /api/v1/saude`, tratamento central de erros e resposta 404 padronizada. |
+| Configuração | `.env` centralizado na raiz e validado quanto a ambiente, porta, URI PostgreSQL, integração EcoRota e tamanho do segredo JWT. |
+| Prisma | Prisma 7.10 configurado com adapter PostgreSQL, fábrica de conexão, cliente tipado gerado e todos os models do DER implementados no `schema.prisma`. |
+| Migration | Migration inicial aplicada no Supabase com enums, oito tabelas, índices, unicidades, chaves estrangeiras e RLS habilitado. |
+| Organização modular | Módulo de saúde implementado como referência, separado em rota, serviço e repositório. |
 | Estado operacional | `OperationState` existe com pontos e coletores simulados e uma revisão local. |
 | Socket.IO | O módulo de transmissão foi criado, mas ainda não está conectado ao bootstrap da API nem possui autenticação e salas. |
 | Tipos compartilhados | Existem tipos iniciais de ponto, coletor, snapshot e evento, além da tradução básica de status. |
@@ -506,9 +507,8 @@ Esta seção diferencia o que já existe no repositório da arquitetura-alvo des
 
 | Área | Trabalho pendente |
 |---|---|
-| Banco e Prisma | Configurar `DATABASE_URL` e `DIRECT_URL` com URIs PostgreSQL do Supabase, aplicar a migration inicial e conferir as tabelas criadas. |
 | Autenticação | Implementar hash de senha, JWT, cookie `httpOnly`, sessão, logout e autorização para `MORADOR`, `COLETOR` e `OPERADOR`. |
-| API REST | Implementar os endpoints em português definidos na seção 12, incluindo validação, paginação e tratamento padronizado de erros. |
+| API REST | Implementar os demais endpoints em português definidos na seção 12, reutilizando o tratamento padronizado de erros já criado. |
 | Regras de negócio | Implementar cancelamento, prazo mínimo, capacidade do coletor, histórico, não duplicidade e pontuação idempotente. |
 | Integração HTTP | Criar o `EcoRotaClient` e as operações de criação, atualização, cancelamento e conclusão na API EcoRota. |
 | WebSocket EcoRota | Implementar conexão, snapshot, `generation`, `revision`, deduplicação, reconexão e atualização do `OperationState`. |
@@ -534,7 +534,7 @@ O diagrama deste documento representa o modelo implementado no Prisma. O acompan
 | Implementar `SystemState` | Concluída |
 | Revisar índices e restrições de unicidade | Concluída |
 | Gerar e revisar a migration inicial | Concluída |
-| Aplicar a migration no PostgreSQL do Supabase | Pendente de `DATABASE_URL` e `DIRECT_URL` |
+| Aplicar a migration no PostgreSQL do Supabase | Concluída |
 
 ## 11. Premissas adotadas
 
@@ -549,7 +549,7 @@ O diagrama deste documento representa o modelo implementado no Prisma. O acompan
 
 ## 12. Mapeamento dos endpoints da API
 
-Esta seção define o contrato REST alvo do MVP. As rotas existentes no código ainda se limitam a `GET /health`; portanto, os endpoints abaixo deverão ser implementados no Fastify.
+Esta seção define o contrato REST alvo do MVP. A rota `GET /api/v1/saude` já está implementada; os demais endpoints ainda deverão ser implementados no Fastify.
 
 ### 12.1 Padrão de nomenclatura
 
@@ -596,7 +596,7 @@ Exemplo de erro padronizado:
 |---|---|---|---|
 | `GET` | `/api/v1/saude` | Público | Verificar se a API está em execução. |
 
-> Ao implementar o novo padrão, a rota provisória `GET /health` deverá ser substituída por `GET /api/v1/saude`.
+> Implementado: a rota provisória `GET /health` foi removida e substituída por `GET /api/v1/saude`.
 
 ### 12.3 Autenticação e sessão
 
