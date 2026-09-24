@@ -6,6 +6,8 @@ import { PrismaHealthRepository } from './modules/health/health.repository.js';
 const database = createPrismaClient(env.databaseUrl);
 const app = buildApp({
   healthRepository: new PrismaHealthRepository(database),
+  database,
+  nodeEnv: env.nodeEnv,
 });
 
 app.addHook('onClose', async () => {

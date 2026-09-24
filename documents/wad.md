@@ -496,27 +496,30 @@ Esta seção diferencia o que já existe no repositório da arquitetura-alvo des
 | Prisma | Prisma 7.10 configurado com adapter PostgreSQL, fábrica de conexão, cliente tipado gerado e todos os models do DER implementados no `schema.prisma`. |
 | Migration | Migration inicial aplicada no Supabase com enums, oito tabelas, índices, unicidades, chaves estrangeiras e RLS habilitado. |
 | Organização modular | Módulo de saúde implementado como referência, separado em rota, serviço e repositório. |
+| Primeiro fluxo | Endereços, criação e consulta de solicitações, histórico, cancelamento, atribuição temporária, início, conclusão e consulta de pontos implementados em rotas, serviços e repositórios. |
+| Identidade temporária | Cabeçalho `x-usuario-id` disponível somente em desenvolvimento/teste, com usuário e papel sempre consultados no banco. Não substitui a autenticação planejada. |
+| Regras de negócio | RN02, RN03, RN05 e RN06 aplicadas no primeiro fluxo local; transições de estado e autorização por papel também validadas. RN01 continua dependendo da confirmação dupla na interface. |
 | Estado operacional | `OperationState` existe com pontos e coletores simulados e uma revisão local. |
 | Socket.IO | O módulo de transmissão foi criado, mas ainda não está conectado ao bootstrap da API nem possui autenticação e salas. |
 | Tipos compartilhados | Existem tipos iniciais de ponto, coletor, snapshot e evento, além da tradução básica de status. |
 | Frontend | React e Vite estão configurados; as áreas de morador e coletor ainda são placeholders. |
 | Mapa | O componente utiliza dados simulados. MapLibre já existe, mas o código ainda contém integração legada com Google Maps. |
-| Testes | Existe teste inicial da rota de saúde. |
+| Testes | Testes automatizados da fundação e verificador ponta a ponta do primeiro fluxo executado contra o Supabase. |
 
 ### 10.2 Planejado e ainda não implementado
 
 | Área | Trabalho pendente |
 |---|---|
 | Autenticação | Implementar hash de senha, JWT, cookie `httpOnly`, sessão, logout e autorização para `MORADOR`, `COLETOR` e `OPERADOR`. |
-| API REST | Implementar os demais endpoints em português definidos na seção 12, reutilizando o tratamento padronizado de erros já criado. |
-| Regras de negócio | Implementar cancelamento, prazo mínimo, capacidade do coletor, histórico, não duplicidade e pontuação idempotente. |
+| API REST | Implementar os endpoints restantes de perfil, disponibilidade, exploração operacional e painel definidos na seção 12. |
+| Regras de negócio | Integrar a capacidade real do coletor com a EcoRota e substituir a pontuação fixa provisória pela regra definitiva. |
 | Integração HTTP | Criar o `EcoRotaClient` e as operações de criação, atualização, cancelamento e conclusão na API EcoRota. |
 | WebSocket EcoRota | Implementar conexão, snapshot, `generation`, `revision`, deduplicação, reconexão e atualização do `OperationState`. |
 | Socket.IO | Conectar ao servidor Fastify, autenticar a conexão, criar salas e emitir os eventos públicos em português. |
 | Estado operacional | Substituir os mocks pelos dados reais e incluir solicitações, rotas e controle de telemetria desatualizada. |
 | Frontend | Implementar os fluxos do morador, coletor e operador consumindo a API real. |
 | MapLibre | Remover a integração legada com Google Maps e manter o MapLibre como solução única do mapa. |
-| Testes | Criar testes unitários, de integração e do fluxo completo entre morador, coletor e EcoRota. |
+| Testes | Ampliar os testes unitários e executar o fluxo completo com a integração EcoRota, ainda ausente. |
 | Deploy | Definir e configurar o ambiente de publicação da API e do frontend. |
 
 ### 10.3 Ordem de implementação do modelo de dados
