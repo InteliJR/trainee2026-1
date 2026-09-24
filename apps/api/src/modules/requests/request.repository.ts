@@ -36,6 +36,8 @@ export interface RequestRepository {
   assign(id: string, actorId: string, collectorUserId: string): Promise<RequestDetails>;
   start(id: string, collectorUserId: string): Promise<RequestDetails>;
   complete(id: string, collectorUserId: string, photoUrl: string): Promise<RequestDetails>;
+  markSynchronized(id: string, external: { requestId: string; pointId: string; collectorId: string | null }): Promise<RequestDetails>;
+  markSyncError(id: string): Promise<RequestDetails>;
 }
 
 export class PrismaRequestRepository implements RequestRepository {
@@ -73,6 +75,7 @@ export class PrismaRequestRepository implements RequestRepository {
         data: {
           residentId,
           addressId: input.enderecoId,
+          externalPointId: input.pontoColetaExternoId,
           desiredAt,
           externalReference: `pedido-${randomUUID()}`,
           status: 'PENDING',
@@ -123,6 +126,30 @@ export class PrismaRequestRepository implements RequestRepository {
 
   findById(id: string): Promise<RequestDetails | null> {
     return this.database.collectionRequest.findUnique({ where: { id }, include: requestInclude });
+  }
+
+  async markSynchronized(
+    id: string,
+    external: { requestId: string; pointId: string; collectorId: string | null },
+  ): Promise<RequestDetails> {
+    return this.database.collectionRequest.update({
+      where: { id },
+      data: {
+        ecoRotaRequestId: external.requestId,
+        externalPointId: external.pointId,
+        externalCollectorId: external.collectorId,
+        syncStatus: 'SYNCED',
+      },
+      include: requestInclude,
+    });
+  }
+
+  async markSyncError(id: string): Promise<RequestDetails> {
+    return this.database.collectionRequest.update({
+      where: { id },
+      data: { syncStatus: 'ERROR' },
+      include: requestInclude,
+    });
   }
 
   async cancel(id: string, actorId: string, reason: string): Promise<RequestDetails> {

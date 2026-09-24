@@ -4,6 +4,7 @@ import { PrismaDevelopmentIdentityRepository } from './auth/developmentIdentity.
 import type { NodeEnvironment } from './config/validateEnv.js';
 import { errorHandler, notFoundHandler } from './errors/errorHandler.js';
 import type { PrismaClient } from './generated/prisma/client.js';
+import type { EcoRotaClient } from './integration/ecorotaClient.js';
 import { PrismaAddressRepository } from './modules/addresses/address.repository.js';
 import { addressRoutes } from './modules/addresses/address.routes.js';
 import { AddressService } from './modules/addresses/address.service.js';
@@ -20,6 +21,7 @@ import { RequestService } from './modules/requests/request.service.js';
 export interface BuildAppOptions {
   healthRepository: HealthRepository;
   database?: PrismaClient;
+  ecoRotaClient?: EcoRotaClient;
   nodeEnv?: NodeEnvironment;
   logger?: boolean;
 }
@@ -50,7 +52,7 @@ export function buildApp(options: BuildAppOptions) {
     app.register(requestRoutes, {
       prefix: '/api/v1',
       identify,
-      service: new RequestService(new PrismaRequestRepository(options.database)),
+      service: new RequestService(new PrismaRequestRepository(options.database), options.ecoRotaClient),
     });
     app.register(gamificationRoutes, {
       prefix: '/api/v1',

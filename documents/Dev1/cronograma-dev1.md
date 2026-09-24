@@ -23,7 +23,7 @@ O Dev 1 é responsável por construir a base do backend que destrava o trabalho 
 | Tipos compartilhados | **Parcial** | `packages/shared` possui `Point`, `Collector`, `SnapshotMessage` e `EventMessage` | Completar tipos de solicitações e eventos do contrato real |
 | `OperationState` | **Parcial** | Mantém 12 pontos e 3 coletores mockados; atualiza mapas e emite eventos | Aplicar snapshot real, controlar `generation/revision`, deduplicar eventos e incluir solicitações/rotas |
 | Consumidor WebSocket EcoRota | **Não iniciado** | Não existe `integration/ws/` | Criar conexão WSS, autenticação, parser, reconexão e testes |
-| `EcoRotaClient` | **Não iniciado** | Interface e adapters HTTP/WS/Fake não existem | Criar contrato único para toda integração externa |
+| `EcoRotaClient` | **Parcialmente concluído** | Interface, adaptadores HTTP/fake e integração inicial com solicitações implementados | Ativar com a credencial, validar no ambiente real e conectar o consumidor WebSocket |
 | Proxy REST EcoRota | **Não iniciado** | Não existe `integration/http/` | Implementar criar, concluir, cancelar e consultar solicitações |
 | Prisma/PostgreSQL | **Inicial** | `schema.prisma` possui apenas `User`; dependências Prisma não estão no `package.json` | Adicionar Prisma e completar todos os models e migrations |
 | Autenticação e RBAC | **Não iniciado** | Não existem módulos, rotas ou dependências de JWT/cookies | Implementar register, login, hash de senha, cookie e guards |

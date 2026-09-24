@@ -1,13 +1,18 @@
 import { buildApp } from './app.js';
 import { env } from './config/env.js';
 import { createPrismaClient } from './infra/database/prisma.js';
+import { HttpEcoRotaClient } from './integration/http/httpEcoRotaClient.js';
 import { PrismaHealthRepository } from './modules/health/health.repository.js';
 
 const database = createPrismaClient(env.databaseUrl);
+const ecoRotaClient = env.ecorotaUrl && env.ecorotaKey
+  ? new HttpEcoRotaClient({ baseUrl: env.ecorotaUrl, apiKey: env.ecorotaKey })
+  : undefined;
 const app = buildApp({
   healthRepository: new PrismaHealthRepository(database),
   database,
   nodeEnv: env.nodeEnv,
+  ecoRotaClient,
 });
 
 app.addHook('onClose', async () => {

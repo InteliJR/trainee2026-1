@@ -45,6 +45,8 @@ describe('regras do primeiro fluxo', () => {
       assign: unused,
       start: unused,
       complete: unused,
+      markSynchronized: unused,
+      markSyncError: unused,
       ...overrides,
     };
   }
@@ -54,7 +56,12 @@ describe('regras do primeiro fluxo', () => {
 
     await expect(service.create(
       { id: RESIDENT_ID, role: 'MORADOR' },
-      { enderecoId: RESIDENT_ID, dataDesejada: '2020-01-01T12:00:00.000Z', materiais: [{ tipo: 'PAPEL' }] },
+      {
+        enderecoId: RESIDENT_ID,
+        pontoColetaExternoId: '44444444-4444-4444-8444-444444444444',
+        dataDesejada: '2020-01-01T12:00:00.000Z',
+        materiais: [{ tipo: 'PAPEL' }],
+      },
     )).rejects.toMatchObject({ code: 'DATA_DESEJADA_INVALIDA' } satisfies Partial<AppError>);
   });
 
@@ -76,4 +83,3 @@ describe('regras do primeiro fluxo', () => {
     )).rejects.toMatchObject({ code: 'PRAZO_CANCELAMENTO_EXPIRADO' } satisfies Partial<AppError>);
   });
 });
-

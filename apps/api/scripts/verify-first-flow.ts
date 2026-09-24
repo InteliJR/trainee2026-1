@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { buildApp } from '../src/app.js';
 import { env } from '../src/config/env.js';
 import { createPrismaClient } from '../src/infra/database/prisma.js';
+import { FakeEcoRotaClient } from '../src/integration/fake/fakeEcoRotaClient.js';
 import { PrismaHealthRepository } from '../src/modules/health/health.repository.js';
 
 const USERS = {
@@ -11,10 +12,12 @@ const USERS = {
 } as const;
 
 const database = createPrismaClient(env.databaseUrl);
+const ecoRotaClient = new FakeEcoRotaClient();
 const app = buildApp({
   healthRepository: new PrismaHealthRepository(database),
   database,
   nodeEnv: 'test',
+  ecoRotaClient,
   logger: false,
 });
 
@@ -57,9 +60,12 @@ try {
   const desiredDate = futureDate(3);
   const collection = await request('POST', '/api/v1/solicitacoes-coleta', USERS.resident, {
     enderecoId: address.id,
+    pontoColetaExternoId: '44444444-4444-4444-8444-444444444444',
     dataDesejada: desiredDate,
     materiais: [{ tipo: 'PAPEL', quantidadeEstimada: 4.5, unidade: 'kg' }],
   });
+  assert.equal(collection.statusSincronizacao, 'SYNCED');
+  assert.ok(collection.integracao.solicitacaoEcoRotaId);
 
   const duplicate = await app.inject({
     method: 'POST',
@@ -67,6 +73,7 @@ try {
     headers: { 'x-usuario-id': USERS.resident },
     payload: {
       enderecoId: address.id,
+      pontoColetaExternoId: '44444444-4444-4444-8444-444444444444',
       dataDesejada: desiredDate,
       materiais: [{ tipo: 'METAL' }],
     },
@@ -104,6 +111,7 @@ try {
 
   const cancellable = await request('POST', '/api/v1/solicitacoes-coleta', USERS.resident, {
     enderecoId: address.id,
+    pontoColetaExternoId: '55555555-5555-4555-8555-555555555555',
     dataDesejada: futureDate(5),
     materiais: [{ tipo: 'VIDRO', quantidadeEstimada: 2, unidade: 'kg' }],
   });
@@ -128,6 +136,7 @@ try {
     creditosDaConclusao: completed.pontosConcedidos.length,
     duplicidadeBloqueada: true,
     acessoIndevidoBloqueado: true,
+    integracaoFakeSincronizada: collection.statusSincronizacao === 'SYNCED',
   }, null, 2));
 } finally {
   await app.close();

@@ -1,6 +1,7 @@
 import type { Actor } from '../../auth/actor.js';
 import { AppError } from '../../errors/appError.js';
 import type { RequestStatus } from '../../generated/prisma/enums.js';
+import { EcoRotaIntegrationError, type EcoRotaClient } from '../../integration/ecorotaClient.js';
 import { MATERIAL_TO_API, STATUS_TO_API, API_TO_STATUS } from './request.schemas.js';
 import type { CreateCollectionRequestInput, ListCollectionRequestsQuery } from './request.schemas.js';
 import { RepositoryRuleError, type RequestDetails, type RequestRepository } from './request.repository.js';
@@ -56,6 +57,11 @@ export function serializeRequest(request: RequestDetails) {
     referenciaExterna: request.externalReference,
     status: STATUS_TO_API[request.status],
     statusSincronizacao: request.syncStatus,
+    integracao: {
+      pontoColetaExternoId: request.externalPointId,
+      solicitacaoEcoRotaId: request.ecoRotaRequestId,
+      coletorEcoRotaId: request.externalCollectorId,
+    },
     dataDesejada: request.desiredAt.toISOString(),
     motivoCancelamento: request.cancellationReason,
     fotoConclusaoUrl: request.completionPhotoUrl,
@@ -91,7 +97,10 @@ export function serializeRequest(request: RequestDetails) {
 }
 
 export class RequestService {
-  constructor(private readonly repository: RequestRepository) {}
+  constructor(
+    private readonly repository: RequestRepository,
+    private readonly ecoRotaClient?: EcoRotaClient,
+  ) {}
 
   async create(actor: Actor, input: CreateCollectionRequestInput) {
     if (actor.role !== 'MORADOR') {
@@ -103,7 +112,24 @@ export class RequestService {
     }
 
     try {
-      return serializeRequest(await this.repository.create(actor.id, input));
+      let request = await this.repository.create(actor.id, input);
+      if (this.ecoRotaClient) {
+        try {
+          const external = await this.ecoRotaClient.createRequest({
+            pointId: input.pontoColetaExternoId,
+            externalReference: request.externalReference,
+          });
+          request = await this.repository.markSynchronized(request.id, {
+            requestId: external.data.id,
+            pointId: external.data.pointId,
+            collectorId: external.data.collectorId,
+          });
+        } catch (error) {
+          request = await this.repository.markSyncError(request.id);
+          if (!(error instanceof EcoRotaIntegrationError)) throw error;
+        }
+      }
+      return serializeRequest(request);
     } catch (error) {
       return mapRepositoryError(error);
     }
@@ -162,8 +188,20 @@ export class RequestService {
       throw new AppError({ statusCode: 409, code: 'PRAZO_CANCELAMENTO_EXPIRADO', message: 'O morador só pode cancelar com pelo menos 1 dia de antecedência.' });
     }
     try {
+      if (this.ecoRotaClient && request.ecoRotaRequestId) {
+        await this.ecoRotaClient.cancelRequest(request.ecoRotaRequestId);
+      }
       return serializeRequest(await this.repository.cancel(id, actor.id, reason.trim()));
     } catch (error) {
+      if (error instanceof EcoRotaIntegrationError) {
+        await this.repository.markSyncError(id);
+        throw new AppError({
+          statusCode: 502,
+          code: 'FALHA_ECOROTA',
+          message: 'Não foi possível confirmar o cancelamento na EcoRota.',
+          details: { tentavelNovamente: error.retryable },
+        });
+      }
       return mapRepositoryError(error);
     }
   }
@@ -199,10 +237,22 @@ export class RequestService {
     if (actor.role !== 'COLETOR') {
       throw new AppError({ statusCode: 403, code: 'PAPEL_NAO_AUTORIZADO', message: 'Apenas o coletor responsável pode concluir o atendimento.' });
     }
-    await this.get(actor, id);
+    const request = await this.get(actor, id);
     try {
+      if (this.ecoRotaClient && request.ecoRotaRequestId && request.status !== 'COMPLETED') {
+        await this.ecoRotaClient.completeRequest(request.ecoRotaRequestId);
+      }
       return serializeRequest(await this.repository.complete(id, actor.id, photoUrl));
     } catch (error) {
+      if (error instanceof EcoRotaIntegrationError) {
+        await this.repository.markSyncError(id);
+        throw new AppError({
+          statusCode: 502,
+          code: 'FALHA_ECOROTA',
+          message: 'Não foi possível confirmar a conclusão na EcoRota.',
+          details: { tentavelNovamente: error.retryable },
+        });
+      }
       return mapRepositoryError(error);
     }
   }

@@ -29,6 +29,7 @@ export const STATUS_TO_API: Record<RequestStatus, string> = Object.fromEntries(
 
 export interface CreateCollectionRequestInput {
   enderecoId: string;
+  pontoColetaExternoId: string;
   dataDesejada: string;
   materiais: Array<{
     tipo: keyof typeof API_TO_MATERIAL;
@@ -48,9 +49,10 @@ export interface ListCollectionRequestsQuery {
 export const createCollectionRequestBodySchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['enderecoId', 'dataDesejada', 'materiais'],
+  required: ['enderecoId', 'pontoColetaExternoId', 'dataDesejada', 'materiais'],
   properties: {
     enderecoId: { type: 'string', format: 'uuid' },
+    pontoColetaExternoId: { type: 'string', format: 'uuid' },
     dataDesejada: { type: 'string', format: 'date-time' },
     materiais: {
       type: 'array',
@@ -93,4 +95,3 @@ export const conclusionBodySchema = {
   required: ['fotoUrl'],
   properties: { fotoUrl: { type: 'string', format: 'uri', maxLength: 500 } },
 } as const;
-
