@@ -16,7 +16,8 @@
     "database:verify": "tsx scripts/verify-database.ts",
     "database:seed:development": "tsx scripts/seed-development.ts",
     "flow:verify": "tsx scripts/verify-first-flow.ts",
-    "sync:verify": "tsx scripts/verify-domain-sync.ts"
+    "sync:verify": "tsx scripts/verify-domain-sync.ts",
+    "collector:verify": "tsx scripts/verify-collector-flow.ts"
   },
   "dependencies": {
     "@ecorota/shared": "workspace:^",

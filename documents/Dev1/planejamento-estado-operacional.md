@@ -50,13 +50,8 @@ Pontos retornam `dadosDesatualizados`. Cada coletor retorna `telemetriaDesatuali
 
 Antes do primeiro snapshot, os endpoints respondem `503 DADOS_OPERACIONAIS_INDISPONIVEIS`. Isso evita apresentar uma lista vazia como se a EcoRota realmente não tivesse pontos ou coletores.
 
-## 6. Próxima etapa
+## 6. Gestão do coletor concluída
 
-Implementar a gestão do coletor local:
+As rotas de solicitações e disponibilidade do coletor foram implementadas, incluindo sincronização opcional com `PATCH /v1/collectors/:id`. Os detalhes estão em `planejamento-gestao-coletor.md`.
 
-- `GET /api/v1/coletor/solicitacoes`;
-- `GET /api/v1/coletor/disponibilidade`;
-- `PATCH /api/v1/coletor/disponibilidade`;
-- sincronizar disponibilidade com `PATCH /v1/collectors/:id` da EcoRota;
-- respeitar perfil `custom` e manter erros de sincronização rastreáveis.
-
+A próxima etapa é conectar o Socket.IO ao bootstrap da API para distribuir as atualizações às telas.

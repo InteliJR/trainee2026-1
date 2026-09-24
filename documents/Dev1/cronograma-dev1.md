@@ -28,7 +28,7 @@ O Dev 1 é responsável por construir a base do backend que destrava o trabalho 
 | Prisma/PostgreSQL | **Inicial** | `schema.prisma` possui apenas `User`; dependências Prisma não estão no `package.json` | Adicionar Prisma e completar todos os models e migrations |
 | Autenticação e RBAC | **Não iniciado** | Não existem módulos, rotas ou dependências de JWT/cookies | Implementar register, login, hash de senha, cookie e guards |
 | Solicitações | **Não iniciado** | Não existe `modules/requests/` | Implementar regras, idempotência e integração EcoRota |
-| Coletores | **Não iniciado** | Não existe `modules/collectors/` | Implementar disponibilidade e vínculo do coletor custom |
+| Coletores | **Implementado para o primeiro fluxo** | Módulo possui solicitações atribuídas, consulta e alteração de disponibilidade com sincronização opcional | Validar com coletor custom real da EcoRota |
 | Gamificação | **Não iniciado** | Não existe `modules/gamification/` | Creditar pontos somente após `request.completed` |
 | Tempo real para o frontend | **Parcial — Dev 4** | `socketServer.ts` existe, mas ainda não é registrado no bootstrap | Dev 1 deve fornecer eventos e estado reais para o broker |
 | Testes | **Muito inicial** | Existe apenas teste de `GET /health` | Adicionar testes unitários, integração e contrato |

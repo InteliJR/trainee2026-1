@@ -502,6 +502,7 @@ Esta seção diferencia o que já existe no repositório da arquitetura-alvo des
 | Regras de negócio | RN02, RN03, RN05 e RN06 aplicadas no primeiro fluxo local; transições de estado e autorização por papel também validadas. RN01 continua dependendo da confirmação dupla na interface. |
 | Estado operacional | `OperationState` aplica snapshots integrais e eventos de pontos, coletores, rotas, solicitações e simulação com controle de geração, revisão e duplicidade. |
 | Consultas operacionais | Endpoints de pontos, detalhe e coletores disponíveis leem o `OperationState`, calculam distância/raio e sinalizam dados ou telemetria desatualizados. |
+| Gestão do coletor | Solicitações atribuídas, consulta e alteração de disponibilidade implementadas com turno, RBAC temporário e sincronização HTTP opcional com a EcoRota. |
 | WebSocket EcoRota | Consumidor WSS, validação de mensagens, Bearer no handshake, reconexão com backoff/jitter e persistência do cursor implementados; ativação real aguarda credencial. |
 | Sincronização de domínio | Eventos e snapshots atualizam `CollectionRequest`, vínculo externo, histórico `ECOROTA` e pontos em transação idempotente. |
 | Socket.IO | O módulo de transmissão acompanha o novo formato de snapshot/eventos, mas ainda não está conectado ao bootstrap da API nem possui autenticação e salas. |
@@ -515,7 +516,7 @@ Esta seção diferencia o que já existe no repositório da arquitetura-alvo des
 | Área | Trabalho pendente |
 |---|---|
 | Autenticação | Implementar hash de senha, JWT, cookie `httpOnly`, sessão, logout e autorização para `MORADOR`, `COLETOR` e `OPERADOR`. |
-| API REST | Implementar os endpoints restantes de perfil, disponibilidade, exploração operacional e painel definidos na seção 12. |
+| API REST | Implementar os endpoints restantes de perfil do usuário, pontuação resumida/classificação e painel operacional definidos na seção 12. |
 | Regras de negócio | Integrar a capacidade real do coletor com a EcoRota e substituir a pontuação fixa provisória pela regra definitiva. |
 | Integração HTTP | Adicionar retentativa automática controlada, observabilidade e validar o fluxo real assim que a credencial da equipe for configurada. |
 | WebSocket EcoRota | Conectar com a credencial real e validar queda/retorno no ambiente da equipe. A sincronização com o domínio já está implementada e testada com eventos simulados. |

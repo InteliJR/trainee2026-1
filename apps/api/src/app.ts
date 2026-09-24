@@ -21,6 +21,9 @@ import { requestRoutes } from './modules/requests/request.routes.js';
 import { RequestService } from './modules/requests/request.service.js';
 import { operationRoutes } from './modules/operation/operation.routes.js';
 import { OperationService } from './modules/operation/operation.service.js';
+import { PrismaCollectorRepository } from './modules/collectors/collector.repository.js';
+import { collectorRoutes } from './modules/collectors/collector.routes.js';
+import { CollectorService } from './modules/collectors/collector.service.js';
 
 export interface BuildAppOptions {
   healthRepository: HealthRepository;
@@ -48,6 +51,10 @@ export function buildApp(options: BuildAppOptions) {
       new PrismaDevelopmentIdentityRepository(options.database),
       options.nodeEnv ?? 'development',
     );
+    const requestService = new RequestService(
+      new PrismaRequestRepository(options.database),
+      options.ecoRotaClient,
+    );
 
     app.register(addressRoutes, {
       prefix: '/api/v1',
@@ -57,7 +64,7 @@ export function buildApp(options: BuildAppOptions) {
     app.register(requestRoutes, {
       prefix: '/api/v1',
       identify,
-      service: new RequestService(new PrismaRequestRepository(options.database), options.ecoRotaClient),
+      service: requestService,
     });
     app.register(gamificationRoutes, {
       prefix: '/api/v1',
@@ -68,6 +75,15 @@ export function buildApp(options: BuildAppOptions) {
       prefix: '/api/v1',
       identify,
       service: new OperationService(operationState, options.streamStatusProvider),
+    });
+    app.register(collectorRoutes, {
+      prefix: '/api/v1',
+      identify,
+      service: new CollectorService(
+        new PrismaCollectorRepository(options.database),
+        requestService,
+        options.ecoRotaClient,
+      ),
     });
   }
 
