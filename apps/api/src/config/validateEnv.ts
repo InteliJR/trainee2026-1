@@ -5,6 +5,7 @@ export interface AppEnvironment {
   port: number;
   ecorotaUrl: string;
   ecorotaKey: string;
+  webOrigin: string;
   databaseUrl: string;
   directDatabaseUrl: string;
   jwtSecret: string;
@@ -56,6 +57,7 @@ export function validateEnvironment(values: NodeJS.ProcessEnv): AppEnvironment {
 
   const ecorotaUrl = values.ECOROTA_URL?.trim() ?? '';
   const ecorotaKey = values.ECOROTA_KEY?.trim() ?? '';
+  const webOrigin = values.WEB_ORIGIN?.trim() || 'http://localhost:5173';
 
   if (ecorotaUrl && !isHttpUrl(ecorotaUrl)) {
     errors.push('ECOROTA_URL deve ser uma URL HTTP ou HTTPS válida.');
@@ -63,6 +65,10 @@ export function validateEnvironment(values: NodeJS.ProcessEnv): AppEnvironment {
 
   if (Boolean(ecorotaUrl) !== Boolean(ecorotaKey)) {
     errors.push('ECOROTA_URL e ECOROTA_KEY devem ser configuradas em conjunto.');
+  }
+
+  if (!isHttpUrl(webOrigin)) {
+    errors.push('WEB_ORIGIN deve ser uma URL HTTP ou HTTPS válida.');
   }
 
   const jwtSecret = values.JWT_SECRET?.trim() ?? '';
@@ -79,6 +85,7 @@ export function validateEnvironment(values: NodeJS.ProcessEnv): AppEnvironment {
     port,
     ecorotaUrl,
     ecorotaKey,
+    webOrigin,
     databaseUrl,
     directDatabaseUrl,
     jwtSecret,

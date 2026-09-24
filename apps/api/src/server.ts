@@ -8,6 +8,8 @@ import { PrismaSystemStateRepository } from './integration/ws/systemState.reposi
 import { EcoRotaDomainSynchronizer } from './integration/sync/ecorotaDomainSynchronizer.js';
 import { PrismaEcoRotaRequestSyncRepository } from './integration/sync/ecorotaRequestSync.repository.js';
 import { PrismaHealthRepository } from './modules/health/health.repository.js';
+import { PrismaRealtimeAccessRepository } from './realtime/realtimeAccess.repository.js';
+import { createRealtimeBroker } from './realtime/socketServer.js';
 
 const database = createPrismaClient(env.databaseUrl);
 const ecoRotaClient = env.ecorotaUrl && env.ecorotaKey
@@ -31,6 +33,12 @@ const app = buildApp({
       }
     : undefined,
 });
+const realtimeBroker = createRealtimeBroker(app, {
+  nodeEnv: env.nodeEnv,
+  webOrigin: env.webOrigin,
+  accessRepository: new PrismaRealtimeAccessRepository(database),
+  state: operationState,
+});
 streamConsumer = env.ecorotaUrl && env.ecorotaKey
   ? new EcoRotaWsConsumer({
       baseUrl: env.ecorotaUrl,
@@ -52,6 +60,7 @@ streamConsumer = env.ecorotaUrl && env.ecorotaKey
   : undefined;
 
 app.addHook('onClose', async () => {
+  await realtimeBroker.close();
   await streamConsumer?.stop();
   await database.$disconnect();
 });

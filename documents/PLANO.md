@@ -124,9 +124,10 @@ trainee2026-1/
 * [ ] **Task 4.1 (Dias 1–3 - Front):** Criar o componente de mapa com MapLibre em `apps/web/src/map/MapContainer.tsx`.
   * Plotar os 12 pontos de coleta com coordenadas GeoJSON.
   * Renderizar os coletores no mapa usando posições mockadas.
-* [ ] **Task 4.2 (Dias 4–5 - Back):** Configurar o servidor Socket.IO em `apps/api/src/realtime/socketServer.ts`.
-  * Escutar as atualizações do `OperationState` (do Dev 1) e emitir os eventos `collector.position_updated` para o frontend.
-  * Criar a rota `GET /dashboard/stats` pré-computando KPIs do cache.
+* [x] **Task 4.2 (Dias 4–5 - Back):** Configurar o servidor Socket.IO em `apps/api/src/realtime/socketServer.ts`.
+  * Escutar o `OperationState`, filtrar snapshots e emitir eventos em português somente para salas autorizadas.
+  * O cliente React reutilizável foi preparado em `apps/web/src/realtime/socketClient.ts`.
+* [ ] **Task 4.2b (Back):** Criar a rota de indicadores operacionais prevista no WAD, pré-computando KPIs do cache.
 * [ ] **Task 4.3 (Dias 6–7 - Front):** Conectar o Dashboard ao Socket.IO real.
   * Fazer os coletores **se moverem ao vivo no mapa** sem dar refresh na página!
   * Tratar coletores com telemetria desatualizada (deixando o marcador transparente no mapa caso o `observedAt` seja antigo).

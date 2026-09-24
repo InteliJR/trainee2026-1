@@ -505,9 +505,9 @@ Esta seção diferencia o que já existe no repositório da arquitetura-alvo des
 | Gestão do coletor | Solicitações atribuídas, consulta e alteração de disponibilidade implementadas com turno, RBAC temporário e sincronização HTTP opcional com a EcoRota. |
 | WebSocket EcoRota | Consumidor WSS, validação de mensagens, Bearer no handshake, reconexão com backoff/jitter e persistência do cursor implementados; ativação real aguarda credencial. |
 | Sincronização de domínio | Eventos e snapshots atualizam `CollectionRequest`, vínculo externo, histórico `ECOROTA` e pontos em transação idempotente. |
-| Socket.IO | O módulo de transmissão acompanha o novo formato de snapshot/eventos, mas ainda não está conectado ao bootstrap da API nem possui autenticação e salas. |
+| Socket.IO | Servidor conectado ao bootstrap do Fastify no namespace `/tempo-real`, com salas por papel/usuário, snapshots filtrados e eventos públicos em português. Em desenvolvimento/teste, a identidade temporária é validada no banco; produção permanece bloqueada até a implementação do JWT. |
 | Tipos compartilhados | Existem tipos iniciais de ponto, coletor, snapshot e evento, além da tradução básica de status. |
-| Frontend | React e Vite estão configurados; as áreas de morador e coletor ainda são placeholders. |
+| Frontend | React e Vite estão configurados; existe um cliente Socket.IO reutilizável com reconexão, mas as telas de morador, coletor e operador ainda precisam assiná-lo. |
 | Mapa | O componente utiliza dados simulados. MapLibre já existe, mas o código ainda contém integração legada com Google Maps. |
 | Testes | Testes automatizados da fundação e verificador ponta a ponta do primeiro fluxo executado contra o Supabase. |
 
@@ -520,7 +520,7 @@ Esta seção diferencia o que já existe no repositório da arquitetura-alvo des
 | Regras de negócio | Integrar a capacidade real do coletor com a EcoRota e substituir a pontuação fixa provisória pela regra definitiva. |
 | Integração HTTP | Adicionar retentativa automática controlada, observabilidade e validar o fluxo real assim que a credencial da equipe for configurada. |
 | WebSocket EcoRota | Conectar com a credencial real e validar queda/retorno no ambiente da equipe. A sincronização com o domínio já está implementada e testada com eventos simulados. |
-| Socket.IO | Conectar ao servidor Fastify, autenticar a conexão, criar salas e emitir os eventos públicos em português. |
+| Socket.IO | Substituir a identidade temporária do handshake pelo JWT em cookie `httpOnly` e conectar o cliente já preparado às telas. |
 | Estado operacional | Validar as consultas com o snapshot real da equipe e conectar os dados às telas e ao mapa. |
 | Frontend | Implementar os fluxos do morador, coletor e operador consumindo a API real. |
 | MapLibre | Remover a integração legada com Google Maps e manter o MapLibre como solução única do mapa. |
@@ -728,15 +728,20 @@ Não deve existir endpoint público para conceder pontos. O lançamento é criad
 
 ### 12.10 Comunicação em tempo real
 
-O Socket.IO utiliza o namespace `/tempo-real`. Depois de autenticado, o cliente entra apenas nas salas autorizadas para seu papel e usuário.
+O Socket.IO utiliza o namespace `/tempo-real` e o caminho `/socket.io`. Em desenvolvimento e teste, o cliente envia `auth.usuarioId`; o servidor valida o UUID, consulta usuário e papel no PostgreSQL e só então libera as salas `usuario:<id>` e `papel:<papel>`. Essa identidade é provisória. Em produção, o handshake é recusado até que o JWT em cookie `httpOnly` seja implementado.
+
+Snapshots são filtrados antes do envio: o morador recebe apenas suas solicitações, o coletor recebe apenas solicitações e rota vinculadas a ele, e o operador recebe o estado operacional completo. Pontos e posições públicas do mapa permanecem disponíveis, mas eventos de solicitação são enviados somente às salas relacionadas.
 
 | Evento | Destinatário | Conteúdo |
 |---|---|---|
-| `operacao:estado-inicial` | Operador | Snapshot atual de pontos, coletores e solicitações. |
-| `coletor:posicao-atualizada` | Operador e morador relacionado | Posição, horário de observação e indicação de telemetria antiga. |
-| `solicitacao:status-atualizado` | Morador, coletor responsável e operador | Identificador, status anterior, novo status e data da mudança. |
+| `operacao:estado-inicial` | Usuário conectado | Snapshot atual filtrado conforme usuário e papel. |
+| `operacao:estado-atualizado` | Usuário conectado | Novo snapshot filtrado após uma atualização integral da EcoRota. |
+| `coletor:posicao-atualizada` | Operador, coletor e morador relacionado | Identificador externo, posição, horário de observação, geração e revisão. |
+| `solicitacao:status-atualizado` | Morador, coletor responsável e operador | Identificadores, status atual, data da mudança, geração e revisão. |
 | `solicitacao:atribuida` | Morador, coletor responsável e operador | Dados básicos da atribuição. |
-| `solicitacao:concluida` | Morador, coletor responsável e operador | Confirmação da conclusão e pontuação concedida. |
+| `solicitacao:concluida` | Morador, coletor responsável e operador | Confirmação da conclusão da solicitação. |
+| `rota:atualizada` | Coletor responsável e operador | Rota operacional atualizada pela EcoRota. |
+| `operacao:evento` | Operador | Eventos administrativos de coletor ou simulação. |
 
 O WebSocket da EcoRota continua sendo consumido exclusivamente pelo backend. Navegadores nunca recebem a credencial externa nem se conectam diretamente à plataforma.
 
