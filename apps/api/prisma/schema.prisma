@@ -1,22 +1,203 @@
-// EcoRota — banco da aplicação (modelagem própria do time).
-// Fase 4 (PLANO.md) expande os models: User/Address/CollectorProfile/Request/Gamification/SystemState.
+// EcoRota — modelo de dados próprio da aplicação.
+// A EcoRota continua sendo a fonte dos dados operacionais em tempo real.
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  MORADOR
+  COLETOR
+  OPERADOR
+}
+
+enum CollectorOrigin {
+  CUSTOM
+}
+
+enum RequestStatus {
+  SCHEDULED
+  PENDING
+  ASSIGNED
+  IN_SERVICE
+  COMPLETED
+  CANCELLED
+}
+
+enum SyncStatus {
+  PENDING
+  SYNCED
+  ERROR
+}
+
+enum StatusSource {
+  LOCAL
+  ECOROTA
+}
+
+enum MaterialType {
+  PAPER
+  PLASTIC
+  GLASS
+  METAL
+  ELECTRONICS
+  ORGANIC
+  OTHER
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  role         String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String                 @id @default(uuid()) @db.Uuid
+  name             String
+  email            String                 @unique
+  phone            String?                @unique
+  passwordHash     String                 @map("password_hash")
+  role             UserRole
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+  addresses        Address[]
+  collectorProfile CollectorProfile?
+  requests         CollectionRequest[]    @relation("ResidentRequests")
+  statusChanges    RequestStatusHistory[] @relation("StatusChangedBy")
+  pointsLogs       PointsLog[]
 
   @@map("users")
+}
+
+model Address {
+  id         String              @id @default(uuid()) @db.Uuid
+  userId     String              @map("user_id") @db.Uuid
+  label      String
+  street     String
+  number     String
+  complement String?
+  district   String
+  city       String
+  state      String              @db.Char(2)
+  zipCode    String              @map("zip_code")
+  latitude   Decimal             @db.Decimal(9, 6)
+  longitude  Decimal             @db.Decimal(9, 6)
+  reference  String?
+  photoUrl   String?             @map("photo_url")
+  isDefault  Boolean             @default(false) @map("is_default")
+  createdAt  DateTime            @default(now()) @map("created_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requests   CollectionRequest[]
+
+  @@index([userId])
+  @@index([userId, isDefault])
+  @@map("addresses")
+}
+
+model CollectorProfile {
+  id                 String              @id @default(uuid()) @db.Uuid
+  userId             String              @unique @map("user_id") @db.Uuid
+  ecoRotaCollectorId String?             @unique @map("ecorota_collector_id")
+  origin             CollectorOrigin     @default(CUSTOM)
+  available          Boolean             @default(false)
+  availabilityShift  String?             @map("availability_shift")
+  syncStatus         SyncStatus          @default(PENDING) @map("sync_status")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedRequests   CollectionRequest[]
+
+  @@index([available])
+  @@map("collector_profiles")
+}
+
+model CollectionRequest {
+  id                  String                 @id @default(uuid()) @db.Uuid
+  residentId          String                 @map("resident_id") @db.Uuid
+  addressId           String                 @map("address_id") @db.Uuid
+  collectorProfileId  String?                @map("collector_profile_id") @db.Uuid
+  ecoRotaRequestId    String?                @unique @map("ecorota_request_id")
+  externalReference   String                 @unique @map("external_reference")
+  externalPointId     String?                @map("external_point_id")
+  externalCollectorId String?                @map("external_collector_id")
+  status              RequestStatus          @default(PENDING)
+  syncStatus          SyncStatus             @default(PENDING) @map("sync_status")
+  desiredAt           DateTime               @map("desired_at")
+  cancellationReason  String?                @map("cancellation_reason")
+  completionPhotoUrl  String?                @map("completion_photo_url")
+  completedAt         DateTime?              @map("completed_at")
+  createdAt           DateTime               @default(now()) @map("created_at")
+  updatedAt           DateTime               @updatedAt @map("updated_at")
+  resident            User                   @relation("ResidentRequests", fields: [residentId], references: [id], onDelete: Restrict)
+  address             Address                @relation(fields: [addressId], references: [id], onDelete: Restrict)
+  collectorProfile    CollectorProfile?      @relation(fields: [collectorProfileId], references: [id], onDelete: SetNull)
+  materials           RequestMaterial[]
+  statusHistory       RequestStatusHistory[]
+  pointsLogs          PointsLog[]
+
+  @@index([residentId, status])
+  @@index([addressId, desiredAt])
+  @@index([collectorProfileId, status])
+  @@index([desiredAt])
+  @@map("collection_requests")
+}
+
+model RequestMaterial {
+  id                String            @id @default(uuid()) @db.Uuid
+  requestId         String            @map("request_id") @db.Uuid
+  materialType      MaterialType      @map("material_type")
+  estimatedQuantity Decimal?          @map("estimated_quantity") @db.Decimal(10, 2)
+  unit              String?
+  createdAt         DateTime          @default(now()) @map("created_at")
+  request           CollectionRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@map("request_materials")
+}
+
+model RequestStatusHistory {
+  id              String            @id @default(uuid()) @db.Uuid
+  requestId       String            @map("request_id") @db.Uuid
+  changedByUserId String?           @map("changed_by_user_id") @db.Uuid
+  source          StatusSource
+  fromStatus      RequestStatus?    @map("from_status")
+  toStatus        RequestStatus     @map("to_status")
+  reason          String?
+  externalEventId String?           @unique @map("external_event_id")
+  generation      Int?
+  revision        Int?
+  occurredAt      DateTime          @map("occurred_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  request         CollectionRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  changedByUser   User?             @relation("StatusChangedBy", fields: [changedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([generation, revision])
+  @@index([requestId, occurredAt])
+  @@map("request_status_history")
+}
+
+model PointsLog {
+  id        String            @id @default(uuid()) @db.Uuid
+  userId    String            @map("user_id") @db.Uuid
+  requestId String            @map("request_id") @db.Uuid
+  points    Int
+  reason    String
+  createdAt DateTime          @default(now()) @map("created_at")
+  user      User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  request   CollectionRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, requestId])
+  @@index([userId, createdAt])
+  @@index([requestId])
+  @@map("points_logs")
+}
+
+model SystemState {
+  key            String    @id
+  generation     Int
+  lastRevision   Int       @map("last_revision")
+  lastSnapshotAt DateTime? @map("last_snapshot_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@map("system_state")
 }

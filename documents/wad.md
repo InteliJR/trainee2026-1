@@ -49,6 +49,23 @@ Os seguintes dados pertencem à plataforma EcoRota e serão mantidos no `Operati
 
 Quando necessário, seus identificadores externos serão armazenados em `CollectionRequest` e `CollectorProfile`. Essa decisão evita duplicar no Supabase dados cujo sistema de origem é a EcoRota.
 
+### 2.3 Stack definitiva do MVP
+
+As tecnologias abaixo são decisões definitivas para o MVP e devem orientar a implementação e a documentação. Alternativas anteriores deixam de fazer parte da arquitetura-alvo.
+
+| Camada | Decisão definitiva | Observação |
+|---|---|---|
+| Linguagem | Node.js com TypeScript | Mesma linguagem no backend, frontend e pacote compartilhado. |
+| Backend | Fastify | Express não será utilizado. |
+| Banco de dados | PostgreSQL hospedado no Supabase | O Supabase será usado como banco gerenciado; o banco não será executado com Docker. |
+| ORM e migrations | Prisma ORM | O Prisma define os modelos, relacionamentos, cliente tipado e migrations. |
+| Autenticação | JWT criado pelo Fastify e armazenado em cookie `httpOnly` | Supabase Auth não será utilizado no MVP. |
+| Frontend | React com Vite | Aplicação web responsiva para morador, coletor e operador. |
+| Mapa | MapLibre GL JS | Google Maps não faz parte da arquitetura-alvo. |
+| Tempo real externo | WebSocket da EcoRota consumido pelo backend | A credencial externa nunca é enviada ao navegador. |
+| Tempo real interno | Socket.IO entre Fastify e React | Eventos enviados somente para usuários e salas autorizadas. |
+| Arquitetura | Monólito modular em camadas | Rotas, serviços, repositórios e adaptadores de integração. |
+
 ## 3. Entidades escolhidas
 
 | Entidade | Responsabilidade | Requisitos atendidos |
@@ -64,6 +81,8 @@ Quando necessário, seus identificadores externos serão armazenados em `Collect
 
 ## 4. Diagrama entidade-relacionamento
 
+### 4.1 Modelo lógico
+
 ```mermaid
 erDiagram
     direction LR
@@ -77,7 +96,7 @@ erDiagram
     COLLECTION_REQUEST ||--o{ REQUEST_STATUS_HISTORY : records
     USER o|..o{ REQUEST_STATUS_HISTORY : changes
     USER ||--o{ POINTS_LOG : receives
-    COLLECTION_REQUEST ||--o| POINTS_LOG : rewards
+    COLLECTION_REQUEST ||--o{ POINTS_LOG : rewards
 
     USER {
         uuid id PK
@@ -168,7 +187,7 @@ erDiagram
     POINTS_LOG {
         uuid id PK
         uuid userId FK
-        uuid requestId FK, UK
+        uuid requestId FK
         int points
         string reason
         datetime createdAt
@@ -182,6 +201,131 @@ erDiagram
         datetime updatedAt
     }
 ```
+
+### 4.2 Modelo conceitual no estilo Chen
+
+O diagrama abaixo apresenta a mesma modelagem em uma notação conceitual semelhante à referência de Chen:
+
+- retângulos representam entidades;
+- losangos representam relacionamentos;
+- elipses representam os atributos principais;
+- `1`, `N` e `0..1` indicam as cardinalidades;
+- atributos com `(PK)` são identificadores primários.
+
+```mermaid
+flowchart LR
+    usuario["USUÁRIO"]
+    endereco["ENDEREÇO"]
+    perfilColetor["PERFIL DO COLETOR"]
+    solicitacao["SOLICITAÇÃO DE COLETA"]
+    material["MATERIAL SOLICITADO"]
+    historico["HISTÓRICO DE STATUS"]
+    pontuacao["LANÇAMENTO DE PONTOS"]
+
+    cadastra{"cadastra"}
+    realiza{"realiza"}
+    possuiPerfil{"possui"}
+    utiliza{"utiliza"}
+    atende{"atende"}
+    contem{"contém"}
+    registra{"registra"}
+    recebe{"recebe"}
+    recompensa{"recompensa"}
+
+    usuario ---|"1"| cadastra
+    cadastra ---|"N"| endereco
+
+    usuario ---|"1"| realiza
+    realiza ---|"N"| solicitacao
+
+    usuario ---|"1"| possuiPerfil
+    possuiPerfil ---|"0..1"| perfilColetor
+
+    endereco ---|"1"| utiliza
+    utiliza ---|"N"| solicitacao
+
+    perfilColetor ---|"1"| atende
+    atende ---|"N"| solicitacao
+
+    solicitacao ---|"1"| contem
+    contem ---|"N"| material
+
+    solicitacao ---|"1"| registra
+    registra ---|"N"| historico
+
+    usuario ---|"1"| recebe
+    recebe ---|"N"| pontuacao
+
+    solicitacao ---|"1"| recompensa
+    recompensa ---|"N"| pontuacao
+
+    usuarioId(("id_usuario (PK)"))
+    usuarioNome(("nome"))
+    usuarioEmail(("email"))
+    usuarioPapel(("papel"))
+    usuario --- usuarioId
+    usuario --- usuarioNome
+    usuario --- usuarioEmail
+    usuario --- usuarioPapel
+
+    enderecoId(("id_endereco (PK)"))
+    enderecoLogradouro(("logradouro"))
+    enderecoBairro(("bairro"))
+    enderecoCoordenadas(("coordenadas"))
+    endereco --- enderecoId
+    endereco --- enderecoLogradouro
+    endereco --- enderecoBairro
+    endereco --- enderecoCoordenadas
+
+    coletorId(("id_perfil (PK)"))
+    coletorExternoId(("id_coletor_ecorota"))
+    coletorDisponivel(("disponível"))
+    perfilColetor --- coletorId
+    perfilColetor --- coletorExternoId
+    perfilColetor --- coletorDisponivel
+
+    solicitacaoId(("id_solicitacao (PK)"))
+    solicitacaoReferencia(("referência externa"))
+    solicitacaoStatus(("status"))
+    solicitacaoData(("data desejada"))
+    solicitacao --- solicitacaoId
+    solicitacao --- solicitacaoReferencia
+    solicitacao --- solicitacaoStatus
+    solicitacao --- solicitacaoData
+
+    materialId(("id_material (PK)"))
+    materialTipo(("tipo"))
+    materialQuantidade(("quantidade estimada"))
+    material --- materialId
+    material --- materialTipo
+    material --- materialQuantidade
+
+    historicoId(("id_historico (PK)"))
+    historicoOrigem(("origem"))
+    historicoStatus(("novo status"))
+    historicoData(("data da ocorrência"))
+    historico --- historicoId
+    historico --- historicoOrigem
+    historico --- historicoStatus
+    historico --- historicoData
+
+    pontuacaoId(("id_lancamento (PK)"))
+    pontuacaoValor(("pontos"))
+    pontuacaoMotivo(("motivo"))
+    pontuacao --- pontuacaoId
+    pontuacao --- pontuacaoValor
+    pontuacao --- pontuacaoMotivo
+
+    classDef entidade fill:#FFFFFF,stroke:#1F2937,color:#000000
+    classDef relacionamento fill:#FFECBD,stroke:#FFC943
+    classDef atributo fill:#C2E5FF,stroke:#3DADFF
+
+    class usuario,endereco,perfilColetor,solicitacao,material,historico,pontuacao entidade
+    class cadastra,realiza,possuiPerfil,utiliza,atende,contem,registra,recebe,recompensa relacionamento
+    class usuarioId,usuarioNome,usuarioEmail,usuarioPapel,enderecoId,enderecoLogradouro,enderecoBairro,enderecoCoordenadas,coletorId,coletorExternoId,coletorDisponivel,solicitacaoId,solicitacaoReferencia,solicitacaoStatus,solicitacaoData,materialId,materialTipo,materialQuantidade,historicoId,historicoOrigem,historicoStatus,historicoData,pontuacaoId,pontuacaoValor,pontuacaoMotivo atributo
+```
+
+Esse modelo conceitual mostra apenas os atributos mais relevantes para entendimento do domínio. Chaves estrangeiras, campos de auditoria, sincronização e timestamps permanecem detalhados no modelo lógico da seção 4.1. A entidade `SystemState` também permanece somente no modelo lógico porque funciona como controle técnico da integração e não possui relacionamento de domínio com as demais entidades.
 
 ## 5. Relacionamentos e cardinalidades
 
@@ -245,10 +389,11 @@ Cada registro informa:
 
 ### 5.7 `CollectionRequest` e `PointsLog`
 
-Uma solicitação pode gerar zero ou um lançamento de pontos. O campo `PointsLog.requestId` é único para impedir que o mesmo evento `request.completed` conceda pontos duas vezes.
+Uma solicitação pode gerar lançamentos separados para o morador e para o coletor. A combinação `PointsLog.userId` e `PointsLog.requestId` é única para impedir que o mesmo usuário receba duas vezes os pontos da mesma coleta.
 
 ```text
-CollectionRequest 1 -> 0..1 PointsLog
+CollectionRequest 1 -> 0..N PointsLog
+User 1 -> 0..N PointsLog
 ```
 
 ### 5.8 `SystemState`
@@ -268,7 +413,7 @@ CollectionRequest 1 -> 0..1 PointsLog
 9. Apenas uma solicitação `IN_SERVICE` pode ser concluída pelo coletor responsável.
 10. `COMPLETED` e `CANCELLED` são estados finais.
 11. Um `PointsLog` só pode ser criado para uma solicitação `COMPLETED`.
-12. A unicidade de `PointsLog.requestId` deve garantir a idempotência da recompensa.
+12. A unicidade composta de `PointsLog.userId` e `PointsLog.requestId` deve garantir a idempotência da recompensa para cada participante.
 13. Eventos com `generation` anterior ou `revision` já processada devem ser ignorados.
 14. Credenciais, senhas e tokens nunca devem ser armazenados sem proteção ou retornados pela API.
 
@@ -323,41 +468,80 @@ As seguintes entidades podem ser adicionadas depois, sem bloquear o fluxo princi
 | `CollectionEvidence` | Múltiplas fotos e comprovantes por atendimento |
 | `SyncAttempt` | Auditoria detalhada de retries da integração |
 
-## 9. Decisão sobre autenticação
+## 9. Autenticação definida para o MVP
 
-O diagrama assume autenticação própria no Fastify, com `passwordHash` em `User` e JWT em cookie `httpOnly`, conforme a arquitetura atual.
+A autenticação será implementada no Fastify. O backend armazenará `passwordHash` em `User`, validará as credenciais e emitirá um JWT assinado em cookie `httpOnly`.
 
-Caso o time decida utilizar Supabase Auth, a modelagem deve mudar:
+O Supabase será utilizado somente como PostgreSQL hospedado. Supabase Auth não será utilizado no MVP e o frontend não acessará diretamente as tabelas do banco.
 
-- remover `passwordHash` de `User`;
-- adicionar `authUserId` único para referenciar `auth.users`;
-- manter os papéis e dados de domínio na tabela `User` da aplicação.
+O JWT deverá conter apenas os dados mínimos da sessão, como identificador do usuário e papel. Senhas, hashes, credenciais da EcoRota e outros segredos nunca devem fazer parte do token.
 
-Essa decisão deve ser tomada antes de criar a migration inicial.
+Os papéis oficiais são:
 
-## 10. Correspondência com o Prisma atual
+- `MORADOR`;
+- `COLETOR`;
+- `OPERADOR`.
 
-O arquivo `apps/api/prisma/schema.prisma` contém atualmente apenas o model `User`. Portanto, o diagrama deste documento representa o **modelo-alvo proposto**, ainda não a estrutura já implementada no banco.
+## 10. Estado atual e planejamento da implementação
 
-A ordem recomendada para implementação é:
+Esta seção diferencia o que já existe no repositório da arquitetura-alvo descrita neste documento. A presença de uma decisão no WAD não significa que ela já esteja implementada.
 
-1. definir os enums;
-2. completar `User`;
-3. implementar `Address` e `CollectorProfile`;
-4. implementar `CollectionRequest` e `RequestMaterial`;
-5. implementar `RequestStatusHistory`;
-6. implementar `PointsLog`;
-7. implementar `SystemState`;
-8. revisar índices e restrições de unicidade;
-9. gerar e revisar a migration;
-10. aplicar a migration no PostgreSQL do Supabase.
+### 10.1 Já implementado no repositório
+
+| Área | Estado atual |
+|---|---|
+| Monorepo | Estrutura com `apps/api`, `apps/web` e `packages/shared`, utilizando TypeScript e `pnpm`. |
+| Fastify | Aplicação inicial criada com a rota provisória `GET /health`. |
+| Configuração | Leitura inicial de variáveis como porta, URL EcoRota, credencial, banco e segredo JWT. Ainda não há validação completa. |
+| Prisma | Prisma 7.10 configurado com adapter PostgreSQL, cliente tipado gerado e todos os models do DER implementados no `schema.prisma`. |
+| Migration | Migration inicial gerada com enums, tabelas, índices, unicidades e chaves estrangeiras. A aplicação no Supabase aguarda a URI PostgreSQL. |
+| Estado operacional | `OperationState` existe com pontos e coletores simulados e uma revisão local. |
+| Socket.IO | O módulo de transmissão foi criado, mas ainda não está conectado ao bootstrap da API nem possui autenticação e salas. |
+| Tipos compartilhados | Existem tipos iniciais de ponto, coletor, snapshot e evento, além da tradução básica de status. |
+| Frontend | React e Vite estão configurados; as áreas de morador e coletor ainda são placeholders. |
+| Mapa | O componente utiliza dados simulados. MapLibre já existe, mas o código ainda contém integração legada com Google Maps. |
+| Testes | Existe teste inicial da rota de saúde. |
+
+### 10.2 Planejado e ainda não implementado
+
+| Área | Trabalho pendente |
+|---|---|
+| Banco e Prisma | Configurar `DATABASE_URL` e `DIRECT_URL` com URIs PostgreSQL do Supabase, aplicar a migration inicial e conferir as tabelas criadas. |
+| Autenticação | Implementar hash de senha, JWT, cookie `httpOnly`, sessão, logout e autorização para `MORADOR`, `COLETOR` e `OPERADOR`. |
+| API REST | Implementar os endpoints em português definidos na seção 12, incluindo validação, paginação e tratamento padronizado de erros. |
+| Regras de negócio | Implementar cancelamento, prazo mínimo, capacidade do coletor, histórico, não duplicidade e pontuação idempotente. |
+| Integração HTTP | Criar o `EcoRotaClient` e as operações de criação, atualização, cancelamento e conclusão na API EcoRota. |
+| WebSocket EcoRota | Implementar conexão, snapshot, `generation`, `revision`, deduplicação, reconexão e atualização do `OperationState`. |
+| Socket.IO | Conectar ao servidor Fastify, autenticar a conexão, criar salas e emitir os eventos públicos em português. |
+| Estado operacional | Substituir os mocks pelos dados reais e incluir solicitações, rotas e controle de telemetria desatualizada. |
+| Frontend | Implementar os fluxos do morador, coletor e operador consumindo a API real. |
+| MapLibre | Remover a integração legada com Google Maps e manter o MapLibre como solução única do mapa. |
+| Testes | Criar testes unitários, de integração e do fluxo completo entre morador, coletor e EcoRota. |
+| Deploy | Definir e configurar o ambiente de publicação da API e do frontend. |
+
+### 10.3 Ordem de implementação do modelo de dados
+
+O diagrama deste documento representa o modelo implementado no Prisma. O acompanhamento desta etapa é:
+
+| Etapa | Situação |
+|---|---|
+| Definir os enums | Concluída |
+| Completar `User` | Concluída |
+| Implementar `Address` e `CollectorProfile` | Concluída |
+| Implementar `CollectionRequest` e `RequestMaterial` | Concluída |
+| Implementar `RequestStatusHistory` | Concluída |
+| Implementar `PointsLog` | Concluída |
+| Implementar `SystemState` | Concluída |
+| Revisar índices e restrições de unicidade | Concluída |
+| Gerar e revisar a migration inicial | Concluída |
+| Aplicar a migration no PostgreSQL do Supabase | Pendente de `DATABASE_URL` e `DIRECT_URL` |
 
 ## 11. Premissas adotadas
 
 1. O banco Supabase é utilizado como PostgreSQL hospedado; o frontend não acessa suas tabelas diretamente.
 2. Toda regra de negócio passa pelo backend Fastify.
 3. A EcoRota é a fonte oficial dos dados operacionais em tempo real.
-4. O banco local é a fonte oficial de usuários, endereços, gamificação e histórico próprio.
+4. O banco PostgreSQL da aplicação, hospedado no Supabase, é a fonte oficial de usuários, endereços, gamificação e histórico próprio.
 5. Uma solicitação pode conter mais de um material.
 6. Coletores `system` não precisam possuir usuário local.
 7. O histórico de status é persistido para auditoria e acompanhamento do morador.
@@ -451,6 +635,8 @@ O usuário é obtido da sessão. Por isso, não se envia `usuarioId` na URL nem 
 | `POST` | `/api/v1/solicitacoes-coleta/:solicitacaoId/inicio` | Coletor responsável | Iniciar o atendimento da coleta. | RF10 |
 | `POST` | `/api/v1/solicitacoes-coleta/:solicitacaoId/conclusao` | Coletor responsável | Concluir a coleta e registrar a foto comprobatória. | RF10, RF13, RF16 |
 
+No cancelamento, a interface deve solicitar confirmação dupla e o backend deve rejeitar a operação quando faltar menos de 1 dia para o horário agendado, conforme RN01 e RN02.
+
 Filtros previstos para a listagem:
 
 ```text
@@ -515,8 +701,8 @@ GET /api/v1/coletores/disponiveis?latitude=-23.5505&longitude=-46.6333&raioKm=10
 
 | Método | Endpoint | Acesso | Finalidade | Requisito |
 |---|---|---|---|---|
-| `GET` | `/api/v1/pontuacao/resumo` | Morador | Consultar saldo, total acumulado e impacto registrado. | RF13, RF17 |
-| `GET` | `/api/v1/pontuacao/lancamentos` | Morador | Listar os créditos de pontos do usuário. | RF16, RF17 |
+| `GET` | `/api/v1/pontuacao/resumo` | Morador ou coletor | Consultar saldo, total acumulado e impacto registrado. | RF13, RF17 |
+| `GET` | `/api/v1/pontuacao/lancamentos` | Morador ou coletor | Listar os créditos de pontos do usuário. | RF16, RF17 |
 | `GET` | `/api/v1/pontuacao/classificacao` | Autenticado | Consultar a classificação dos participantes. | RF17 |
 
 Não deve existir endpoint público para conceder pontos. O lançamento é criado internamente quando o backend confirma o evento de conclusão da EcoRota.
@@ -574,3 +760,99 @@ O WebSocket da EcoRota continua sendo consumido exclusivamente pelo backend. Nav
 7. `pontuacao` acionada pela conclusão confirmada;
 8. endpoints de `operacao`;
 9. eventos do namespace `/tempo-real`.
+
+## 13. Requisitos do sistema
+
+Esses requisitos são a referência funcional e de qualidade para a modelagem, os endpoints, as regras dos serviços e os testes do EcoRota.
+
+### 13.1 Requisitos funcionais
+
+| ID | Requisito funcional | Prioridade |
+|---|---|---|
+| RF01 | Permitir cadastro e login de usuários. | Essencial |
+| RF02 | Permitir identificar o perfil do usuário: morador ou coletor. | Essencial |
+| RF03 | Permitir ao morador cadastrar ou selecionar um endereço. | Essencial |
+| RF04 | Permitir ao morador solicitar uma coleta. | Essencial |
+| RF05 | Permitir informar material e data desejada. | Essencial |
+| RF06 | Permitir acompanhar o status da coleta. | Essencial |
+| RF07 | Permitir localizar pontos de coleta ou coletores disponíveis. | Essencial |
+| RF08 | Permitir ao coletor visualizar as coletas atribuídas. | Essencial |
+| RF09 | Permitir ao coletor visualizar detalhes da coleta. | Essencial |
+| RF10 | Permitir ao coletor confirmar ou concluir uma coleta. | Essencial |
+| RF11 | Permitir o cancelamento de uma coleta. | Essencial |
+| RF12 | Registrar o histórico de coletas do morador. | Essencial |
+| RF13 | Dar retorno ao morador e ao coletor após uma coleta concluída. | Essencial |
+| RF14 | Integrar as solicitações com a API EcoRota. | Essencial |
+| RF15 | Sincronizar o status da coleta entre o sistema e a API EcoRota. | Essencial |
+| RF16 | Garantir que pontos ou recompensas sejam concedidos somente após a conclusão. | Importante |
+| RF17 | Permitir ao morador e ao coletor visualizar saldo, pontos ou reconhecimento. | Importante |
+| RF18 | Permitir à EcoRota acompanhar informações básicas da operação em um dashboard. | Importante |
+| RF18.1 | Exibir no dashboard o número de coletas realizadas por período: dia, semana e mês. | Importante |
+| RF18.2 | Exibir demanda por bairro ou região, comparando o volume solicitado com a capacidade de coleta ofertada. | Importante |
+| RF18.3 | Exibir indicadores de tração: novos moradores cadastrados e taxa de coletas concluídas versus canceladas. | Importante |
+| RF21 | O sistema deve ser responsivo, adaptando-se a diferentes tamanhos de tela: desktop, tablet e celular. | Essencial |
+| RF22 | A aplicação web deve ter aparência e comportamento próximos aos de um aplicativo móvel quando acessada por celular, incluindo navegação simplificada, botões grandes e layout otimizado para toque. | Essencial |
+
+Os identificadores RF19 e RF20 não aparecem no documento de origem. A numeração foi preservada para evitar alterar referências já usadas pelo time. Embora RF21 e RF22 descrevam características de interface normalmente classificadas como não funcionais, eles permanecem nesta categoria por fidelidade ao documento de origem.
+
+### 13.2 Regras de negócio
+
+| ID | Regra de negócio | Requisito associado |
+|---|---|---|
+| RN01 | Exigir confirmação dupla para cancelar uma coleta, evitando cancelamentos acidentais. | RF11 |
+| RN02 | Permitir o cancelamento somente até o prazo mínimo de 1 dia antes do horário agendado. | RF11 |
+| RN03 | Creditar pontos ou recompensa ao morador e ao coletor somente após a coleta ser confirmada como concluída pelo coletor. | RF13, RF16 |
+| RN04 | Impedir que um coletor tenha mais coletas atribuídas do que sua capacidade disponível na API. | RF08, RF14 |
+| RN05 | Manter o histórico de coletas, inclusive as canceladas, após qualquer alteração de status, garantindo rastreabilidade. | RF12 |
+| RN06 | Impedir duplicidade: não permitir duas solicitações abertas para o mesmo endereço na mesma data. | RF04 |
+| RN07 | Sincronizar o status da coleta entre o sistema e a API EcoRota em tempo quase real, utilizando WebSocket quando disponível. | RF15 |
+
+Para manter uma numeração contínua no WAD, os identificadores foram normalizados sem alterar o conteúdo das regras. A equivalência com a numeração original da `docs_mafe` é:
+
+| Identificador no WAD | Identificador original na `docs_mafe` |
+|---|---|
+| RN01 | RN01 |
+| RN02 | RN02 |
+| RN03 | RN03 |
+| RN04 | RN05 |
+| RN05 | RN07 |
+| RN06 | RN08 |
+| RN07 | RN09 |
+
+#### Aplicação das regras no backend
+
+| Regra | Camada responsável | Validação esperada |
+|---|---|---|
+| RN01 | Frontend e serviço de solicitações | A interface pede a confirmação dupla; o serviço recebe a intenção final de cancelamento. |
+| RN02 | Serviço de solicitações | Comparar a data atual com `dataDesejada` e rejeitar cancelamentos fora do prazo. |
+| RN03 | Serviço de gamificação | Criar `PointsLog` apenas depois da conclusão confirmada e usar `requestId` único para evitar crédito duplicado. |
+| RN04 | Serviço de coletores e integração EcoRota | Consultar a capacidade disponível antes de aceitar ou atribuir uma nova coleta. |
+| RN05 | Serviço de solicitações | Nunca apagar o histórico ao atualizar ou cancelar uma solicitação. |
+| RN06 | Serviço e banco de dados | Consultar solicitações abertas do endereço na data e impedir duplicidade. |
+| RN07 | Integração WebSocket | Aplicar eventos por `generation` e `revision`, atualizar o estado local e notificar o frontend. |
+
+### 13.3 Requisitos não funcionais
+
+| ID | Eixo ISO/IEC 25010 | Requisito | RF/RN associado |
+|---|---|---|---|
+| RNF01 | Usabilidade (`USAB`) | O morador deve conseguir solicitar uma coleta em no máximo 3 telas, sem necessidade de treinamento. | RF04, RN01 |
+| RNF02 | Confiabilidade (`CONF`) | O sistema deve continuar operando com dados em cache ou armazenamento local caso a API EcoRota fique temporariamente indisponível. | RF14, RF15 |
+| RNF03 | Desempenho (`DES`) | O dashboard deve carregar os indicadores agregados em até 3 segundos. | RF18.1–RF18.3 |
+| RNF04 | Capacidade (`CAP`) | O sistema deve suportar o crescimento do número de bairros e coletores sem redesenho da arquitetura. | RF07, RF08 |
+| RNF05 | Segurança (`SEG`) | O sistema deve autenticar usuários e restringir funcionalidades por perfil: morador, coletor e EcoRota/operador. | RF02 |
+| RNF06 | Restrição (`REST`) | A integração com a coleta deve utilizar obrigatoriamente a API EcoRota fornecida. | RF14 |
+| RNF07 | Suportabilidade (`SUP`) | A arquitetura deve separar claramente a lógica de negócio da integração com a API EcoRota, permitindo evoluir a integração sem afetar as demais camadas. | RF14 |
+| RNF08 | Usabilidade (`USAB`) | A interface do coletor deve ser acessível a coletores autônomos com baixo letramento digital, priorizando textos curtos, ícones claros, alto contraste e poucos passos por ação. | RF08, RF09, RF10 |
+
+### 13.4 Impacto dos requisitos na arquitetura
+
+| Requisito | Decisão arquitetural |
+|---|---|
+| RNF01 e RF22 | Fluxo responsivo de solicitação limitado a três etapas e otimizado para toque. |
+| RNF02 | `OperationState` em memória, persistência de solicitações pendentes e fila local no frontend para ações feitas sem conexão. |
+| RNF03 | Indicadores pré-calculados e leitura do cache, evitando chamadas à EcoRota a cada acesso ao dashboard. |
+| RNF04 | Módulos desacoplados, banco relacional e consultas paginadas. |
+| RNF05 | JWT em cookie `httpOnly` e autorização baseada nos papéis `MORADOR`, `COLETOR` e `OPERADOR`. |
+| RNF06 | `EcoRotaClient` como único caminho para criar, atualizar, concluir ou cancelar operações externas. |
+| RNF07 | Separação entre rotas, serviços, repositórios e adaptador de integração. |
+| RNF08 | Interface do coletor com ações diretas, alto contraste, textos curtos e poucos campos. |
