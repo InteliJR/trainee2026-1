@@ -500,8 +500,11 @@ Esta seção diferencia o que já existe no repositório da arquitetura-alvo des
 | Integração HTTP | Contrato `EcoRotaClient`, adaptadores HTTP/fake, Bearer token, timeout, validação do envelope e vínculo inicial da criação/cancelamento/conclusão implementados. A chamada real permanece inativa enquanto a credencial não estiver no `.env`. |
 | Identidade temporária | Cabeçalho `x-usuario-id` disponível somente em desenvolvimento/teste, com usuário e papel sempre consultados no banco. Não substitui a autenticação planejada. |
 | Regras de negócio | RN02, RN03, RN05 e RN06 aplicadas no primeiro fluxo local; transições de estado e autorização por papel também validadas. RN01 continua dependendo da confirmação dupla na interface. |
-| Estado operacional | `OperationState` existe com pontos e coletores simulados e uma revisão local. |
-| Socket.IO | O módulo de transmissão foi criado, mas ainda não está conectado ao bootstrap da API nem possui autenticação e salas. |
+| Estado operacional | `OperationState` aplica snapshots integrais e eventos de pontos, coletores, rotas, solicitações e simulação com controle de geração, revisão e duplicidade. |
+| Consultas operacionais | Endpoints de pontos, detalhe e coletores disponíveis leem o `OperationState`, calculam distância/raio e sinalizam dados ou telemetria desatualizados. |
+| WebSocket EcoRota | Consumidor WSS, validação de mensagens, Bearer no handshake, reconexão com backoff/jitter e persistência do cursor implementados; ativação real aguarda credencial. |
+| Sincronização de domínio | Eventos e snapshots atualizam `CollectionRequest`, vínculo externo, histórico `ECOROTA` e pontos em transação idempotente. |
+| Socket.IO | O módulo de transmissão acompanha o novo formato de snapshot/eventos, mas ainda não está conectado ao bootstrap da API nem possui autenticação e salas. |
 | Tipos compartilhados | Existem tipos iniciais de ponto, coletor, snapshot e evento, além da tradução básica de status. |
 | Frontend | React e Vite estão configurados; as áreas de morador e coletor ainda são placeholders. |
 | Mapa | O componente utiliza dados simulados. MapLibre já existe, mas o código ainda contém integração legada com Google Maps. |
@@ -515,9 +518,9 @@ Esta seção diferencia o que já existe no repositório da arquitetura-alvo des
 | API REST | Implementar os endpoints restantes de perfil, disponibilidade, exploração operacional e painel definidos na seção 12. |
 | Regras de negócio | Integrar a capacidade real do coletor com a EcoRota e substituir a pontuação fixa provisória pela regra definitiva. |
 | Integração HTTP | Adicionar retentativa automática controlada, observabilidade e validar o fluxo real assim que a credencial da equipe for configurada. |
-| WebSocket EcoRota | Implementar conexão, snapshot, `generation`, `revision`, deduplicação, reconexão e atualização do `OperationState`. |
+| WebSocket EcoRota | Conectar com a credencial real e validar queda/retorno no ambiente da equipe. A sincronização com o domínio já está implementada e testada com eventos simulados. |
 | Socket.IO | Conectar ao servidor Fastify, autenticar a conexão, criar salas e emitir os eventos públicos em português. |
-| Estado operacional | Substituir os mocks pelos dados reais e incluir solicitações, rotas e controle de telemetria desatualizada. |
+| Estado operacional | Validar as consultas com o snapshot real da equipe e conectar os dados às telas e ao mapa. |
 | Frontend | Implementar os fluxos do morador, coletor e operador consumindo a API real. |
 | MapLibre | Remover a integração legada com Google Maps e manter o MapLibre como solução única do mapa. |
 | Testes | Ampliar os testes unitários e executar o fluxo completo com a integração EcoRota, ainda ausente. |

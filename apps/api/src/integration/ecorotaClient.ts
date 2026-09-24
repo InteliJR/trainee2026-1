@@ -1,6 +1,25 @@
 import type { Collector, Point } from '@ecorota/shared';
+import type { EventMessage } from '@ecorota/shared';
 
 export type EcoRotaRequestStatus = 'pending' | 'assigned' | 'in_service' | 'completed' | 'cancelled';
+
+export type EcoRotaEventType =
+  | 'collector.created'
+  | 'collector.updated'
+  | 'collector.deleted'
+  | 'collector.position_updated'
+  | 'route.updated'
+  | 'request.created'
+  | 'request.assigned'
+  | 'request.started'
+  | 'request.completed'
+  | 'request.cancelled'
+  | 'request.requeued'
+  | 'simulation.incident'
+  | 'simulation.updated'
+  | 'simulation.reset';
+
+export type EcoRotaEventMessage = Omit<EventMessage<unknown>, 'type'> & { type: EcoRotaEventType };
 
 export interface EcoRotaRequest {
   id: string;
@@ -85,4 +104,3 @@ export class EcoRotaIntegrationError extends Error {
     this.name = 'EcoRotaIntegrationError';
   }
 }
-

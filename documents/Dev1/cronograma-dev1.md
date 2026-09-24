@@ -21,8 +21,8 @@ O Dev 1 é responsável por construir a base do backend que destrava o trabalho 
 | Bootstrap da API | **Básico concluído** | Fastify inicia em `src/server.ts`; rota `GET /health` em `src/app.ts` | Registrar plugins, módulos, erros e shutdown correto |
 | Variáveis de ambiente | **Parcial** | `src/config/env.ts` lê porta, EcoRota, banco e JWT | Validar valores obrigatórios e falhar cedo em produção |
 | Tipos compartilhados | **Parcial** | `packages/shared` possui `Point`, `Collector`, `SnapshotMessage` e `EventMessage` | Completar tipos de solicitações e eventos do contrato real |
-| `OperationState` | **Parcial** | Mantém 12 pontos e 3 coletores mockados; atualiza mapas e emite eventos | Aplicar snapshot real, controlar `generation/revision`, deduplicar eventos e incluir solicitações/rotas |
-| Consumidor WebSocket EcoRota | **Não iniciado** | Não existe `integration/ws/` | Criar conexão WSS, autenticação, parser, reconexão e testes |
+| `OperationState` | **Implementado para o stream e consultas** | Snapshot e eventos mantêm o cache; endpoints expõem pontos e coletores com distância e telemetria | Validar com o snapshot real e conectar ao frontend |
+| Consumidor WebSocket EcoRota | **Implementado, aguardando credencial** | Conexão WSS, Bearer, parser, snapshot, deduplicação, revisão/geração, cursor, reconexão e sincronização com o domínio possuem testes | Validar conexão, queda e retorno no ambiente real |
 | `EcoRotaClient` | **Parcialmente concluído** | Interface, adaptadores HTTP/fake e integração inicial com solicitações implementados | Ativar com a credencial, validar no ambiente real e conectar o consumidor WebSocket |
 | Proxy REST EcoRota | **Não iniciado** | Não existe `integration/http/` | Implementar criar, concluir, cancelar e consultar solicitações |
 | Prisma/PostgreSQL | **Inicial** | `schema.prisma` possui apenas `User`; dependências Prisma não estão no `package.json` | Adicionar Prisma e completar todos os models e migrations |
@@ -36,7 +36,7 @@ O Dev 1 é responsável por construir a base do backend que destrava o trabalho 
 
 ### Resumo objetivo
 
-O Dev 1 está hoje na **fundação do backend**. A única entrega diretamente ligada ao seu escopo que já possui implementação relevante é o `OperationState`, ainda alimentado por mocks. O consumidor WebSocket, o banco completo, a autenticação e os módulos de negócio continuam pendentes.
+O Dev 1 já concluiu a fundação do backend, o primeiro fluxo local, a camada HTTP da EcoRota e o consumidor WebSocket. A autenticação continua adiada por decisão do time, e a integração real aguarda a credencial da equipe. O próximo trabalho é aplicar os eventos externos ao domínio persistido.
 
 ## 3. Cronograma recomendado
 
@@ -289,7 +289,7 @@ Eventos de conclusão + PointsLog
 ## 8. Riscos atuais
 
 1. **Dependências não instaladas:** hoje não é possível executar `tsc` ou `vitest` porque `node_modules` está ausente.
-2. **Estado ainda mockado:** o `OperationState` não representa dados reais da EcoRota.
+2. **Credencial externa ausente:** o `OperationState` está pronto para dados reais, mas permanece vazio até receber o primeiro snapshot autenticado da EcoRota.
 3. **Socket.IO não registrado:** o arquivo existe, mas o bootstrap atual cria apenas o Fastify e a rota de health.
 4. **Schema incompleto:** apenas `User` existe e o pacote Prisma ainda não está instalado.
 5. **Sem autenticação:** qualquer integração de frontend com login está bloqueada.

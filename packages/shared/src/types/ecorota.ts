@@ -29,6 +29,8 @@ export interface Collector {
   circuit: number;
   position: CollectorPosition | null;
   observedAt: string;
+  destinationId?: string | null;
+  routeRevision?: number;
 }
 
 export interface SnapshotMessage<Data = unknown> {

@@ -1,199 +1,172 @@
 import { EventEmitter } from 'node:events';
-import type { Point, Collector } from '@ecorota/shared';
+import type { Collector, Point } from '@ecorota/shared';
+import type { EcoRotaEventMessage, EcoRotaRequest, EcoRotaRoute, EcoRotaSnapshot } from '../ecorotaClient.js';
 
 export interface OperationStateSnapshot {
+  generation: number;
   revision: number;
+  simulationTime: number;
+  pollIntervalMs: number;
+  paused: boolean;
+  observedAt: string;
   points: Point[];
   collectors: Collector[];
+  routes: EcoRotaRoute[];
+  requests: EcoRotaRequest[];
+  eventCursor: string;
   updatedAt: string;
 }
 
 export type OperationStateEvent =
-  | { type: 'collector.position_updated'; collectorId: string; payload: Partial<Collector> }
-  | { type: 'point.status_updated'; pointId: string; payload: Partial<Point> }
-  | { type: 'operation.snapshot'; payload: OperationStateSnapshot };
+  | { type: 'operation.snapshot'; payload: OperationStateSnapshot }
+  | { type: 'operation.event'; payload: EcoRotaEventMessage };
 
-const MOCK_POINTS: Point[] = [
-  {
-    id: 'point-1',
-    name: 'Ponto 1 - Praça da Sé',
-    kind: 'habitual',
-    coordinates: [-46.6333, -23.5505],
-    circuit: 1,
-    demand: { pending: 2, assigned: 1, in_service: 0, completed: 5, cancelled: 0 },
-  },
-  {
-    id: 'point-2',
-    name: 'Ponto 2 - Av. Paulista',
-    kind: 'habitual',
-    coordinates: [-46.6559, -23.5615],
-    circuit: 1,
-    demand: { pending: 1, assigned: 0, in_service: 1, completed: 8, cancelled: 0 },
-  },
-  {
-    id: 'point-3',
-    name: 'Ponto 3 - Parque Ibirapuera',
-    kind: 'habitual',
-    coordinates: [-46.6576, -23.5874],
-    circuit: 1,
-    demand: { pending: 3, assigned: 1, in_service: 0, completed: 12, cancelled: 1 },
-  },
-  {
-    id: 'point-4',
-    name: 'Ponto 4 - Vila Madalena',
-    kind: 'habitual',
-    coordinates: [-46.6908, -23.5552],
-    circuit: 1,
-    demand: { pending: 0, assigned: 2, in_service: 0, completed: 4, cancelled: 0 },
-  },
-  {
-    id: 'point-5',
-    name: 'Ponto 5 - Pinheiros',
-    kind: 'habitual',
-    coordinates: [-46.6966, -23.5673],
-    circuit: 1,
-    demand: { pending: 1, assigned: 0, in_service: 0, completed: 7, cancelled: 0 },
-  },
-  {
-    id: 'point-6',
-    name: 'Ponto 6 - Faria Lima',
-    kind: 'habitual',
-    coordinates: [-46.6853, -23.5801],
-    circuit: 1,
-    demand: { pending: 4, assigned: 1, in_service: 1, completed: 15, cancelled: 2 },
-  },
-  {
-    id: 'point-7',
-    name: 'Ponto 7 - Moema',
-    kind: 'habitual',
-    coordinates: [-46.6644, -23.6027],
-    circuit: 2,
-    demand: { pending: 0, assigned: 1, in_service: 0, completed: 9, cancelled: 0 },
-  },
-  {
-    id: 'point-8',
-    name: 'Ponto 8 - Itaim Bibi',
-    kind: 'habitual',
-    coordinates: [-46.6781, -23.5847],
-    circuit: 2,
-    demand: { pending: 2, assigned: 0, in_service: 1, completed: 6, cancelled: 0 },
-  },
-  {
-    id: 'point-9',
-    name: 'Ponto 9 - Brooklin',
-    kind: 'habitual',
-    coordinates: [-46.6912, -23.6121],
-    circuit: 2,
-    demand: { pending: 1, assigned: 1, in_service: 0, completed: 3, cancelled: 0 },
-  },
-  {
-    id: 'point-10',
-    name: 'Ponto 10 - Morumbi',
-    kind: 'habitual',
-    coordinates: [-46.7135, -23.6001],
-    circuit: 2,
-    demand: { pending: 0, assigned: 0, in_service: 0, completed: 10, cancelled: 1 },
-  },
-  {
-    id: 'point-11',
-    name: 'Ponto 11 - Ponto Adicional A',
-    kind: 'additional',
-    coordinates: [-46.6412, -23.5651],
-    circuit: 2,
-    demand: { pending: 5, assigned: 0, in_service: 0, completed: 2, cancelled: 0 },
-  },
-  {
-    id: 'point-12',
-    name: 'Ponto 12 - Ponto Adicional B',
-    kind: 'additional',
-    coordinates: [-46.6715, -23.5489],
-    circuit: 2,
-    demand: { pending: 2, assigned: 2, in_service: 0, completed: 1, cancelled: 0 },
-  },
-];
+export type EventApplicationResult =
+  | 'applied'
+  | 'duplicate'
+  | 'old_revision'
+  | 'awaiting_snapshot'
+  | 'unknown_event';
 
-const MOCK_COLLECTORS: Collector[] = [
-  {
-    id: 'collector-1',
-    name: 'Coletor 01 (Sistema)',
-    origin: 'system',
-    available: true,
-    status: 'moving',
-    circuit: 1,
-    position: { type: 'Point', coordinates: [-46.65, -23.555] },
-    observedAt: new Date().toISOString(),
-  },
-  {
-    id: 'collector-2',
-    name: 'Coletor 02 (Sistema)',
-    origin: 'system',
-    available: true,
-    status: 'moving',
-    circuit: 2,
-    position: { type: 'Point', coordinates: [-46.68, -23.595] },
-    observedAt: new Date().toISOString(),
-  },
-  {
-    id: 'collector-3',
-    name: 'Coletor Autônomo João',
-    origin: 'custom',
-    available: true,
-    status: 'idle',
-    circuit: 1,
-    position: { type: 'Point', coordinates: [-46.66, -23.57] },
-    observedAt: new Date().toISOString(),
-  },
-];
+const REQUEST_EVENT_TYPES = new Set([
+  'request.created',
+  'request.assigned',
+  'request.started',
+  'request.completed',
+  'request.cancelled',
+  'request.requeued',
+]);
 
-class OperationStateStore {
+export class OperationStateStore {
   private readonly emitter = new EventEmitter();
-  private revision = 0;
-  private readonly points = new Map<string, Point>(MOCK_POINTS.map((p) => [p.id, p]));
-  private readonly collectors = new Map<string, Collector>(
-    MOCK_COLLECTORS.map((c) => [c.id, c]),
-  );
+  private generation = -1;
+  private revision = -1;
+  private simulationTime = 0;
+  private pollIntervalMs = 5_000;
+  private paused = false;
+  private observedAt = new Date(0).toISOString();
+  private eventCursor = '';
+  private updatedAt = new Date(0).toISOString();
+  private readonly points = new Map<string, Point>();
+  private readonly collectors = new Map<string, Collector>();
+  private readonly routes = new Map<string, EcoRotaRoute>();
+  private readonly requests = new Map<string, EcoRotaRequest>();
+  private readonly seenIdsAtCurrentRevision = new Set<string>();
+
+  replaceSnapshot(snapshot: EcoRotaSnapshot): void {
+    this.generation = snapshot.generation;
+    this.revision = snapshot.revision;
+    this.simulationTime = snapshot.simulationTime;
+    this.pollIntervalMs = snapshot.pollIntervalMs;
+    this.paused = snapshot.paused;
+    this.observedAt = snapshot.observedAt;
+    this.eventCursor = snapshot.eventCursor;
+    this.updatedAt = new Date().toISOString();
+    this.replaceMap(this.points, snapshot.points, (point) => point.id);
+    this.replaceMap(this.collectors, snapshot.collectors, (collector) => collector.id);
+    this.replaceMap(this.routes, snapshot.routes, (route) => route.collectorId);
+    this.replaceMap(this.requests, snapshot.requests, (request) => request.id);
+    this.seenIdsAtCurrentRevision.clear();
+    this.emitter.emit('update', { type: 'operation.snapshot', payload: this.getSnapshot() } satisfies OperationStateEvent);
+  }
+
+  applyEvent(event: EcoRotaEventMessage): EventApplicationResult {
+    if (this.generation < 0 || event.generation > this.generation) return 'awaiting_snapshot';
+    if (event.generation < this.generation || event.revision < this.revision) return 'old_revision';
+    if (this.seenIdsAtCurrentRevision.has(event.id)) return 'duplicate';
+
+    if (event.revision > this.revision) {
+      this.revision = event.revision;
+      this.seenIdsAtCurrentRevision.clear();
+    }
+
+    const applied = this.applyKnownEvent(event);
+    if (!applied) return 'unknown_event';
+
+    this.seenIdsAtCurrentRevision.add(event.id);
+    this.simulationTime = event.simulationTime;
+    this.observedAt = event.occurredAt;
+    this.updatedAt = new Date().toISOString();
+    this.emitter.emit('update', { type: 'operation.event', payload: event } satisfies OperationStateEvent);
+    return 'applied';
+  }
 
   getSnapshot(): OperationStateSnapshot {
     return {
+      generation: this.generation,
       revision: this.revision,
+      simulationTime: this.simulationTime,
+      pollIntervalMs: this.pollIntervalMs,
+      paused: this.paused,
+      observedAt: this.observedAt,
       points: [...this.points.values()],
       collectors: [...this.collectors.values()],
-      updatedAt: new Date().toISOString(),
+      routes: [...this.routes.values()],
+      requests: [...this.requests.values()],
+      eventCursor: this.eventCursor,
+      updatedAt: this.updatedAt,
     };
   }
 
-  getCollector(id: string): Collector | undefined {
-    return this.collectors.get(id);
-  }
-
-  updateCollector(id: string, patch: Partial<Collector>): void {
-    const current = this.collectors.get(id);
-    if (!current) return;
-    const updated: Collector = { ...current, ...patch };
-    this.collectors.set(id, updated);
-    this.revision += 1;
-    this.emitter.emit('update', {
-      type: 'collector.position_updated',
-      collectorId: id,
-      payload: updated,
-    } satisfies OperationStateEvent);
-  }
-
-  updatePoint(id: string, patch: Partial<Point>): void {
-    const current = this.points.get(id);
-    if (!current) return;
-    const updated: Point = { ...current, ...patch };
-    this.points.set(id, updated);
-    this.revision += 1;
-    this.emitter.emit('update', {
-      type: 'point.status_updated',
-      pointId: id,
-      payload: updated,
-    } satisfies OperationStateEvent);
-  }
-
-  onUpdate(listener: (event: OperationStateEvent) => void): void {
+  onUpdate(listener: (event: OperationStateEvent) => void): () => void {
     this.emitter.on('update', listener);
+    return () => this.emitter.off('update', listener);
+  }
+
+  private applyKnownEvent(event: EcoRotaEventMessage): boolean {
+    if (event.type === 'collector.created' || event.type === 'collector.updated') {
+      const collector = event.data as Collector;
+      this.collectors.set(collector.id, collector);
+      return true;
+    }
+    if (event.type === 'collector.deleted') {
+      this.collectors.delete((event.data as { id: string }).id);
+      return true;
+    }
+    if (event.type === 'collector.position_updated') {
+      const patch = event.data as Pick<Collector, 'id' | 'position' | 'observedAt'>;
+      const current = this.collectors.get(patch.id);
+      if (current) this.collectors.set(patch.id, { ...current, ...patch });
+      return Boolean(current);
+    }
+    if (event.type === 'route.updated') {
+      const route = event.data as EcoRotaRoute;
+      this.routes.set(route.collectorId, route);
+      return true;
+    }
+    if (REQUEST_EVENT_TYPES.has(event.type)) {
+      this.applyRequest(event.data as EcoRotaRequest);
+      return true;
+    }
+    if (event.type === 'simulation.updated') {
+      this.paused = (event.data as { paused: boolean }).paused;
+      return true;
+    }
+    if (event.type === 'simulation.incident' || event.type === 'simulation.reset') return true;
+    return false;
+  }
+
+  private applyRequest(request: EcoRotaRequest): void {
+    const previous = this.requests.get(request.id);
+    if (previous) this.changeDemand(previous.pointId, previous.status, -1);
+    this.requests.set(request.id, request);
+    this.changeDemand(request.pointId, request.status, 1);
+  }
+
+  private changeDemand(pointId: string, status: EcoRotaRequest['status'], delta: number): void {
+    const point = this.points.get(pointId);
+    if (!point) return;
+    point.demand[status] = Math.max(0, point.demand[status] + delta);
+    this.points.set(pointId, { ...point, demand: { ...point.demand } });
+  }
+
+  private replaceMap<T>(
+    target: Map<string, T>,
+    values: T[],
+    key: (value: T) => string,
+  ): void {
+    target.clear();
+    for (const value of values) target.set(key(value), value);
   }
 }
 

@@ -15,7 +15,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "database:verify": "tsx scripts/verify-database.ts",
     "database:seed:development": "tsx scripts/seed-development.ts",
-    "flow:verify": "tsx scripts/verify-first-flow.ts"
+    "flow:verify": "tsx scripts/verify-first-flow.ts",
+    "sync:verify": "tsx scripts/verify-domain-sync.ts"
   },
   "dependencies": {
     "@ecorota/shared": "workspace:^",
@@ -24,12 +25,14 @@
     "dotenv": "^16.4.5",
     "fastify": "^4.28.1",
     "pg": "^8.23.0",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@types/node": "^22.5.4",
     "@types/pg": "^8.23.1",
     "@types/socket.io": "^3.0.2",
+    "@types/ws": "^8.18.1",
     "prisma": "7.10.0",
     "tsx": "^4.19.1",
     "typescript": "^5.5.4",

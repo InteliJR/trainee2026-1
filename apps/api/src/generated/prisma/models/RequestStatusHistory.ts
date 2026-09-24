@@ -300,7 +300,6 @@ export type RequestStatusHistoryOrderByWithRelationInput = {
 export type RequestStatusHistoryWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   externalEventId?: string
-  generation_revision?: Prisma.RequestStatusHistoryGenerationRevisionCompoundUniqueInput
   AND?: Prisma.RequestStatusHistoryWhereInput | Prisma.RequestStatusHistoryWhereInput[]
   OR?: Prisma.RequestStatusHistoryWhereInput[]
   NOT?: Prisma.RequestStatusHistoryWhereInput | Prisma.RequestStatusHistoryWhereInput[]
@@ -316,7 +315,7 @@ export type RequestStatusHistoryWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"RequestStatusHistory"> | Date | string
   request?: Prisma.XOR<Prisma.CollectionRequestScalarRelationFilter, Prisma.CollectionRequestWhereInput>
   changedByUser?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
-}, "id" | "externalEventId" | "generation_revision">
+}, "id" | "externalEventId">
 
 export type RequestStatusHistoryOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -467,11 +466,6 @@ export type RequestStatusHistoryListRelationFilter = {
 
 export type RequestStatusHistoryOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
-}
-
-export type RequestStatusHistoryGenerationRevisionCompoundUniqueInput = {
-  generation: number
-  revision: number
 }
 
 export type RequestStatusHistoryCountOrderByAggregateInput = {

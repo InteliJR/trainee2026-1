@@ -5,6 +5,8 @@ import type { NodeEnvironment } from './config/validateEnv.js';
 import { errorHandler, notFoundHandler } from './errors/errorHandler.js';
 import type { PrismaClient } from './generated/prisma/client.js';
 import type { EcoRotaClient } from './integration/ecorotaClient.js';
+import { operationState } from './integration/operation-state/index.js';
+import type { StreamStatus } from './integration/ws/ecoRotaWsConsumer.js';
 import { PrismaAddressRepository } from './modules/addresses/address.repository.js';
 import { addressRoutes } from './modules/addresses/address.routes.js';
 import { AddressService } from './modules/addresses/address.service.js';
@@ -17,11 +19,14 @@ import { HealthService } from './modules/health/health.service.js';
 import { PrismaRequestRepository } from './modules/requests/request.repository.js';
 import { requestRoutes } from './modules/requests/request.routes.js';
 import { RequestService } from './modules/requests/request.service.js';
+import { operationRoutes } from './modules/operation/operation.routes.js';
+import { OperationService } from './modules/operation/operation.service.js';
 
 export interface BuildAppOptions {
   healthRepository: HealthRepository;
   database?: PrismaClient;
   ecoRotaClient?: EcoRotaClient;
+  streamStatusProvider?: () => StreamStatus;
   nodeEnv?: NodeEnvironment;
   logger?: boolean;
 }
@@ -58,6 +63,11 @@ export function buildApp(options: BuildAppOptions) {
       prefix: '/api/v1',
       identify,
       service: new GamificationService(new PrismaGamificationRepository(options.database)),
+    });
+    app.register(operationRoutes, {
+      prefix: '/api/v1',
+      identify,
+      service: new OperationService(operationState, options.streamStatusProvider),
     });
   }
 

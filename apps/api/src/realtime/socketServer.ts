@@ -8,8 +8,7 @@ import {
 
 export type RealtimeEventsMap = {
   'operation:snapshot': (snapshot: OperationStateSnapshot) => void;
-  'collector.position_updated': (collector: unknown) => void;
-  'point.status_updated': (point: unknown) => void;
+  'operation:event': (event: unknown) => void;
 };
 
 export interface RealtimeBroker {
@@ -37,14 +36,11 @@ export function createRealtimeBroker(app: FastifyInstance): RealtimeBroker {
 
   const forwardUpdate = (event: OperationStateEvent): void => {
     switch (event.type) {
-      case 'collector.position_updated':
-        io.emit('collector.position_updated', event.payload);
-        break;
-      case 'point.status_updated':
-        io.emit('point.status_updated', event.payload);
-        break;
       case 'operation.snapshot':
         io.emit('operation:snapshot', event.payload);
+        break;
+      case 'operation.event':
+        io.emit('operation:event', event.payload);
         break;
     }
   };

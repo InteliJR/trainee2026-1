@@ -65,17 +65,8 @@ ECOROTA_KEY=<credencial-da-equipe>
 
 Sem essas duas variáveis, nenhuma chamada externa é realizada.
 
-## 6. Próxima etapa
+## 6. Etapa WebSocket concluída
 
-Implementar o consumidor WebSocket:
+O consumidor WebSocket, snapshot, deduplicação, `generation`, `revision`, persistência do cursor e reconexão foram implementados. Os detalhes estão em `planejamento-websocket-ecorota.md`.
 
-1. instalar `ws` e `@types/ws`;
-2. confirmar o endpoint e a forma de autenticação no guia oficial;
-3. receber e validar o snapshot inicial;
-4. substituir integralmente o `OperationState`;
-5. deduplicar eventos por identificador;
-6. controlar `generation` e `revision`;
-7. persistir o cursor em `SystemState`;
-8. reconectar com backoff exponencial e jitter;
-9. atualizar solicitações e conceder pontos somente após `request.completed` confirmado.
-
+A próxima etapa é sincronizar os eventos recebidos com `CollectionRequest`, `RequestStatusHistory`, perfis de coletores e pontuação persistidos no Supabase.
