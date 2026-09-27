@@ -1,3 +1,5 @@
+# Inclui as aplicações executáveis do monorepo, atualmente api e web.
 packages:
   - 'apps/*'
+  # Inclui bibliotecas internas, atualmente @ecorota/shared.
   - 'packages/*'

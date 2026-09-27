@@ -1,8 +1,10 @@
+/** Testa quais mensagens externas são sincronizadas e como snapshots têm seus resultados contabilizados. */
 import { describe, expect, it, vi } from 'vitest';
 import type { EcoRotaEventMessage, EcoRotaRequest, EcoRotaSnapshot } from '../src/integration/ecorotaClient.js';
 import { EcoRotaDomainSynchronizer } from '../src/integration/sync/ecorotaDomainSynchronizer.js';
 import type { EcoRotaRequestSyncRepository } from '../src/integration/sync/ecorotaRequestSync.repository.js';
 
+// Cria uma solicitação externa mínima para os eventos e snapshots simulados.
 function request(id: string): EcoRotaRequest {
   return {
     id,
@@ -61,4 +63,3 @@ describe('EcoRotaDomainSynchronizer', () => {
     });
   });
 });
-

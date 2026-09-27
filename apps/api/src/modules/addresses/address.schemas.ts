@@ -1,3 +1,4 @@
+/** Contrato de entrada e JSON Schema usados para validar o cadastro de endereço antes do serviço. */
 export interface CreateAddressInput {
   rotulo: string;
   logradouro: string;
@@ -14,6 +15,7 @@ export interface CreateAddressInput {
   padrao?: boolean;
 }
 
+// Rejeita campos ausentes, coordenadas fora do intervalo e propriedades desconhecidas.
 export const createAddressBodySchema = {
   type: 'object',
   additionalProperties: false,
@@ -34,4 +36,3 @@ export const createAddressBodySchema = {
     padrao: { type: 'boolean', default: false },
   },
 } as const;
-

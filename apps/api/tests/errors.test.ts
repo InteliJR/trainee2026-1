@@ -1,3 +1,4 @@
+/** Testa se falhas de rota e exceções viram o contrato padronizado de erro HTTP. */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';

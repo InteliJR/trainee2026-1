@@ -1,8 +1,10 @@
+/** Testa o endpoint de saúde com banco disponível, indisponível e erro inesperado. */
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import type { HealthRepository } from '../src/modules/health/health.repository.js';
 
+// Monta a rota com um repositório controlado para simular disponibilidade do banco.
 function createApp(databaseAvailable: boolean): FastifyInstance {
   const healthRepository: HealthRepository = {
     isDatabaseAvailable: async () => databaseAvailable,

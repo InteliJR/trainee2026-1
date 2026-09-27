@@ -1,8 +1,10 @@
+/** Confere tabelas, RLS e endpoint de saúde contra o Supabase configurado; falha se a fundação não estiver pronta. */
 import { buildApp } from '../src/app.js';
 import { env } from '../src/config/env.js';
 import { createPrismaClient } from '../src/infra/database/prisma.js';
 import { PrismaHealthRepository } from '../src/modules/health/health.repository.js';
 
+// Lista exatamente as tabelas que a migration inicial precisa ter criado.
 const EXPECTED_TABLES = [
   'addresses',
   'collection_requests',
@@ -14,15 +16,19 @@ const EXPECTED_TABLES = [
   'users',
 ] as const;
 
+// Tipifica o nome retornado pela consulta ao information_schema.
 interface TableRow {
   table_name: string;
 }
 
+// Tipifica tabela e flag de RLS retornadas pelo catálogo PostgreSQL.
 interface RlsRow {
   table_name: string;
 }
 
+// Usa o mesmo banco configurado para a execução normal da API.
 const database = createPrismaClient(env.databaseUrl);
+// Monta a aplicação para verificar também o endpoint HTTP de saúde.
 const app = buildApp({
   healthRepository: new PrismaHealthRepository(database),
   logger: false,

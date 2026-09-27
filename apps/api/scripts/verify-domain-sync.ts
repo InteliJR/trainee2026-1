@@ -1,3 +1,4 @@
+/** Confirma idempotência, transições, histórico ECOROTA e pontos ao sincronizar eventos com o banco. */
 import assert from 'node:assert/strict';
 import { env } from '../src/config/env.js';
 import { createPrismaClient } from '../src/infra/database/prisma.js';
@@ -5,13 +6,16 @@ import type { EcoRotaEventMessage, EcoRotaRequest } from '../src/integration/eco
 import { EcoRotaDomainSynchronizer } from '../src/integration/sync/ecorotaDomainSynchronizer.js';
 import { PrismaEcoRotaRequestSyncRepository } from '../src/integration/sync/ecorotaRequestSync.repository.js';
 
+// Identifica os atores locais previamente criados pelo seed.
 const USERS = {
   resident: '11111111-1111-4111-8111-111111111111',
   collector: '22222222-2222-4222-8222-222222222222',
 } as const;
 
+// Aponta o cenário diretamente para o banco configurado.
 const database = createPrismaClient(env.databaseUrl);
 
+// Monta uma solicitação EcoRota variando apenas os campos relevantes ao cenário.
 function externalRequest(
   base: EcoRotaRequest,
   status: EcoRotaRequest['status'],
@@ -20,6 +24,7 @@ function externalRequest(
   return { ...base, status, collectorId, updatedAt: new Date().toISOString() };
 }
 
+// Monta o envelope incremental com geração, revisão e horário controlados.
 function event(
   id: string,
   revision: number,
@@ -132,4 +137,3 @@ try {
 } finally {
   await database.$disconnect();
 }
-

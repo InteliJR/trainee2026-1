@@ -1,7 +1,12 @@
+/**
+ * Sincroniza uma solicitação externa com CollectionRequest dentro de transação Prisma.
+ * Deduplica eventos, traduz status, atualiza vínculo do coletor, grava histórico e concede pontos na conclusão.
+ */
 import type { PrismaClient } from '../../generated/prisma/client.js';
 import type { RequestStatus } from '../../generated/prisma/enums.js';
 import type { EcoRotaRequest } from '../ecorotaClient.js';
 
+// Traduz cada estado externo para o enum persistido no domínio local.
 const EXTERNAL_TO_INTERNAL_STATUS: Record<EcoRotaRequest['status'], RequestStatus> = {
   pending: 'PENDING',
   assigned: 'ASSIGNED',
@@ -10,6 +15,7 @@ const EXTERNAL_TO_INTERNAL_STATUS: Record<EcoRotaRequest['status'], RequestStatu
   cancelled: 'CANCELLED',
 };
 
+// Carrega identidade e ordenação do evento gravadas junto ao histórico.
 export interface ExternalEventMetadata {
   eventId: string;
   generation: number;
@@ -18,15 +24,20 @@ export interface ExternalEventMetadata {
   recordUnchanged?: boolean;
 }
 
+// Informa ao sincronizador o efeito exato da tentativa no banco.
 export type RequestSynchronizationResult = 'not_found' | 'duplicate' | 'updated' | 'unchanged';
 
+// Define a operação idempotente de reconciliação de uma solicitação externa.
 export interface EcoRotaRequestSyncRepository {
   synchronizeRequest(request: EcoRotaRequest, metadata: ExternalEventMetadata): Promise<RequestSynchronizationResult>;
 }
 
+// Implementa toda reconciliação em uma transação para evitar estado parcial.
 export class PrismaEcoRotaRequestSyncRepository implements EcoRotaRequestSyncRepository {
+  // Recebe o Prisma usado para abrir a transação de cada evento.
   constructor(private readonly database: PrismaClient) {}
 
+  // Deduplica pelo ID externo, localiza a referência e aplica todas as mudanças atomicamente.
   async synchronizeRequest(
     external: EcoRotaRequest,
     metadata: ExternalEventMetadata,
@@ -36,6 +47,7 @@ export class PrismaEcoRotaRequestSyncRepository implements EcoRotaRequestSyncRep
         where: { externalEventId: metadata.eventId },
         select: { id: true },
       });
+      // ID externo já registrado prova que esta mensagem foi processada anteriormente.
       if (processed) return 'duplicate';
 
       const current = await transaction.collectionRequest.findFirst({
@@ -47,6 +59,7 @@ export class PrismaEcoRotaRequestSyncRepository implements EcoRotaRequestSyncRep
         },
         include: { collectorProfile: true },
       });
+      // Evento sem referência local não cria solicitação órfã automaticamente.
       if (!current) return 'not_found';
 
       const targetStatus = EXTERNAL_TO_INTERNAL_STATUS[external.status];
@@ -89,6 +102,7 @@ export class PrismaEcoRotaRequestSyncRepository implements EcoRotaRequestSyncRep
         },
       });
 
+      // Conclusão concede créditos idempotentes aos participantes conhecidos.
       if (targetStatus === 'COMPLETED') {
         const collectorUserId = matchedCollector?.userId ?? current.collectorProfile?.userId;
         const recipients = collectorUserId

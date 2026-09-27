@@ -10,16 +10,19 @@ datasource db {
   provider = "postgresql"
 }
 
+/// Papéis que controlam autorização nas rotas e salas de tempo real.
 enum UserRole {
   MORADOR
   COLETOR
   OPERADOR
 }
 
+/// Origem do coletor; o MVP persiste somente coletores personalizados vinculados à equipe.
 enum CollectorOrigin {
   CUSTOM
 }
 
+/// Estados internos possíveis durante o ciclo de vida de uma solicitação.
 enum RequestStatus {
   SCHEDULED
   PENDING
@@ -29,17 +32,20 @@ enum RequestStatus {
   CANCELLED
 }
 
+/// Situação da última tentativa de sincronização do registro com a EcoRota.
 enum SyncStatus {
   PENDING
   SYNCED
   ERROR
 }
 
+/// Identifica se uma mudança de status nasceu na aplicação ou chegou da EcoRota.
 enum StatusSource {
   LOCAL
   ECOROTA
 }
 
+/// Categorias de material aceitas na solicitação de coleta.
 enum MaterialType {
   PAPER
   PLASTIC
@@ -50,6 +56,7 @@ enum MaterialType {
   OTHER
 }
 
+/// Identidade central de moradores, coletores e operadores.
 model User {
   id               String                 @id @default(uuid()) @db.Uuid
   name             String
@@ -68,6 +75,7 @@ model User {
   @@map("users")
 }
 
+/// Local de coleta pertencente a um morador, com coordenadas usadas no mapa.
 model Address {
   id         String              @id @default(uuid()) @db.Uuid
   userId     String              @map("user_id") @db.Uuid
@@ -94,6 +102,7 @@ model Address {
   @@map("addresses")
 }
 
+/// Extensão de User para coletores, incluindo disponibilidade e vínculo externo.
 model CollectorProfile {
   id                 String              @id @default(uuid()) @db.Uuid
   userId             String              @unique @map("user_id") @db.Uuid
@@ -111,6 +120,7 @@ model CollectorProfile {
   @@map("collector_profiles")
 }
 
+/// Agregado principal da coleta, conectando morador, endereço, coletor, integração e estado atual.
 model CollectionRequest {
   id                  String                 @id @default(uuid()) @db.Uuid
   residentId          String                 @map("resident_id") @db.Uuid
@@ -142,6 +152,7 @@ model CollectionRequest {
   @@map("collection_requests")
 }
 
+/// Item de material informado dentro de uma solicitação.
 model RequestMaterial {
   id                String            @id @default(uuid()) @db.Uuid
   requestId         String            @map("request_id") @db.Uuid
@@ -155,6 +166,7 @@ model RequestMaterial {
   @@map("request_materials")
 }
 
+/// Registro imutável de cada transição local ou externa de uma solicitação.
 model RequestStatusHistory {
   id              String            @id @default(uuid()) @db.Uuid
   requestId       String            @map("request_id") @db.Uuid
@@ -176,6 +188,7 @@ model RequestStatusHistory {
   @@map("request_status_history")
 }
 
+/// Crédito de gamificação concedido a um usuário por uma coleta concluída.
 model PointsLog {
   id        String            @id @default(uuid()) @db.Uuid
   userId    String            @map("user_id") @db.Uuid
@@ -192,6 +205,7 @@ model PointsLog {
   @@map("points_logs")
 }
 
+/// Cursor técnico usado para observar geração e revisão processadas do stream EcoRota.
 model SystemState {
   key            String    @id
   generation     Int

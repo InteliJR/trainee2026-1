@@ -1,9 +1,13 @@
+/** Testa distância, filtros, serialização e indicadores de atualização produzidos pelo OperationService. */
 import { describe, expect, it } from 'vitest';
 import { OperationStateStore } from '../src/integration/operation-state/operationState.js';
 import { OperationService } from '../src/modules/operation/operation.service.js';
+import type { OperationIndicatorsRepository } from '../src/modules/operation/operationIndicators.repository.js';
 
+// Mantém um UUID estável para consultas de ponto e distância.
 const POINT_ID = '44444444-4444-4444-8444-444444444444';
 
+// Prepara um cache representativo com ponto, coletor e telemetria conhecidos.
 function populatedState(): OperationStateStore {
   const state = new OperationStateStore();
   state.replaceSnapshot({
@@ -54,10 +58,38 @@ function populatedState(): OperationStateStore {
       },
     ],
     routes: [],
-    requests: [],
+    requests: [
+      {
+        id: 'request-1', pointId: POINT_ID, externalReference: 'reference-1', status: 'pending',
+        collectorId: null, createdAt: '2026-09-24T09:00:00.000Z', createdSimulationTime: 1,
+        updatedAt: '2026-09-24T09:00:00.000Z',
+      },
+      {
+        id: 'request-2', pointId: POINT_ID, externalReference: 'reference-2', status: 'completed',
+        collectorId: 'collector-1', createdAt: '2026-09-24T08:00:00.000Z', createdSimulationTime: 1,
+        updatedAt: '2026-09-24T09:30:00.000Z',
+      },
+      {
+        id: 'request-3', pointId: POINT_ID, externalReference: 'reference-3', status: 'cancelled',
+        collectorId: null, createdAt: '2026-09-24T07:00:00.000Z', createdSimulationTime: 1,
+        updatedAt: '2026-09-24T09:20:00.000Z',
+      },
+    ],
     eventCursor: '1',
   });
   return state;
+}
+
+// Devolve contagens históricas determinísticas e permite inspecionar os períodos recebidos pelo serviço.
+function indicatorsRepository(): OperationIndicatorsRepository {
+  // Implementa somente o contrato necessário sem carregar Prisma durante o teste unitário.
+  return {
+    summarize: async () => ({
+      completedCollections: { day: 2, week: 5, month: 8 },
+      newResidents: { day: 1, week: 3, month: 6 },
+      cancelledCollectionsInMonth: 2,
+    }),
+  };
 }
 
 describe('estado da integração operacional', () => {
@@ -136,5 +168,54 @@ describe('estado da integração operacional', () => {
       { id: 'resident', role: 'MORADOR' },
       '66666666-6666-4666-8666-666666666666',
     )).toThrowError(expect.objectContaining({ code: 'PONTO_COLETA_NAO_ENCONTRADO' }));
+  });
+
+  // Valida o contrato completo que alimentará os cards administrativos do frontend.
+  it('combina histórico do banco com demanda e capacidade do cache', async () => {
+    // Congela o relógio para validar períodos e telemetria sem depender da execução do teste.
+    const service = new OperationService(
+      populatedState(),
+      undefined,
+      () => new Date('2026-09-24T10:00:30.000Z'),
+      indicatorsRepository(),
+    );
+
+    // Consulta como operador, único papel autorizado a visualizar dados consolidados.
+    const result = await service.getIndicators({ id: 'operator', role: 'OPERADOR' });
+
+    // Confirma os dados persistidos, a taxa terminal e a projeção da revisão atual.
+    expect(result.coletasRealizadas).toEqual({ hoje: 2, semanaAtual: 5, mesAtual: 8 });
+    expect(result.tracao).toMatchObject({
+      novosMoradores: { hoje: 1, semanaAtual: 3, mesAtual: 6 },
+      concluidasNoMes: 8,
+      canceladasNoMes: 2,
+      taxaConclusaoPercentual: 80,
+    });
+    expect(result.solicitacoesAtuais).toMatchObject({ total: 3, pendentes: 1, concluidas: 1, canceladas: 1 });
+    expect(result.coletores).toMatchObject({
+      total: 3,
+      disponiveis: 2,
+      indisponiveisOuEmOperacao: 1,
+      telemetriaDesatualizada: 1,
+    });
+    expect(result.demandaPorRegiao[0]).toEqual({
+      regiao: 'Circuito 1',
+      circuito: 1,
+      solicitacoesAtivas: 3,
+      capacidadeOfertada: 1,
+      saldoCapacidade: -2,
+    });
+    expect(result.periodos.inicioSemana).toBe('2026-09-21T00:00:00.000Z');
+  });
+
+  // Mantém a mesma proteção de papel usada pelo endpoint de integração.
+  it('restringe os indicadores ao operador', async () => {
+    // Injeta o repositório para isolar o teste exclusivamente na autorização.
+    const service = new OperationService(populatedState(), undefined, undefined, indicatorsRepository());
+
+    // Espera o erro público padronizado antes que qualquer consulta histórica seja realizada.
+    await expect(service.getIndicators({ id: 'resident', role: 'MORADOR' })).rejects.toMatchObject({
+      code: 'PAPEL_NAO_AUTORIZADO',
+    });
   });
 });

@@ -1,10 +1,13 @@
+/** Testa autorização, serialização e sincronização de disponibilidade do CollectorService com repositórios simulados. */
 import { describe, expect, it, vi } from 'vitest';
 import { EcoRotaIntegrationError, type EcoRotaClient } from '../src/integration/ecorotaClient.js';
 import type { CollectorProfileDetails, CollectorRepository } from '../src/modules/collectors/collector.repository.js';
 import { CollectorService } from '../src/modules/collectors/collector.service.js';
 
+// Identifica o coletor usado em todas as verificações de papel e vínculo.
 const COLLECTOR_USER_ID = '22222222-2222-4222-8222-222222222222';
 
+// Cria um perfil Prisma completo com possibilidade de sobrescrever o dado relevante ao teste.
 function profile(overrides: Partial<CollectorProfileDetails> = {}): CollectorProfileDetails {
   return {
     id: 'profile-1',
@@ -21,6 +24,7 @@ function profile(overrides: Partial<CollectorProfileDetails> = {}): CollectorPro
   };
 }
 
+// Cria um repositório fake cujos métodos podem ser inspecionados pelo Vitest.
 function repository(current = profile()): CollectorRepository {
   return {
     findByUserId: vi.fn().mockResolvedValue(current),
@@ -38,10 +42,12 @@ function repository(current = profile()): CollectorRepository {
   };
 }
 
+// Simula somente a operação de listagem de RequestService usada pelo módulo.
 function requestReader() {
   return { list: vi.fn().mockResolvedValue({ dados: [], paginacao: { total: 0 } }) };
 }
 
+// Monta um cliente externo fake destacando apenas a atualização de coletor sob teste.
 function ecoRotaClient(updateCollector: EcoRotaClient['updateCollector']): EcoRotaClient {
   const unused = vi.fn(() => Promise.reject(new Error('Não deveria ser chamado.')));
   return {
@@ -129,4 +135,3 @@ describe('CollectorService', () => {
     expect(reader.list).toHaveBeenCalledWith(actor, { status: 'ATRIBUIDA' });
   });
 });
-

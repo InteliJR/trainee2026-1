@@ -1,9 +1,12 @@
+/** Testa substituição de snapshot, ordenação, deduplicação e aplicação incremental no OperationState. */
 import { describe, expect, it } from 'vitest';
 import type { EcoRotaEventMessage, EcoRotaRequest, EcoRotaSnapshot } from '../src/integration/ecorotaClient.js';
 import { OperationStateStore } from '../src/integration/operation-state/operationState.js';
 
+// Identifica o ponto compartilhado pelos builders deste conjunto de testes.
 const POINT_ID = '44444444-4444-4444-8444-444444444444';
 
+// Cria uma solicitação válida permitindo alterar somente o status do cenário.
 function request(status: EcoRotaRequest['status'] = 'pending'): EcoRotaRequest {
   return {
     id: 'request-1',
@@ -17,6 +20,7 @@ function request(status: EcoRotaRequest['status'] = 'pending'): EcoRotaRequest {
   };
 }
 
+// Cria um snapshot completo e aceita sobrescritas para cada comportamento testado.
 function snapshot(overrides: Partial<EcoRotaSnapshot> = {}): EcoRotaSnapshot {
   return {
     id: 'environment-1',
@@ -46,6 +50,7 @@ function snapshot(overrides: Partial<EcoRotaSnapshot> = {}): EcoRotaSnapshot {
   };
 }
 
+// Cria um evento incremental padrão com campos substituíveis.
 function event(overrides: Partial<EcoRotaEventMessage> = {}): EcoRotaEventMessage {
   return {
     id: '11',
@@ -101,4 +106,3 @@ describe('OperationStateStore', () => {
     });
   });
 });
-

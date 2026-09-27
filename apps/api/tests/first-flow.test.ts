@@ -1,37 +1,11 @@
-import type { FastifyRequest } from 'fastify';
+/** Testa as principais regras de negócio do primeiro fluxo de coleta. */
 import { describe, expect, it, vi } from 'vitest';
-import { createDevelopmentIdentityMiddleware } from '../src/auth/developmentIdentity.js';
-import type { DevelopmentIdentityRepository } from '../src/auth/developmentIdentity.repository.js';
 import { AppError } from '../src/errors/appError.js';
 import type { RequestRepository, RequestDetails } from '../src/modules/requests/request.repository.js';
 import { RequestService } from '../src/modules/requests/request.service.js';
 
+// Usa um UUID válido e previsível como morador nos cenários de autorização.
 const RESIDENT_ID = '11111111-1111-4111-8111-111111111111';
-
-describe('identidade temporária', () => {
-  it('busca o papel no banco em vez de aceitá-lo pelo cabeçalho', async () => {
-    const repository: DevelopmentIdentityRepository = {
-      findActorById: vi.fn().mockResolvedValue({ id: RESIDENT_ID, role: 'MORADOR' }),
-    };
-    const middleware = createDevelopmentIdentityMiddleware(repository, 'test');
-    const request = { headers: { 'x-usuario-id': RESIDENT_ID } } as unknown as FastifyRequest;
-
-    await middleware(request, {} as never, () => undefined);
-
-    expect(request.actor).toEqual({ id: RESIDENT_ID, role: 'MORADOR' });
-    expect(repository.findActorById).toHaveBeenCalledWith(RESIDENT_ID);
-  });
-
-  it('é bloqueada em produção', async () => {
-    const repository: DevelopmentIdentityRepository = { findActorById: vi.fn() };
-    const middleware = createDevelopmentIdentityMiddleware(repository, 'production');
-    const request = { headers: { 'x-usuario-id': RESIDENT_ID } } as unknown as FastifyRequest;
-
-    await expect(middleware(request, {} as never, () => undefined)).rejects.toMatchObject({
-      code: 'AUTENTICACAO_NAO_IMPLEMENTADA',
-    });
-  });
-});
 
 describe('regras do primeiro fluxo', () => {
   const unused = vi.fn(() => Promise.reject(new Error('Não deveria ser chamado.')));

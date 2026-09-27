@@ -1,3 +1,4 @@
+/** Testa conversão da URL WebSocket, validação de mensagens e cálculo do atraso de reconexão. */
 import { describe, expect, it } from 'vitest';
 import { calculateReconnectDelay, toWebSocketUrl } from '../src/integration/ws/ecoRotaWsConsumer.js';
 import { parseEcoRotaStreamMessage } from '../src/integration/ws/streamMessage.js';
@@ -31,4 +32,3 @@ describe('protocolo WebSocket EcoRota', () => {
     expect(parsed.type).toBe('simulation.updated');
   });
 });
-

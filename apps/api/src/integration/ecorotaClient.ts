@@ -1,8 +1,14 @@
+/**
+ * Contrato independente de transporte para toda comunicação com a EcoRota.
+ * Serviços dependem desta interface; produção usa HTTP e testes usam o adaptador fake.
+ */
 import type { Collector, Point } from '@ecorota/shared';
 import type { EventMessage } from '@ecorota/shared';
 
+// Enumera os estados de solicitação aceitos diretamente no protocolo externo.
 export type EcoRotaRequestStatus = 'pending' | 'assigned' | 'in_service' | 'completed' | 'cancelled';
 
+// Enumera todos os tipos incrementais conhecidos pelo cache e sincronizador.
 export type EcoRotaEventType =
   | 'collector.created'
   | 'collector.updated'
@@ -19,8 +25,10 @@ export type EcoRotaEventType =
   | 'simulation.updated'
   | 'simulation.reset';
 
+// Restringe o tipo genérico de evento compartilhado ao vocabulário EcoRota conhecido.
 export type EcoRotaEventMessage = Omit<EventMessage<unknown>, 'type'> & { type: EcoRotaEventType };
 
+// Representa uma solicitação conforme devolvida pela EcoRota.
 export interface EcoRotaRequest {
   id: string;
   pointId: string;
@@ -32,6 +40,7 @@ export interface EcoRotaRequest {
   updatedAt: string;
 }
 
+// Representa geometria, paradas e tempos calculados para a rota de um coletor.
 export interface EcoRotaRoute {
   collectorId: string;
   revision: number;
@@ -46,6 +55,7 @@ export interface EcoRotaRoute {
   stops: string[];
 }
 
+// Representa o estado integral usado para inicializar ou substituir o cache operacional.
 export interface EcoRotaSnapshot {
   id: string;
   name: string;
@@ -65,6 +75,7 @@ export interface EcoRotaSnapshot {
   eventCursor: string;
 }
 
+// Padroniza dados e metadados retornados pelos endpoints HTTP externos.
 export interface EcoRotaEnvelope<T> {
   data: T;
   revision: number;
@@ -73,16 +84,19 @@ export interface EcoRotaEnvelope<T> {
   observedAt: string;
 }
 
+// Define os campos enviados ao criar uma solicitação externa.
 export interface CreateEcoRotaRequestInput {
   pointId: string;
   externalReference: string;
 }
 
+// Define os campos opcionais aceitos na atualização externa de um coletor.
 export interface UpdateEcoRotaCollectorInput {
   name?: string;
   available?: boolean;
 }
 
+// Abstrai as operações HTTP para permitir adaptadores real e fake intercambiáveis.
 export interface EcoRotaClient {
   createRequest(input: CreateEcoRotaRequestInput): Promise<EcoRotaEnvelope<EcoRotaRequest>>;
   cancelRequest(requestId: string): Promise<EcoRotaEnvelope<EcoRotaRequest>>;
@@ -93,7 +107,9 @@ export interface EcoRotaClient {
   updateCollector(id: string, input: UpdateEcoRotaCollectorInput): Promise<EcoRotaEnvelope<Collector>>;
 }
 
+// Preserva status/código externos e informa se a falha admite nova tentativa.
 export class EcoRotaIntegrationError extends Error {
+  // Preserva metadados suficientes para decidir resposta HTTP e estratégia de retry.
   constructor(
     message: string,
     readonly statusCode: number | null,
