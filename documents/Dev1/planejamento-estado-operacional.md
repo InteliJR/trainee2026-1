@@ -18,7 +18,7 @@ EcoRota WebSocket -> OperationState -> API Fastify -> frontend
 | `GET` | `/api/v1/pontos-coleta/:pontoId` | Mostra o ponto e a quantidade de solicitações ativas. |
 | `GET` | `/api/v1/coletores/disponiveis` | Lista somente coletores marcados como disponíveis. |
 
-Todos utilizam temporariamente o cabeçalho `x-usuario-id` enquanto o JWT está adiado.
+Todos exigem o cookie JWT `ecorota_sessao`; os endpoints administrativos também exigem o papel `OPERADOR` pelo guard RBAC.
 
 ## 3. Filtro geográfico
 

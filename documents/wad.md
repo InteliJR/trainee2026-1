@@ -59,7 +59,7 @@ As tecnologias abaixo são decisões definitivas para o MVP e devem orientar a i
 | Backend | Fastify | Express não será utilizado. |
 | Banco de dados | PostgreSQL hospedado no Supabase | O Supabase será usado como banco gerenciado; o banco não será executado com Docker. |
 | ORM e migrations | Prisma ORM | O Prisma define os modelos, relacionamentos, cliente tipado e migrations. |
-| Autenticação | JWT criado pelo Fastify e armazenado em cookie `httpOnly` | Supabase Auth não será utilizado no MVP. |
+| Autenticação | JWT HS256 emitido no backend Fastify e armazenado em cookie `httpOnly` | Supabase Auth não é utilizado no MVP. |
 | Frontend | React com Vite | Aplicação web responsiva para morador, coletor e operador. |
 | Mapa | MapLibre GL JS | Google Maps não faz parte da arquitetura-alvo. |
 | Tempo real externo | WebSocket da EcoRota consumido pelo backend | A credencial externa nunca é enviada ao navegador. |
@@ -470,7 +470,7 @@ As seguintes entidades podem ser adicionadas depois, sem bloquear o fluxo princi
 
 ## 9. Autenticação definida para o MVP
 
-A autenticação será implementada no Fastify. O backend armazenará `passwordHash` em `User`, validará as credenciais e emitirá um JWT assinado em cookie `httpOnly`.
+A autenticação está implementada no Fastify. O backend armazena `passwordHash` bcrypt em `User`, valida as credenciais e emite um JWT HS256 assinado no cookie `httpOnly` `ecorota_sessao`.
 
 O Supabase será utilizado somente como PostgreSQL hospedado. Supabase Auth não será utilizado no MVP e o frontend não acessará diretamente as tabelas do banco.
 
@@ -486,44 +486,43 @@ Os papéis oficiais são:
 
 Esta seção diferencia o que já existe no repositório da arquitetura-alvo descrita neste documento. A presença de uma decisão no WAD não significa que ela já esteja implementada.
 
-### 10.1 Já implementado no repositório
+ ### 10.1 Já implementado no repositório
 
 | Área | Estado atual |
 |---|---|
 | Monorepo | Estrutura com `apps/api`, `apps/web` e `packages/shared`, utilizando TypeScript e `pnpm`. |
 | Fastify | Aplicação configurada com rota modular `GET /api/v1/saude`, tratamento central de erros e resposta 404 padronizada. |
-| Configuração | `.env` centralizado na raiz e validado quanto a ambiente, porta, URI PostgreSQL, integração EcoRota e tamanho do segredo JWT. |
+| Configuração | `.env` centralizado na raiz e validado quanto a ambiente, porta, URI PostgreSQL, integração EcoRota e presença/tamanho obrigatório do segredo JWT. |
 | Prisma | Prisma 7.10 configurado com adapter PostgreSQL, fábrica de conexão, cliente tipado gerado e todos os models do DER implementados no `schema.prisma`. |
 | Migration | Migration inicial aplicada no Supabase com enums, oito tabelas, índices, unicidades, chaves estrangeiras e RLS habilitado. |
 | Organização modular | Módulo de saúde implementado como referência, separado em rota, serviço e repositório. |
 | Primeiro fluxo | Endereços, criação e consulta de solicitações, histórico, cancelamento, atribuição temporária, início, conclusão e consulta de pontos implementados em rotas, serviços e repositórios. |
-| Integração HTTP | Contrato `EcoRotaClient`, adaptadores HTTP/fake, Bearer token, timeout, validação do envelope e vínculo inicial da criação/cancelamento/conclusão implementados. A chamada real permanece inativa enquanto a credencial não estiver no `.env`. |
-| Identidade temporária | Cabeçalho `x-usuario-id` disponível somente em desenvolvimento/teste, com usuário e papel sempre consultados no banco. Não substitui a autenticação planejada. |
+| Integração HTTP | Contrato `EcoRotaClient`, adaptadores HTTP/fake, Bearer token, timeout, validação do envelope, retry exponencial com jitter e vínculo da criação/cancelamento/conclusão implementados. A chamada real permanece inativa enquanto a credencial não estiver no `.env`. |
+| Autenticação | Cadastro de morador/coletor, login, sessão e logout implementados com bcrypt, JWT HS256 em cookie `httpOnly`, `SameSite=Lax`, `Secure` em produção e RBAC declarado nas rotas. Usuário e papel são confirmados no PostgreSQL em cada requisição protegida. |
 | Regras de negócio | RN02, RN03, RN05 e RN06 aplicadas no primeiro fluxo local; transições de estado e autorização por papel também validadas. RN01 continua dependendo da confirmação dupla na interface. |
 | Estado operacional | `OperationState` aplica snapshots integrais e eventos de pontos, coletores, rotas, solicitações e simulação com controle de geração, revisão e duplicidade. |
 | Consultas operacionais | Endpoints de pontos, detalhe e coletores disponíveis leem o `OperationState`, calculam distância/raio e sinalizam dados ou telemetria desatualizados. |
-| Gestão do coletor | Solicitações atribuídas, consulta e alteração de disponibilidade implementadas com turno, RBAC temporário e sincronização HTTP opcional com a EcoRota. |
+| Indicadores operacionais | `GET /api/v1/operacao/indicadores` combina coletas e novos moradores por período no PostgreSQL com solicitações atuais, coletores, telemetria e demanda/capacidade por circuito do `OperationState`; o cálculo do cache é memorizado por geração/revisão. |
+| Gestão do coletor | Solicitações atribuídas, consulta e alteração de disponibilidade implementadas com turno, RBAC por JWT e sincronização HTTP opcional com a EcoRota. |
 | WebSocket EcoRota | Consumidor WSS, validação de mensagens, Bearer no handshake, reconexão com backoff/jitter e persistência do cursor implementados; ativação real aguarda credencial. |
 | Sincronização de domínio | Eventos e snapshots atualizam `CollectionRequest`, vínculo externo, histórico `ECOROTA` e pontos em transação idempotente. |
-| Socket.IO | Servidor conectado ao bootstrap do Fastify no namespace `/tempo-real`, com salas por papel/usuário, snapshots filtrados e eventos públicos em português. Em desenvolvimento/teste, a identidade temporária é validada no banco; produção permanece bloqueada até a implementação do JWT. |
+| Socket.IO | Servidor conectado ao bootstrap do Fastify no namespace `/tempo-real`, autenticado pelo mesmo cookie JWT das rotas REST, com confirmação do papel no banco, salas por papel/usuário, snapshots filtrados e eventos públicos em português. |
 | Tipos compartilhados | Existem tipos iniciais de ponto, coletor, snapshot e evento, além da tradução básica de status. |
-| Frontend | React e Vite estão configurados; existe um cliente Socket.IO reutilizável com reconexão, mas as telas de morador, coletor e operador ainda precisam assiná-lo. |
-| Mapa | O componente utiliza dados simulados. MapLibre já existe, mas o código ainda contém integração legada com Google Maps. |
-| Testes | Testes automatizados da fundação e verificador ponta a ponta do primeiro fluxo executado contra o Supabase. |
+| Frontend | O dashboard React assina o Socket.IO por meio de um hook com reconexão, controle de geração/revisão, mensagens de erro e indicador visual da conexão. As telas específicas de morador e coletor permanecem pendentes. |
+| Mapa | MapLibre é o único provedor. Pontos e coletores vêm do snapshot autorizado, posições são aplicadas por eventos e marcadores com telemetria antiga ficam semitransparentes; mocks e Google Maps foram removidos. |
+| Testes | Testes automatizados da API, testes do reducer de tempo real no frontend e verificador ponta a ponta do primeiro fluxo executado contra o Supabase. |
 
 ### 10.2 Planejado e ainda não implementado
 
 | Área | Trabalho pendente |
 |---|---|
-| Autenticação | Implementar hash de senha, JWT, cookie `httpOnly`, sessão, logout e autorização para `MORADOR`, `COLETOR` e `OPERADOR`. |
-| API REST | Implementar os endpoints restantes de perfil do usuário, pontuação resumida/classificação e painel operacional definidos na seção 12. |
+| API REST | Implementar os endpoints restantes de perfil do usuário, classificação, solicitações/coletores/usuários administrativos e demais consultas de painel definidas na seção 12. O endpoint consolidado de indicadores já está implementado. |
 | Regras de negócio | Integrar a capacidade real do coletor com a EcoRota e substituir a pontuação fixa provisória pela regra definitiva. |
-| Integração HTTP | Adicionar retentativa automática controlada, observabilidade e validar o fluxo real assim que a credencial da equipe for configurada. |
+| Integração HTTP | Validar o retry e o fluxo completo no ambiente real assim que a credencial da equipe for configurada; os callbacks de observabilidade e testes simulados já estão implementados. |
 | WebSocket EcoRota | Conectar com a credencial real e validar queda/retorno no ambiente da equipe. A sincronização com o domínio já está implementada e testada com eventos simulados. |
-| Socket.IO | Substituir a identidade temporária do handshake pelo JWT em cookie `httpOnly` e conectar o cliente já preparado às telas. |
-| Estado operacional | Validar as consultas com o snapshot real da equipe e conectar os dados às telas e ao mapa. |
-| Frontend | Implementar os fluxos do morador, coletor e operador consumindo a API real. |
-| MapLibre | Remover a integração legada com Google Maps e manter o MapLibre como solução única do mapa. |
+| Estado operacional | Validar snapshots e eventos com a credencial real da equipe; o estado já alimenta o dashboard e o mapa. |
+| Frontend | Implementar os fluxos do morador e coletor, além da tabela e dos indicadores do operador, consumindo a API real. |
+| MapLibre | Desenhar as geometrias de rota e acrescentar filtros operacionais; a remoção de mocks e Google Maps já foi concluída. |
 | Testes | Ampliar os testes unitários e executar o fluxo completo com a integração EcoRota, ainda ausente. |
 | Deploy | Definir e configurar o ambiente de publicação da API e do frontend. |
 
@@ -728,7 +727,7 @@ Não deve existir endpoint público para conceder pontos. O lançamento é criad
 
 ### 12.10 Comunicação em tempo real
 
-O Socket.IO utiliza o namespace `/tempo-real` e o caminho `/socket.io`. Em desenvolvimento e teste, o cliente envia `auth.usuarioId`; o servidor valida o UUID, consulta usuário e papel no PostgreSQL e só então libera as salas `usuario:<id>` e `papel:<papel>`. Essa identidade é provisória. Em produção, o handshake é recusado até que o JWT em cookie `httpOnly` seja implementado.
+O Socket.IO utiliza o namespace `/tempo-real` e o caminho `/socket.io`. O navegador envia automaticamente o cookie `httpOnly` criado em `POST /api/v1/autenticacao/entrar`; o servidor valida assinatura, expiração, emissor e público do JWT, confirma usuário e papel no PostgreSQL e só então libera as salas `usuario:<id>` e `papel:<papel>`. UUID ou papel enviados em `auth` pelo cliente não são aceitos como identidade.
 
 Snapshots são filtrados antes do envio: o morador recebe apenas suas solicitações, o coletor recebe apenas solicitações e rota vinculadas a ele, e o operador recebe o estado operacional completo. Pontos e posições públicas do mapa permanecem disponíveis, mas eventos de solicitação são enviados somente às salas relacionadas.
 

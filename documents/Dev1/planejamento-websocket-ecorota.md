@@ -50,11 +50,16 @@ ECOROTA_URL=https://ecorota.marcusvalente.dev.br
 ECOROTA_KEY=<credencial-da-equipe>
 ```
 
-Depois de reiniciar a API, consultar com o usuário operador:
+Depois de reiniciar a API, entrar como operador e consultar com o cookie devolvido:
 
 ```http
+POST /api/v1/autenticacao/entrar
+Content-Type: application/json
+
+{"email":"operador.dev@ecorota.local","senha":"<senha-do-seed>"}
+
 GET /api/v1/operacao/integracao
-x-usuario-id: 33333333-3333-4333-8333-333333333333
+Cookie: ecorota_sessao=<jwt>
 ```
 
 ## 6. Sincronização de domínio concluída

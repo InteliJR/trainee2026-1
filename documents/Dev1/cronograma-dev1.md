@@ -1,6 +1,6 @@
 # Cronograma de execução — Dev 1 (Backend EcoRota)
 
-Atualizado em **23/09/2026**, com base no `PLANO.md` e no estado atual do código em `apps/api`.
+Atualizado em **27/09/2026**, com base no `PLANO.md` e no estado atual do código em `apps/api`.
 
 ## 1. Responsabilidade do Dev 1
 
@@ -18,25 +18,25 @@ O Dev 1 é responsável por construir a base do backend que destrava o trabalho 
 
 | Área | Situação atual | Evidência | Próximo passo |
 |---|---|---|---|
-| Bootstrap da API | **Básico concluído** | Fastify inicia em `src/server.ts`; rota `GET /health` em `src/app.ts` | Registrar plugins, módulos, erros e shutdown correto |
-| Variáveis de ambiente | **Parcial** | `src/config/env.ts` lê porta, EcoRota, banco e JWT | Validar valores obrigatórios e falhar cedo em produção |
-| Tipos compartilhados | **Parcial** | `packages/shared` possui `Point`, `Collector`, `SnapshotMessage` e `EventMessage` | Completar tipos de solicitações e eventos do contrato real |
-| `OperationState` | **Implementado para o stream e consultas** | Snapshot e eventos mantêm o cache; endpoints expõem pontos e coletores com distância e telemetria | Validar com o snapshot real e conectar ao frontend |
+| Bootstrap da API | **Concluído** | Fastify inicia em `src/server.ts`; módulos usam `/api/v1`; erros, cookie, CORS, Socket.IO e shutdown estão registrados | Configurar variáveis do ambiente publicado |
+| Variáveis de ambiente | **Concluído** | `src/config/env.ts` exige banco e `JWT_SECRET`, valida URLs, CORS e pares EcoRota | Configurar os segredos reais em cada ambiente de deploy |
+| Tipos compartilhados | **Implementados para a integração atual** | `packages/shared` define pontos, coletores, posição, snapshot e eventos; contratos específicos REST ficam nos módulos | Evoluir somente quando o contrato EcoRota mudar |
+| `OperationState` | **Implementado para stream, consultas e indicadores** | Snapshot e eventos mantêm o cache; endpoints expõem pontos, coletores e KPIs por circuito com distância, capacidade e telemetria | Validar com o snapshot real e conectar os indicadores ao frontend |
 | Consumidor WebSocket EcoRota | **Implementado, aguardando credencial** | Conexão WSS, Bearer, parser, snapshot, deduplicação, revisão/geração, cursor, reconexão e sincronização com o domínio possuem testes | Validar conexão, queda e retorno no ambiente real |
-| `EcoRotaClient` | **Parcialmente concluído** | Interface, adaptadores HTTP/fake e integração inicial com solicitações implementados | Ativar com a credencial, validar no ambiente real e conectar o consumidor WebSocket |
-| Proxy REST EcoRota | **Não iniciado** | Não existe `integration/http/` | Implementar criar, concluir, cancelar e consultar solicitações |
-| Prisma/PostgreSQL | **Inicial** | `schema.prisma` possui apenas `User`; dependências Prisma não estão no `package.json` | Adicionar Prisma e completar todos os models e migrations |
-| Autenticação e RBAC | **Não iniciado** | Não existem módulos, rotas ou dependências de JWT/cookies | Implementar register, login, hash de senha, cookie e guards |
-| Solicitações | **Não iniciado** | Não existe `modules/requests/` | Implementar regras, idempotência e integração EcoRota |
+| `EcoRotaClient` | **Implementado, aguardando validação real** | Interface, adaptadores HTTP/fake, timeout, contrato e retry exponencial com jitter implementados | Ativar com a credencial e validar no ambiente real |
+| Proxy REST EcoRota | **Concluído** | `integration/http/httpEcoRotaClient.ts` implementa criação, cancelamento, conclusão, snapshot, pontos e coletores com retry | Validar com a credencial real da equipe |
+| Prisma/PostgreSQL | **Concluído** | Oito entidades, migrations, RLS, cliente tipado e repositórios estão aplicados no Supabase | Criar novas migrations somente para mudanças aprovadas no WAD |
+| Autenticação e RBAC | **Concluído no backend** | Cadastro, login, sessão, logout, bcrypt, cookie JWT, confirmação no banco e guards por papel possuem testes | Conectar as telas de login e validar o cookie no ambiente publicado |
+| Solicitações | **Concluído para o MVP** | Rotas, regras, idempotência, histórico, atribuição, início, cancelamento, conclusão e sincronização estão implementados | Substituir regras provisórias quando o negócio aprovar valores definitivos |
 | Coletores | **Implementado para o primeiro fluxo** | Módulo possui solicitações atribuídas, consulta e alteração de disponibilidade com sincronização opcional | Validar com coletor custom real da EcoRota |
-| Gamificação | **Não iniciado** | Não existe `modules/gamification/` | Creditar pontos somente após `request.completed` |
-| Tempo real para o frontend | **Parcial — Dev 4** | `socketServer.ts` existe, mas ainda não é registrado no bootstrap | Dev 1 deve fornecer eventos e estado reais para o broker |
-| Testes | **Muito inicial** | Existe apenas teste de `GET /health` | Adicionar testes unitários, integração e contrato |
-| Ambiente local | **Bloqueado** | `node_modules` está ausente; `pnpm` direto não está no `PATH` | Executar via `corepack pnpm` e instalar dependências |
+| Gamificação | **Concluído para o primeiro fluxo** | Créditos idempotentes são gerados somente após conclusão e podem ser consultados pelo próprio usuário | Implementar classificação e regras definitivas em etapa posterior |
+| Tempo real para o frontend | **Concluído no backend** | `socketServer.ts` usa cookie JWT, salas privadas e filtros de snapshot/eventos | Conectar as telas restantes no frontend |
+| Testes | **Cobertura dos fluxos principais** | Autenticação, regras, integração, cache, rotas e Socket.IO possuem testes automatizados | Acrescentar testes com credenciais externas no ambiente da equipe |
+| Ambiente local | **Preparado** | Dependências e comandos via `corepack pnpm` estão configurados | Preencher `JWT_SECRET`, credenciais EcoRota e senha opcional do seed |
 
 ### Resumo objetivo
 
-O Dev 1 já concluiu a fundação do backend, o primeiro fluxo local, a camada HTTP da EcoRota e o consumidor WebSocket. A autenticação continua adiada por decisão do time, e a integração real aguarda a credencial da equipe. O próximo trabalho é aplicar os eventos externos ao domínio persistido.
+O Dev 1 concluiu a fundação, modelagem, primeiro fluxo, integração HTTP/WSS, sincronização do domínio, indicadores, autenticação JWT/RBAC e segurança do Socket.IO. O único item dependente de estado externo é validar a credencial EcoRota real e configurar os segredos do ambiente de deploy.
 
 ## 3. Cronograma recomendado
 

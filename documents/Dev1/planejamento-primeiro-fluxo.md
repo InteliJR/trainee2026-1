@@ -1,13 +1,13 @@
 # Planejamento do primeiro fluxo completo do backend
 
-> **Situação em 23/09/2026:** etapas 0 a 7 implementadas e verificadas no Supabase. A autenticação continua intencionalmente fora deste fluxo.
+> **Situação atual:** etapas 0 a 7 implementadas; o verificador agora realiza login real e usa o cookie JWT nas chamadas protegidas.
 
 ## 1. Objetivo
 
-Implementar e testar o primeiro fluxo de negócio do EcoRota sem implementar cadastro, login, logout ou JWT nesta etapa:
+Implementar e testar o primeiro fluxo de negócio do EcoRota usando a sessão real do backend:
 
 ```text
-Usuário de desenvolvimento
+Usuário autenticado por cookie JWT
     -> cadastra endereço
     -> cria solicitação de coleta
     -> consulta solicitação
@@ -17,19 +17,19 @@ Usuário de desenvolvimento
     -> sistema concede pontos
 ```
 
-## 2. Decisão temporária enquanto não existe autenticação
+## 2. Autenticação aplicada ao fluxo
 
-As rotas protegidas receberão o cabeçalho temporário `x-usuario-id`. O backend buscará esse usuário no banco e montará um contexto com `id` e `papel`.
+As rotas protegidas recebem o cookie `ecorota_sessao`. O backend valida assinatura e expiração do JWT, confirma no banco se o usuário e o papel continuam válidos e monta o contexto com `id` e `papel`.
 
-Essa decisão permite desenvolver as regras agora sem colocar `moradorId` ou `coletorId` nos corpos das requisições. Quando o JWT for implementado, somente o middleware de identidade será substituído; rotas, serviços e repositórios continuarão usando o mesmo contexto.
+Morador, coletor e operador entram por `POST /api/v1/autenticacao/entrar`. IDs de usuário continuam ausentes dos corpos das operações; serviços e repositórios usam somente o ator confirmado pelo middleware.
 
-Regras de segurança dessa solução temporária:
+Regras de segurança:
 
-- disponível somente em `development` e `test`;
-- proibida em `production`;
-- o usuário informado precisa existir no banco;
-- o papel é sempre lido do banco, nunca aceito por cabeçalho;
-- não deve ser usado em um deploy público.
+- senha protegida por bcrypt;
+- JWT assinado com segredo obrigatório de pelo menos 32 caracteres;
+- cookie `httpOnly`, `SameSite=Lax` e `Secure` em produção;
+- usuário e papel confirmados novamente no PostgreSQL;
+- papel enviado pelo cliente nunca é aceito como autorização.
 
 ## 3. Organização dos módulos
 
@@ -59,16 +59,17 @@ modules/
 
 ## 4. Etapas de implementação
 
-### Etapa 0 — Identidade e dados de desenvolvimento
+### Etapa 0 — Autenticação e dados de desenvolvimento
 
 Implementar:
 
-- middleware temporário baseado em `x-usuario-id`;
+- cadastro, login, sessão e logout;
+- middleware baseado em cookie JWT;
 - contexto do usuário com `id` e `papel`;
-- seed idempotente com um morador, um coletor e um operador;
+- seed idempotente com senhas bcrypt para morador, coletor e operador;
 - perfil de coletor vinculado ao usuário coletor.
 
-Entrega: requisições conseguem representar cada papel sem login ou JWT.
+Entrega: requisições representam cada papel somente depois de uma sessão válida.
 
 ### Etapa 1 — Cadastro de endereço
 
@@ -173,7 +174,7 @@ Entrega: fluxo validado de ponta a ponta.
 
 | Ordem | Etapa | Dependência | Resultado |
 |---|---|---|---|
-| 1 | Identidade temporária e seed | Banco migrado | Usuários de desenvolvimento disponíveis |
+| 1 | Autenticação e seed | Banco migrado e `JWT_SECRET` | Usuários de desenvolvimento conseguem entrar e recebem cookie seguro |
 | 2 | Endereços | Identidade | Local da coleta cadastrado |
 | 3 | Criação da solicitação | Endereço | Pedido local com materiais e histórico |
 | 4 | Consulta | Solicitação | Acompanhamento do pedido |
@@ -182,11 +183,8 @@ Entrega: fluxo validado de ponta a ponta.
 | 7 | Pontuação | Conclusão | Créditos idempotentes |
 | 8 | Teste integrado | Todas as etapas | Fluxo completo aprovado |
 
-## 6. Fora do escopo desta fase
+## 6. Itens que continuam fora do escopo
 
-- cadastro com senha;
-- login e logout;
-- JWT e cookie `httpOnly`;
 - recuperação de senha;
 - integração HTTP com a EcoRota;
 - consumidor WebSocket da EcoRota;
@@ -223,16 +221,19 @@ Na raiz do projeto, execute:
 
 ```bash
 corepack pnpm --filter @ecorota/api database:seed:development
+corepack pnpm --filter @ecorota/api auth:verify
 corepack pnpm --filter @ecorota/api dev
 ```
 
-O seed é idempotente e prepara estas identidades:
+O seed é idempotente e prepara estas contas:
 
-| Papel | `x-usuario-id` |
+| Papel | E-mail |
 |---|---|
-| Morador | `11111111-1111-4111-8111-111111111111` |
-| Coletor | `22222222-2222-4222-8222-222222222222` |
-| Operador | `33333333-3333-4333-8333-333333333333` |
+| Morador | `morador.dev@ecorota.local` |
+| Coletor | `coletor.dev@ecorota.local` |
+| Operador | `operador.dev@ecorota.local` |
+
+A senha é lida de `DEVELOPMENT_SEED_PASSWORD`; quando ela está vazia, o seed local utiliza `EcoRota@2026!`.
 
 Para executar automaticamente toda a jornada contra o Supabase configurado no `.env`:
 
@@ -244,7 +245,7 @@ O verificador cria dados identificáveis de teste, conclui uma solicitação, re
 
 ## 9. Ordem prática das chamadas HTTP
 
-Todas as chamadas abaixo recebem `x-usuario-id`.
+Antes das chamadas abaixo, cada papel entra em `/api/v1/autenticacao/entrar`; as requisições seguintes enviam o cookie `ecorota_sessao`.
 
 | Ordem | Papel | Operação | O que faz |
 |---|---|---|---|

@@ -29,7 +29,7 @@ RequestService
 | Componente | Responsabilidade |
 |---|---|
 | `EcoRotaClient` | Contrato independente do transporte para solicitações, snapshot, pontos e coletores. |
-| `HttpEcoRotaClient` | Envia Bearer token, aplica timeout, valida o envelope e converte falhas externas em erros estáveis. |
+| `HttpEcoRotaClient` | Envia Bearer token, aplica timeout, valida o envelope, converte falhas e repete 429/5xx/rede com backoff exponencial e jitter. |
 | `FakeEcoRotaClient` | Simula operações sem consumir cota ou alterar o ambiente real. |
 | `RequestService` | Envia novas solicitações quando a integração está configurada e persiste o vínculo externo. |
 | `CollectionRequest.syncStatus` | Diferencia solicitação pendente, sincronizada e com erro. |
@@ -65,8 +65,8 @@ ECOROTA_KEY=<credencial-da-equipe>
 
 Sem essas duas variáveis, nenhuma chamada externa é realizada.
 
-## 6. Etapa WebSocket concluída
+## 6. Etapa WebSocket e resiliência concluídas
 
-O consumidor WebSocket, snapshot, deduplicação, `generation`, `revision`, persistência do cursor e reconexão foram implementados. Os detalhes estão em `planejamento-websocket-ecorota.md`.
+O consumidor WebSocket, snapshot, deduplicação, `generation`, `revision`, persistência do cursor e reconexão foram implementados. O cliente HTTP também possui retry controlado e callback de observabilidade sem expor credenciais. Os detalhes do stream estão em `planejamento-websocket-ecorota.md`.
 
-A próxima etapa é sincronizar os eventos recebidos com `CollectionRequest`, `RequestStatusHistory`, perfis de coletores e pontuação persistidos no Supabase.
+A sincronização de `CollectionRequest`, `RequestStatusHistory`, perfis e pontuação já está implementada. Resta executar a validação integrada com a credencial real da equipe.

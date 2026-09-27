@@ -17,11 +17,9 @@ EcoRota WebSocket
 
 O Socket.IO compartilha o mesmo servidor HTTP do Fastify. O navegador se conecta ao namespace `/tempo-real`, usando o caminho `/socket.io`.
 
-## Identidade provisória
+## Autenticação do handshake
 
-Como a autenticação foi adiada, desenvolvimento e teste enviam `auth.usuarioId` no handshake. A API não confia no papel enviado pelo navegador: ela consulta o usuário no PostgreSQL e obtém o papel e o vínculo do coletor.
-
-Em produção, toda conexão é recusada com `AUTENTICACAO_REAL_NECESSARIA`. Quando a autenticação for implementada, o handshake provisório deverá ser substituído pela validação do JWT em cookie `httpOnly`.
+O navegador envia automaticamente o cookie `ecorota_sessao` criado pelo login. A API valida assinatura, expiração, emissor e público do JWT e depois consulta o usuário no PostgreSQL para confirmar o papel e o vínculo do coletor. O objeto `auth` do cliente não é usado como identidade.
 
 ## Salas e privacidade
 
@@ -46,7 +44,7 @@ Em produção, toda conexão é recusada com `AUTENTICACAO_REAL_NECESSARIA`. Qua
 ## Uso no frontend
 
 ```ts
-const socket = createRealtimeClient({ usuarioId });
+const socket = createRealtimeClient({});
 
 socket.on('coletor:posicao-atualizada', (evento) => {
   // Atualizar o marcador no MapLibre.
@@ -57,6 +55,6 @@ socket.connect();
 
 Ao desmontar a tela, ela deve remover seus listeners e chamar `socket.disconnect()`.
 
-## Próxima etapa
+## Situação atual e próxima etapa
 
-Conectar esse cliente às telas e ao mapa MapLibre. Depois, na etapa de autenticação, trocar `auth.usuarioId` pelo JWT em cookie sem alterar os nomes dos eventos nem a lógica das salas.
+O dashboard já usa `useTempoReal` para conectar esse cliente autenticado ao mapa MapLibre, substituir os mocks por snapshots autorizados, mover coletores e sinalizar telemetria antiga. O próximo incremento visual é desenhar as geometrias de rota e montar a tabela de solicitações recentes.

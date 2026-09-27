@@ -51,7 +51,7 @@ corepack pnpm --filter @ecorota/api collector:verify
 
 O verificador consulta o perfil, altera temporariamente a disponibilidade, lista solicitações e restaura o estado original do perfil ao final.
 
-## 5. Próxima etapa
+## 5. Situação atual
 
-Conectar o Socket.IO ao bootstrap da API para distribuir snapshots e eventos às telas. Enquanto o JWT continua adiado, essa conexão deverá permanecer restrita ao ambiente de desenvolvimento ou usar a identidade temporária de forma explícita.
+O Socket.IO já está conectado ao bootstrap e exige o mesmo cookie JWT das rotas REST. O verificador do coletor realiza login real, consulta o perfil, altera temporariamente a disponibilidade, lista solicitações e restaura o estado original ao final.
 
