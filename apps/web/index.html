@@ -1,13 +1,18 @@
 <!doctype html>
+<!-- Documento base do Vite; todo conteúdo visual é montado pelo React dentro de #root. -->
 <html lang="pt-BR">
   <head>
+    <!-- Permite caracteres acentuados usados pela interface em português. -->
     <meta charset="UTF-8" />
+    <!-- Faz a página acompanhar a largura de celulares e outros dispositivos. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Define o nome exibido na aba do navegador. -->
     <title>EcoRota</title>
-    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
   </head>
   <body>
+    <!-- Recebe a árvore de componentes criada em src/main.tsx. -->
     <div id="root"></div>
+    <!-- Entrega o ponto de entrada ao Vite como módulo ES. -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

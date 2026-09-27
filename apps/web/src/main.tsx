@@ -1,3 +1,4 @@
+/** Ponto de entrada do React: cria a raiz no elemento #root e renderiza a aplicação em modo estrito. */
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
