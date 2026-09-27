@@ -5,6 +5,7 @@ import { Icon } from '../../../components/Icon';
 import { StatusBadge } from '../../../components/StatusBadge';
 import type { CollectorTask } from '../api';
 import { materialLabel } from '../config';
+import { formatAddress, formatDistrict } from '../lib/address';
 
 // Card de tarefa (guia: no celular do coletor, cards em vez de tabelas). Texto grande e uma única ação.
 export function TaskCard({ task }: { task: CollectorTask }) {
@@ -25,8 +26,8 @@ export function TaskCard({ task }: { task: CollectorTask }) {
         <p className="flex items-start gap-2 text-lg text-neutral-900">
           <Icon name="pin" className="mt-1 h-5 w-5" />
           <span>
-            {task.pointName}
-            <span className="block text-base text-neutral-700">Circuito {task.circuit}</span>
+            {formatAddress(task.address)}
+            <span className="block text-base text-neutral-700">{formatDistrict(task.address)}</span>
           </span>
         </p>
       </div>
@@ -34,7 +35,7 @@ export function TaskCard({ task }: { task: CollectorTask }) {
       <Link to={`/coletor/coletas/${task.id}`} className={buttonClasses(onSite ? 'primary' : 'secondary', true, 'lg')}>
         Ver detalhes
         <span className="sr-only">
-          : {materials} em {task.pointName}
+          : {materials} em {formatAddress(task.address)}
         </span>
         <Icon name="chevronRight" />
       </Link>

@@ -5,9 +5,12 @@ export const MESSAGES = {
   loadError: 'Não deu para carregar. Confira a internet e tente de novo.',
   actionError: 'Não deu certo agora. Tente de novo em instantes.',
   serviceUnstable: 'O serviço está instável agora. Tente de novo em instantes.',
-  notOnSite: 'Ainda não dá para confirmar. A coleta precisa estar no local.',
+  notOnSite: 'Ainda não dá para confirmar. Inicie o atendimento primeiro.',
+  notAssigned: 'Esta coleta não está atribuída a você.',
   cannotCancel: 'Esta coleta não pode mais ser cancelada.',
   wrongCredentials: 'E-mail ou senha incorretos. Confira e tente de novo.',
+  photoPending: 'A confirmação por foto ainda não foi implementada nesta tela. Combinar com o time.',
+  cancelNotAllowed: 'Cancelar pelo app do coletor ainda não é permitido pela API. Só o morador pode cancelar.',
 } as const;
 
 export function friendlyError(error: unknown, fallback: string = MESSAGES.loadError): string {

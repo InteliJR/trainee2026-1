@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, LoadingState } from '../../../components/StateV
 import { useTasks } from '../api/hooks';
 import { TaskCard } from '../components/TaskCard';
 import { ACTIVE_STATUSES } from '../config';
+import { formatAddress } from '../lib/address';
 import { formatToday } from '../lib/dates';
 import { friendlyError } from '../lib/messages';
 
@@ -24,7 +25,7 @@ export default function PainelDiaPage() {
     if (previous.current) {
       for (const t of tasks.data) {
         const before = previous.current.get(t.id);
-        if (before && before !== t.status) setAnnouncement(`A coleta em ${t.pointName} agora está: ${translateStatus(t.status)}`);
+        if (before && before !== t.status) setAnnouncement(`A coleta em ${formatAddress(t.address)} agora está: ${translateStatus(t.status)}`);
       }
     }
     previous.current = new Map(tasks.data.map((t) => [t.id, t.status]));

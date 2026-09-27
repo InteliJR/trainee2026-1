@@ -8,21 +8,24 @@ import { InlineNotice } from '../../../components/InlineNotice';
 import { PageTitle } from '../../../components/PageTitle';
 import { StatusBadge } from '../../../components/StatusBadge';
 import { EmptyState, ErrorState, LoadingState } from '../../../components/StateView';
-import { api, type PickupIssueReport } from '../api';
+import { api, USE_MOCK } from '../api';
 import { useTasks } from '../api/hooks';
 import { FailedPickupFlow } from '../components/FailedPickupFlow';
 import { CancelFlow } from '../components/CancelFlow';
-import { ACTIVE_STATUSES, CANCELABLE_STATUSES, COMPLETABLE_STATUSES, ISSUE_STATUSES, materialLabel } from '../config';
+import { ACTIVE_STATUSES, CANCELABLE_STATUSES, COMPLETABLE_STATUSES, ISSUE_STATUSES, STARTABLE_STATUSES, materialLabel } from '../config';
+import { formatAddress, formatDistrict } from '../lib/address';
 import { formatDateBR, formatTime } from '../lib/dates';
 import { MESSAGES, friendlyError, statusOf } from '../lib/messages';
 import { STATUS_HINT } from '../lib/statusCopy';
 
 type Notice = { tone: 'success' | 'error'; text: string };
 
-// Detalhe da coleta + confirmar/cancelar.
-//  - Confirmar (RF10): só com status in_service (regra do guia de integração); pede 1 confirmação.
-//  - Cancelar (RF11): dupla confirmação (RN01).
-//  - Não deu para coletar: registra o motivo (do ponto) e remarca ou encerra, sem sair da tela.
+// Detalhe da coleta.
+//  - Iniciar atendimento (assigned -> in_service): exigido pela API real antes de poder confirmar.
+//  - Confirmar (RF10): só com status in_service; a API real exige uma foto de comprovação, que ainda
+//    não tem tela — fica bloqueado fora do mock (ver MESSAGES.photoPending).
+//  - Cancelar (RF11) e "Não deu para coletar": a API real só deixa o MORADOR cancelar, então ficam
+//    bloqueados fora do mock (ver MESSAGES.cancelNotAllowed).
 export default function DetalheColetaPage() {
   const { id } = useParams();
   const list = useTasks({
@@ -45,6 +48,7 @@ export default function DetalheColetaPage() {
     previousStatus.current = status;
   }, [status]);
 
+  const [starting, setStarting] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -53,10 +57,24 @@ export default function DetalheColetaPage() {
   const [reporting, setReporting] = useState(false);
   const [notice, setNotice] = useState<Notice>();
 
+  async function handleStart() {
+    setStarting(true);
+    try {
+      await api.startTask(id!);
+      setNotice({ tone: 'success', text: 'Atendimento iniciado.' });
+    } catch (e) {
+      setNotice({ tone: 'error', text: statusOf(e) === 409 ? MESSAGES.notAssigned : friendlyError(e, MESSAGES.actionError) });
+    } finally {
+      setStarting(false);
+      list.refresh();
+    }
+  }
+
   async function confirmComplete() {
     setCompleting(true);
     try {
-      await api.completeTask(id!);
+      // Mock não olha a URL; a tela real de foto ainda não existe (MESSAGES.photoPending).
+      await api.completeTask(id!, 'https://picsum.photos/seed/mock-coleta/600/400');
       setNotice({ tone: 'success', text: 'Coleta confirmada. Bom trabalho!' });
     } catch (e) {
       setNotice({ tone: 'error', text: statusOf(e) === 409 ? MESSAGES.notOnSite : friendlyError(e, MESSAGES.actionError) });
@@ -70,7 +88,7 @@ export default function DetalheColetaPage() {
   async function confirmCancel() {
     setCancelling(true);
     try {
-      await api.cancelTask(id!);
+      await api.cancelTask(id!, 'Cancelado pelo coletor');
       setNotice({ tone: 'success', text: 'Coleta cancelada.' });
     } catch (e) {
       setNotice({ tone: 'error', text: statusOf(e) === 409 ? MESSAGES.cannotCancel : friendlyError(e, MESSAGES.actionError) });
@@ -81,16 +99,11 @@ export default function DetalheColetaPage() {
     }
   }
 
-  async function confirmIssue(report: PickupIssueReport) {
+  async function confirmIssue(reason: string) {
     setReporting(true);
     try {
-      await api.reportIssue(id!, report);
-      setNotice({
-        tone: 'success',
-        text: report.rescheduleDate
-          ? `Registrado. A coleta ficou para ${formatDateBR(report.rescheduleDate)}.`
-          : 'Registrado. A coleta foi encerrada.',
-      });
+      await api.cancelTask(id!, reason);
+      setNotice({ tone: 'success', text: 'Registrado. A coleta foi encerrada.' });
     } catch (e) {
       setNotice({ tone: 'error', text: statusOf(e) === 409 ? MESSAGES.notOnSite : friendlyError(e, MESSAGES.actionError) });
     } finally {
@@ -142,6 +155,7 @@ export default function DetalheColetaPage() {
     );
   }
 
+  const canStart = STARTABLE_STATUSES.includes(task.status);
   const canComplete = COMPLETABLE_STATUSES.includes(task.status);
   const canCancel = CANCELABLE_STATUSES.includes(task.status);
   const canReportIssue = ISSUE_STATUSES.includes(task.status);
@@ -168,9 +182,9 @@ export default function DetalheColetaPage() {
         <Item label="Material esperado" big>
           {task.materials.map(materialLabel).join(', ')}
         </Item>
-        <Item label="Ponto de coleta">
-          {task.pointName}
-          <span className="block text-base font-normal text-neutral-700">Circuito {task.circuit}</span>
+        <Item label="Endereço">
+          {formatAddress(task.address)}
+          <span className="block text-base font-normal text-neutral-700">{formatDistrict(task.address)}</span>
         </Item>
         <Item label="Data">{formatDateBR(task.scheduledDate)}</Item>
         {task.notes && <Item label="Observações">{task.notes}</Item>}
@@ -179,34 +193,46 @@ export default function DetalheColetaPage() {
 
       {isActionable && (
         <div className="space-y-3">
-          {canComplete ? (
-            <Button size="lg" fullWidth icon={<Icon name="check" />} onClick={() => setCompleteOpen(true)}>
-              Confirmar coleta
+          {canStart && (
+            <Button size="lg" fullWidth icon={<Icon name="pin" />} loading={starting} loadingText="Iniciando…" onClick={handleStart}>
+              Iniciar atendimento
             </Button>
-          ) : (
-            <div className="space-y-2">
-              {/* aria-disabled (e não disabled): continua focável e o motivo é lido junto */}
-              <Button
-                size="lg"
-                fullWidth
-                icon={<Icon name="check" />}
-                aria-disabled="true"
-                aria-describedby="complete-reason"
-                onClick={(e) => e.preventDefault()}
-              >
+          )}
+
+          {canComplete &&
+            (USE_MOCK ? (
+              <Button size="lg" fullWidth icon={<Icon name="check" />} onClick={() => setCompleteOpen(true)}>
                 Confirmar coleta
               </Button>
-              <p id="complete-reason" className="text-base text-neutral-800">
-                Disponível quando você estiver no local.
-              </p>
-            </div>
-          )}
-          {canReportIssue && (
-            <Button size="lg" variant="secondary" fullWidth icon={<Icon name="alert" />} onClick={() => setIssueOpen(true)}>
-              Não deu para coletar
-            </Button>
-          )}
-          {canCancel && (
+            ) : (
+              <div className="space-y-2">
+                {/* aria-disabled (e não disabled): continua focável e o motivo é lido junto */}
+                <Button
+                  size="lg"
+                  fullWidth
+                  icon={<Icon name="check" />}
+                  aria-disabled="true"
+                  aria-describedby="complete-reason"
+                  onClick={(e) => e.preventDefault()}
+                >
+                  Confirmar coleta
+                </Button>
+                <p id="complete-reason" className="text-base text-neutral-800">
+                  {MESSAGES.photoPending}
+                </p>
+              </div>
+            ))}
+
+          {canReportIssue &&
+            (USE_MOCK ? (
+              <Button size="lg" variant="secondary" fullWidth icon={<Icon name="alert" />} onClick={() => setIssueOpen(true)}>
+                Não deu para coletar
+              </Button>
+            ) : (
+              <InlineNotice tone="info">{MESSAGES.cancelNotAllowed}</InlineNotice>
+            ))}
+
+          {canCancel && USE_MOCK && (
             <Button size="lg" variant="danger" fullWidth icon={<Icon name="ban" />} onClick={() => setCancelOpen(true)}>
               Cancelar coleta
             </Button>

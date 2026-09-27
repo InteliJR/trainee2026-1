@@ -1,36 +1,33 @@
 import type { RequestStatus } from '@ecorota/shared';
-import type { Material, PickupIssueReason } from '../config';
+import type { Material } from '../config';
 
-// Coleta atribuída ao coletor logado ("ponto de coleta" = local físico; nada a ver com "pontos" de gamificação).
+// Endereço do morador — é para lá que o coletor vai (não existe "ponto de coleta" no backend real).
+export interface CollectorAddress {
+  street: string;
+  number: string;
+  district: string;
+  city: string;
+}
+
 export interface CollectorTask {
   id: string;
   status: RequestStatus;
   materials: Material[];
-  pointId: string;
-  pointName: string;
-  circuit: number;
+  address: CollectorAddress;
   scheduledDate: string; // 'YYYY-MM-DD'
   notes?: string;
   updatedAt: string;
 }
 
-// Registro de coleta que não deu certo no ponto (Task 3.3).
-// Sem `rescheduleDate`, a coleta é encerrada em vez de remarcada.
-export interface PickupIssueReport {
-  reason: PickupIssueReason;
-  /** Obrigatório quando `reason` é 'other'. */
-  details?: string;
-  /** 'YYYY-MM-DD' — nova data pedida pelo coletor. */
-  rescheduleDate?: string;
-}
-
-// Contrato que o front usa. `mock.ts` implementa agora; `http.ts` entra quando o Dev 1 entregar as rotas.
+// Contrato que o front usa. `mock.ts` sempre funciona; `http.ts` fala com a API real (VITE_USE_MOCK=false).
 export interface CollectorApi {
   listTasks(): Promise<CollectorTask[]>;
-  completeTask(id: string): Promise<void>;
-  cancelTask(id: string): Promise<void>;
-  reportIssue(id: string, report: PickupIssueReport): Promise<void>;
-  // Task 3.4 (Dia 5): disponibilidade do coletor (arquitetura-Luiz.md §10.2).
+  /** Início do atendimento: assigned -> in_service. Sem isso não dá para concluir. */
+  startTask(id: string): Promise<void>;
+  /** A API real exige a URL de uma foto como comprovação (POST .../conclusao). */
+  completeTask(id: string, photoUrl: string): Promise<void>;
+  /** A API real só permite cancelamento pelo morador — em modo real, esta ação fica bloqueada na tela. */
+  cancelTask(id: string, reason: string): Promise<void>;
   getAvailability(): Promise<boolean>;
   setAvailability(available: boolean): Promise<boolean>;
 }

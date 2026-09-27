@@ -2,19 +2,20 @@
 // Dados vêm de `../mocks/tasks.json`; o que o coletor faz fica em localStorage.
 // Ative a API real com VITE_USE_MOCK=false.
 //
-// Simula também o que a EcoRota/backend fazem de verdade:
-//  - uma coleta `assigned` vira `in_service` sozinha depois de um tempo (o coletor "chegou ao local");
-//  - só se conclui uma coleta `in_service` (regra do guia de integração);
-//  - só se cancela o que está `assigned` ou `in_service`;
-//  - coleta não realizada com reagendamento devolve a coleta para a fila (`pending`) na nova data;
-//    sem reagendamento, ela é encerrada como `cancelled`. [CONFIRMAR COM O TIME]
+// Simula também o que o backend faz de verdade:
+//  - uma coleta `assigned` vira `in_service` sozinha depois de um tempo (a API real exige POST .../inicio,
+//    mas no mock isso é automático para poder testar sem clicar em nada);
+//  - `startTask` também move `assigned` -> `in_service` na hora, para quem quiser testar o botão;
+//  - só se conclui uma coleta `in_service`;
+//  - só se cancela o que está `assigned` ou `in_service` (a API real só deixa o morador cancelar —
+//    aqui no mock isso continua liberado para o coletor testar a tela).
 import type { RequestStatus } from '@ecorota/shared';
-import { ISSUE_STATUSES, CANCELABLE_STATUSES, COMPLETABLE_STATUSES, type Material } from '../config';
+import { CANCELABLE_STATUSES, COMPLETABLE_STATUSES, STARTABLE_STATUSES, type Material } from '../config';
 import tasksJson from '../mocks/tasks.json';
 import { ApiError } from './errors';
-import type { CollectorApi, CollectorTask } from './types';
+import type { CollectorAddress, CollectorApi, CollectorTask } from './types';
 
-const STORAGE_KEY = 'ecorota.mock.coletor.v1';
+const STORAGE_KEY = 'ecorota.mock.coletor.v2';
 const AVAILABILITY_KEY = 'ecorota.mock.coletor.availability.v1';
 const LATENCY_MS = 250;
 
@@ -22,9 +23,7 @@ interface SeedTask {
   id: string;
   status: string;
   materials: string[];
-  pointId: string;
-  pointName: string;
-  circuit: number;
+  address: CollectorAddress;
   notes?: string;
   arrivesInMs?: number;
 }
@@ -94,7 +93,7 @@ function saveAvailability(available: boolean): void {
 
 const delay = () => new Promise((r) => setTimeout(r, LATENCY_MS));
 
-// "Chegada ao local": assigned → in_service quando o tempo do mock passa.
+// "Chegada ao local": assigned → in_service quando o tempo do mock passa (substitui o POST .../inicio real).
 function advance(tasks: StoredTask[]): void {
   const now = Date.now();
   let changed = false;
@@ -123,6 +122,18 @@ export const mockApi: CollectorApi = {
     return tasks.map(({ arrivesAt: _arrivesAt, ...t }) => t);
   },
 
+  async startTask(id) {
+    await delay();
+    const tasks = load();
+    advance(tasks);
+    const task = find(tasks, id);
+    if (!STARTABLE_STATUSES.includes(task.status)) throw new ApiError(409, 'Esta coleta não está atribuída a você');
+    task.status = 'in_service';
+    task.arrivesAt = undefined;
+    task.updatedAt = new Date().toISOString();
+    save(tasks);
+  },
+
   async completeTask(id) {
     await delay();
     const tasks = load();
@@ -134,32 +145,14 @@ export const mockApi: CollectorApi = {
     save(tasks);
   },
 
-  async cancelTask(id) {
+  async cancelTask(id, reason) {
     await delay();
     const tasks = load();
     advance(tasks);
     const task = find(tasks, id);
     if (!CANCELABLE_STATUSES.includes(task.status)) throw new ApiError(409, 'Esta coleta não pode mais ser cancelada');
     task.status = 'cancelled';
-    task.arrivesAt = undefined;
-    task.updatedAt = new Date().toISOString();
-    save(tasks);
-  },
-
-  async reportIssue(id, report) {
-    await delay();
-    const tasks = load();
-    advance(tasks);
-    const task = find(tasks, id);
-    if (!ISSUE_STATUSES.includes(task.status)) throw new ApiError(409, 'A coleta não está no local');
-    if (report.rescheduleDate) {
-      task.status = 'pending';
-      task.scheduledDate = report.rescheduleDate;
-      task.notes = `Não coletado (${report.details?.trim() || report.reason}). Remarcada.`;
-    } else {
-      task.status = 'cancelled';
-      task.notes = `Não coletado (${report.details?.trim() || report.reason}).`;
-    }
+    task.notes = reason;
     task.arrivesAt = undefined;
     task.updatedAt = new Date().toISOString();
     save(tasks);

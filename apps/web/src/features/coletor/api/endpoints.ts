@@ -1,12 +1,8 @@
-// Caminhos da nossa API (Fastify), conforme arquitetura-Luiz.md §10.2. O front nunca chama a EcoRota direto.
+// Caminhos reais da API (testados contra apps/api em 2026-09-27, branch feat/backend). Prefixo /api/v1 no http.ts.
 export const endpoints = {
-  tasks: '/collector/requests', // GET — coletas atribuídas ao coletor logado
-  completeTask: (id: string) => `/collector/requests/${id}/complete`, // POST — só coletor custom e status in_service
-  cancelTask: (id: string) => `/collector/requests/${id}/cancel`, // POST
-  // POST — coleta não realizada no ponto (+ reagendamento).
-  // Rota NOVA: não consta na arquitetura-Luiz.md §10.2. [COMBINAR COM O DEV 1]
-  reportIssue: (id: string) => `/collector/requests/${id}/issue`,
-  // POST — disponibilidade do coletor, conforme arquitetura-Luiz.md §10.2.
-  // GET — leitura do estado atual: rota NOVA, não consta na arquitetura-Luiz.md §10.2. [COMBINAR COM O DEV 1]
-  availability: '/collector/availability',
+  tasks: '/coletor/solicitacoes', // GET — coletas atribuídas ao coletor logado (resposta paginada: { dados, paginacao })
+  startTask: (id: string) => `/solicitacoes-coleta/${id}/inicio`, // POST — assigned -> in_service
+  completeTask: (id: string) => `/solicitacoes-coleta/${id}/conclusao`, // POST — exige { fotoUrl }
+  cancelTask: (id: string) => `/solicitacoes-coleta/${id}/cancelamento`, // POST — só MORADOR/OPERADOR; coletor recebe 403
+  availability: '/coletor/disponibilidade', // GET/PATCH — { disponivel, turno }
 } as const;
