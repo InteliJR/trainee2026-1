@@ -19,6 +19,17 @@ export interface CollectorTask {
   updatedAt: string;
 }
 
+// PENDING = ainda não confirmado com a EcoRota; SYNCED = confirmado; ERROR = a EcoRota pode não saber disso.
+export type SyncStatus = 'PENDING' | 'SYNCED' | 'ERROR';
+
+export interface CollectorAvailability {
+  available: boolean;
+  /** Turno cadastrado pelo time (ex.: "Manhã"). Null = nenhum turno definido ainda. */
+  shift: string | null;
+  syncStatus: SyncStatus;
+  updatedAt: string;
+}
+
 // Contrato que o front usa. `mock.ts` sempre funciona; `http.ts` fala com a API real (VITE_USE_MOCK=false).
 export interface CollectorApi {
   listTasks(): Promise<CollectorTask[]>;
@@ -28,6 +39,6 @@ export interface CollectorApi {
   completeTask(id: string, photoUrl: string): Promise<void>;
   /** A API real só permite cancelamento pelo morador — em modo real, esta ação fica bloqueada na tela. */
   cancelTask(id: string, reason: string): Promise<void>;
-  getAvailability(): Promise<boolean>;
-  setAvailability(available: boolean): Promise<boolean>;
+  getAvailability(): Promise<CollectorAvailability>;
+  setAvailability(available: boolean): Promise<CollectorAvailability>;
 }

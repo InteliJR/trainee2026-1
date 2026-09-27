@@ -13,10 +13,10 @@ import type { RequestStatus } from '@ecorota/shared';
 import { CANCELABLE_STATUSES, COMPLETABLE_STATUSES, STARTABLE_STATUSES, type Material } from '../config';
 import tasksJson from '../mocks/tasks.json';
 import { ApiError } from './errors';
-import type { CollectorAddress, CollectorApi, CollectorTask } from './types';
+import type { CollectorAddress, CollectorApi, CollectorAvailability, CollectorTask } from './types';
 
 const STORAGE_KEY = 'ecorota.mock.coletor.v2';
-const AVAILABILITY_KEY = 'ecorota.mock.coletor.availability.v1';
+const AVAILABILITY_KEY = 'ecorota.mock.coletor.availability.v2';
 const LATENCY_MS = 250;
 
 interface SeedTask {
@@ -68,27 +68,36 @@ function save(tasks: StoredTask[]): void {
   }
 }
 
-// Disponibilidade: coletor começa disponível por padrão.
-let availabilityMemory: boolean | null = null;
+// Disponibilidade: coletor começa disponível por padrão, com um turno já definido pelo time.
+const DEFAULT_SHIFT = 'Manhã';
+let availabilityMemory: CollectorAvailability | null = null;
 
-function loadAvailability(): boolean {
-  if (availabilityMemory !== null) return availabilityMemory;
+function loadAvailability(): CollectorAvailability {
+  if (availabilityMemory) return availabilityMemory;
   try {
     const raw = localStorage.getItem(AVAILABILITY_KEY);
-    if (raw) return (availabilityMemory = JSON.parse(raw) as boolean);
+    if (raw) return (availabilityMemory = JSON.parse(raw) as CollectorAvailability);
   } catch {
     /* storage indisponível: segue em memória */
   }
-  return (availabilityMemory = true);
+  return (availabilityMemory = {
+    available: true,
+    shift: DEFAULT_SHIFT,
+    syncStatus: 'SYNCED',
+    updatedAt: new Date().toISOString(),
+  });
 }
 
-function saveAvailability(available: boolean): void {
-  availabilityMemory = available;
+function saveAvailability(available: boolean): CollectorAvailability {
+  const current = loadAvailability();
+  const next: CollectorAvailability = { ...current, available, syncStatus: 'SYNCED', updatedAt: new Date().toISOString() };
+  availabilityMemory = next;
   try {
-    localStorage.setItem(AVAILABILITY_KEY, JSON.stringify(available));
+    localStorage.setItem(AVAILABILITY_KEY, JSON.stringify(next));
   } catch {
     /* idem */
   }
+  return next;
 }
 
 const delay = () => new Promise((r) => setTimeout(r, LATENCY_MS));
@@ -165,7 +174,6 @@ export const mockApi: CollectorApi = {
 
   async setAvailability(available) {
     await delay();
-    saveAvailability(available);
-    return available;
+    return saveAvailability(available);
   },
 };

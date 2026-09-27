@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { translateStatus, type RequestStatus } from '@ecorota/shared';
 import { Button, buttonClasses } from '../../../components/Button';
-import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Icon } from '../../../components/Icon';
 import { InlineNotice } from '../../../components/InlineNotice';
 import { PageTitle } from '../../../components/PageTitle';
@@ -12,6 +11,7 @@ import { api, USE_MOCK } from '../api';
 import { useTasks } from '../api/hooks';
 import { FailedPickupFlow } from '../components/FailedPickupFlow';
 import { CancelFlow } from '../components/CancelFlow';
+import { CompleteFlow } from '../components/CompleteFlow';
 import { ACTIVE_STATUSES, CANCELABLE_STATUSES, COMPLETABLE_STATUSES, ISSUE_STATUSES, STARTABLE_STATUSES, materialLabel } from '../config';
 import { formatAddress, formatDistrict } from '../lib/address';
 import { formatDateBR, formatTime } from '../lib/dates';
@@ -20,12 +20,15 @@ import { STATUS_HINT } from '../lib/statusCopy';
 
 type Notice = { tone: 'success' | 'error'; text: string };
 
+// A API não tem upload de foto — não haverá tela pra isso. `fotoUrl` é obrigatória no endpoint
+// de conclusão, então manda um valor fixo (produto decidiu: sem captura de foto no app).
+const PLACEHOLDER_PHOTO_URL = 'https://ecorota.example/sem-foto.jpg';
+
 // Detalhe da coleta.
 //  - Iniciar atendimento (assigned -> in_service): exigido pela API real antes de poder confirmar.
-//  - Confirmar (RF10): só com status in_service; a API real exige uma foto de comprovação, que ainda
-//    não tem tela — fica bloqueado fora do mock (ver MESSAGES.photoPending).
-//  - Cancelar (RF11) e "Não deu para coletar": a API real só deixa o MORADOR cancelar, então ficam
-//    bloqueados fora do mock (ver MESSAGES.cancelNotAllowed).
+//  - Confirmar (RF10): dupla confirmação (CompleteFlow), conectada à API real.
+//  - Cancelar (RF11) e "Não deu para coletar": a API real só deixa o MORADOR cancelar — o coletor
+//    não tem essa ação fora do mock.
 export default function DetalheColetaPage() {
   const { id } = useParams();
   const list = useTasks({
@@ -73,8 +76,7 @@ export default function DetalheColetaPage() {
   async function confirmComplete() {
     setCompleting(true);
     try {
-      // Mock não olha a URL; a tela real de foto ainda não existe (MESSAGES.photoPending).
-      await api.completeTask(id!, 'https://picsum.photos/seed/mock-coleta/600/400');
+      await api.completeTask(id!, PLACEHOLDER_PHOTO_URL);
       setNotice({ tone: 'success', text: 'Coleta confirmada. Bom trabalho!' });
     } catch (e) {
       setNotice({ tone: 'error', text: statusOf(e) === 409 ? MESSAGES.notOnSite : friendlyError(e, MESSAGES.actionError) });
@@ -199,38 +201,17 @@ export default function DetalheColetaPage() {
             </Button>
           )}
 
-          {canComplete &&
-            (USE_MOCK ? (
-              <Button size="lg" fullWidth icon={<Icon name="check" />} onClick={() => setCompleteOpen(true)}>
-                Confirmar coleta
-              </Button>
-            ) : (
-              <div className="space-y-2">
-                {/* aria-disabled (e não disabled): continua focável e o motivo é lido junto */}
-                <Button
-                  size="lg"
-                  fullWidth
-                  icon={<Icon name="check" />}
-                  aria-disabled="true"
-                  aria-describedby="complete-reason"
-                  onClick={(e) => e.preventDefault()}
-                >
-                  Confirmar coleta
-                </Button>
-                <p id="complete-reason" className="text-base text-neutral-800">
-                  {MESSAGES.photoPending}
-                </p>
-              </div>
-            ))}
+          {canComplete && (
+            <Button size="lg" fullWidth icon={<Icon name="check" />} onClick={() => setCompleteOpen(true)}>
+              Confirmar coleta
+            </Button>
+          )}
 
-          {canReportIssue &&
-            (USE_MOCK ? (
-              <Button size="lg" variant="secondary" fullWidth icon={<Icon name="alert" />} onClick={() => setIssueOpen(true)}>
-                Não deu para coletar
-              </Button>
-            ) : (
-              <InlineNotice tone="info">{MESSAGES.cancelNotAllowed}</InlineNotice>
-            ))}
+          {canReportIssue && USE_MOCK && (
+            <Button size="lg" variant="secondary" fullWidth icon={<Icon name="alert" />} onClick={() => setIssueOpen(true)}>
+              Não deu para coletar
+            </Button>
+          )}
 
           {canCancel && USE_MOCK && (
             <Button size="lg" variant="danger" fullWidth icon={<Icon name="ban" />} onClick={() => setCancelOpen(true)}>
@@ -246,17 +227,7 @@ export default function DetalheColetaPage() {
         </Link>
       )}
 
-      <ConfirmDialog
-        open={completeOpen}
-        title="Confirmar que a coleta foi feita?"
-        cancelLabel="Voltar"
-        confirmLabel="Sim, confirmar coleta"
-        loading={completing}
-        onCancel={() => setCompleteOpen(false)}
-        onConfirm={confirmComplete}
-      >
-        Depois de confirmada, não dá para desfazer.
-      </ConfirmDialog>
+      <CompleteFlow open={completeOpen} loading={completing} onClose={() => setCompleteOpen(false)} onConfirm={confirmComplete} />
 
       <CancelFlow open={cancelOpen} loading={cancelling} onClose={() => setCancelOpen(false)} onConfirm={confirmCancel} />
 

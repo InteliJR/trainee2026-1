@@ -9,8 +9,6 @@ export const MESSAGES = {
   notAssigned: 'Esta coleta não está atribuída a você.',
   cannotCancel: 'Esta coleta não pode mais ser cancelada.',
   wrongCredentials: 'E-mail ou senha incorretos. Confira e tente de novo.',
-  photoPending: 'A confirmação por foto ainda não foi implementada nesta tela. Combinar com o time.',
-  cancelNotAllowed: 'Cancelar pelo app do coletor ainda não é permitido pela API. Só o morador pode cancelar.',
 } as const;
 
 export function friendlyError(error: unknown, fallback: string = MESSAGES.loadError): string {

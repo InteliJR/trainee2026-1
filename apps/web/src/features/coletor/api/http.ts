@@ -4,7 +4,7 @@ import type { RequestStatus } from '@ecorota/shared';
 import { endpoints } from './endpoints';
 import { ApiError } from './errors';
 import type { Material } from '../config';
-import type { CollectorApi, CollectorTask } from './types';
+import type { CollectorApi, CollectorAvailability, CollectorTask } from './types';
 
 // Usa VITE_API_URL quando definida (bypassa o proxy do Vite — no Windows ele tenta ::1 e falha contra
 // um Fastify escutando só em IPv4). A API já libera CORS com credenciais para WEB_ORIGIN.
@@ -86,6 +86,13 @@ function fromDTO(dto: RequestDTO): CollectorTask {
 
 interface AvailabilityDTO {
   disponivel: boolean;
+  turno: string | null;
+  statusSincronizacao: 'PENDING' | 'SYNCED' | 'ERROR';
+  atualizadoEm: string;
+}
+
+function fromAvailabilityDTO(dto: AvailabilityDTO): CollectorAvailability {
+  return { available: dto.disponivel, shift: dto.turno, syncStatus: dto.statusSincronizacao, updatedAt: dto.atualizadoEm };
 }
 
 export const httpApi: CollectorApi = {
@@ -97,12 +104,10 @@ export const httpApi: CollectorApi = {
   completeTask: (id, photoUrl) => request('POST', endpoints.completeTask(id), { fotoUrl: photoUrl }),
   cancelTask: (id, reason) => request('POST', endpoints.cancelTask(id), { motivo: reason, confirmado: true }),
   async getAvailability() {
-    const dto = await request<AvailabilityDTO>('GET', endpoints.availability);
-    return dto.disponivel;
+    return fromAvailabilityDTO(await request<AvailabilityDTO>('GET', endpoints.availability));
   },
   async setAvailability(available) {
     // Omite `turno`: o serviço mantém o turno já cadastrado quando o campo não é enviado.
-    const dto = await request<AvailabilityDTO>('PATCH', endpoints.availability, { disponivel: available });
-    return dto.disponivel;
+    return fromAvailabilityDTO(await request<AvailabilityDTO>('PATCH', endpoints.availability, { disponivel: available }));
   },
 };

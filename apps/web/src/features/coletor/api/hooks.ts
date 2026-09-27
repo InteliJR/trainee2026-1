@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type DependencyList } from 'react';
 import { TASK_POLL_MS } from '../config';
-import { api, type CollectorTask } from './index';
+import { api, type CollectorAvailability, type CollectorTask } from './index';
 
 interface AsyncState<T> {
   data?: T;
@@ -68,29 +68,29 @@ export const useTasks = (opts?: { poll?: boolean; pollWhile?: (data: CollectorTa
 // Task 3.4 (Dia 5): disponibilidade do coletor, com atualização otimista (desfaz se a chamada falhar).
 export function useAvailability() {
   const { data, error, loading, reload } = useAsync(() => api.getAvailability(), []);
-  const [optimistic, setOptimistic] = useState<boolean>();
+  const [optimistic, setOptimistic] = useState<CollectorAvailability>();
   const [toggling, setToggling] = useState(false);
   const [toggleError, setToggleError] = useState<unknown>();
 
   useEffect(() => setOptimistic(undefined), [data]);
-  const available = optimistic ?? data;
+  const availability = optimistic ?? data;
 
   const toggle = useCallback(async () => {
-    if (available === undefined || toggling) return;
-    const next = !available;
+    if (!availability || toggling) return;
+    const next = !availability.available;
     setToggling(true);
     setToggleError(undefined);
-    setOptimistic(next);
+    setOptimistic({ ...availability, available: next });
     try {
       const confirmed = await api.setAvailability(next);
       setOptimistic(confirmed);
     } catch (error) {
-      setOptimistic(available);
+      setOptimistic(availability);
       setToggleError(error);
     } finally {
       setToggling(false);
     }
-  }, [available, toggling]);
+  }, [availability, toggling]);
 
-  return { data: available, error, loading, toggling, toggleError, reload, toggle };
+  return { data: availability, error, loading, toggling, toggleError, reload, toggle };
 }
