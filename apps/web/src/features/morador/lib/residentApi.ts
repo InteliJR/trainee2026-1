@@ -3,6 +3,7 @@
  * Esta é a camada que traduz pontos, endereços e solicitações da API para os tipos usados nas telas.
  */
 import type { RequestStatus } from '@ecorota/shared';
+import { ApiError, apiRequest } from '../../../lib/api';
 import { materialOptions, shiftOptions } from '../data/mockSolicitacao';
 import type {
   CollectionPoint,
@@ -12,36 +13,6 @@ import type {
   Shift,
   StatusTimelineItem,
 } from '../types';
-
-// Usa VITE_API_URL quando definida, como o restante do frontend; senão passa pelo proxy /api do Vite.
-const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api/v1`;
-
-// Erro com o status HTTP e a mensagem devolvida pela API; status 0 significa sem conexão.
-export class ResidentApiError extends Error {
-  constructor(readonly status: number, message: string) {
-    super(message);
-  }
-}
-
-// Faz a chamada com o cookie de sessão e converte respostas de erro em ResidentApiError.
-export async function apiRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
-  let response: Response;
-  try {
-    response = await fetch(`${BASE}${path}`, {
-      method,
-      credentials: 'include',
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-  } catch {
-    throw new ResidentApiError(0, 'Sem conexão com a API.');
-  }
-  const data = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new ResidentApiError(response.status, data?.mensagem ?? `A API respondeu com status ${response.status}.`);
-  }
-  return data as T;
-}
 
 // ---------- Contratos da API ----------
 
@@ -234,10 +205,10 @@ export async function fetchResidentRequests(): Promise<ResidentCollectionRequest
 // Cria a solicitação no endereço padrão do morador.
 export async function createRequestInApi(draft: ResidentRequestDraft, point: CollectionPoint): Promise<ResidentCollectionRequest> {
   if (!draft.materialId || !draft.shift || !draft.desiredDate) {
-    throw new ResidentApiError(400, 'Complete os dados da coleta antes de continuar.');
+    throw new ApiError(400, 'Complete os dados da coleta antes de continuar.');
   }
   const address = await fetchDefaultAddress();
-  if (!address) throw new ResidentApiError(400, 'Cadastre um endereço antes de solicitar uma coleta.');
+  if (!address) throw new ApiError(400, 'Cadastre um endereço antes de solicitar uma coleta.');
   const dto = await apiRequest<RequestDTO>('POST', '/solicitacoes-coleta', {
     enderecoId: address.id,
     pontoColetaExternoId: point.id,

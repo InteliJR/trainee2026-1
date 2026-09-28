@@ -1,8 +1,8 @@
 import type { CollectionPoint, ResidentRequestDraft, ResidentCollectionRequest } from '../types';
 import { materialOptions, shiftOptions } from '../data/mockSolicitacao';
 import { residentRequests } from '../data/mockAcompanhamento';
+import { ApiError } from '../../../lib/api';
 import {
-  ResidentApiError,
   buildTimeline,
   cancelRequestInApi,
   createRequestInApi,
@@ -69,7 +69,7 @@ export async function refreshResidentRequests(): Promise<ResidentCollectionReque
     writeList(API_CACHE_KEY, requests);
     return requests;
   } catch (error) {
-    if (!(error instanceof ResidentApiError)) console.error('Falha ao buscar solicitações do morador', error);
+    if (!(error instanceof ApiError)) console.error('Falha ao buscar solicitações do morador', error);
     return null;
   }
 }
@@ -84,7 +84,7 @@ export async function createResidentRequest(
     writeList(API_CACHE_KEY, [request, ...(readList(API_CACHE_KEY) ?? [])]);
     return { request, source: 'api' };
   } catch (error) {
-    if (!(error instanceof ResidentApiError) || error.status !== 0) throw error;
+    if (!(error instanceof ApiError) || error.status !== 0) throw error;
     const request = buildDemoRequest(draft, point);
     updateResidentRequest(request);
     return { request, source: 'demo' };

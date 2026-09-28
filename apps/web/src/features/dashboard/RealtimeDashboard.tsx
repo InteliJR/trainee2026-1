@@ -4,11 +4,14 @@
  * Segue o guia de estilos: tokens do Tailwind, tons `operational` para separar o dashboard da experiência do morador.
  */
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Icon } from '../../components/Icon';
 import { MapContainer } from '../../map/MapContainer';
 import { formatAge } from '../../map/mapUtils';
 import { useTempoReal, type RealtimeConnectionStatus } from '../../realtime/useTempoReal';
 import { KpiCards } from './KpiCards';
 import { RecentRequestsTable } from './RecentRequestsTable';
+import { logoutOperator } from './operatorAuth';
 import { RegionDemand } from './RegionDemand';
 import { useIndicadores } from './useIndicadores';
 
@@ -47,6 +50,12 @@ export function RealtimeDashboard() {
   });
   // Ponto escolhido na tabela; o nonce faz o mapa voltar ao ponto mesmo se a mesma linha for clicada de novo.
   const [focus, setFocus] = useState<{ pointId: string; nonce: number } | null>(null);
+  const navigate = useNavigate();
+  // Sai mesmo se a API não responder, para não prender o operador numa sessão que ele quer encerrar.
+  async function logout() {
+    await logoutOperator().catch(() => undefined);
+    navigate('/operador/login', { replace: true });
+  }
   // Atualiza o "Atualizado há X" mesmo sem eventos novos.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -84,6 +93,14 @@ export function RealtimeDashboard() {
               <span aria-hidden="true" className="h-2 w-2 rounded-full bg-current" />
               {CONNECTION_LABELS[realtime.connectionStatus]}
             </span>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="inline-flex min-h-touch items-center gap-2 rounded-md border border-neutral-300 bg-neutral-0 px-3 text-sm font-semibold text-neutral-700 hover:border-operational-600 hover:text-operational-700"
+            >
+              <Icon name="logout" className="h-4 w-4" />
+              Sair
+            </button>
           </div>
         </div>
         {realtime.errorMessage && (
