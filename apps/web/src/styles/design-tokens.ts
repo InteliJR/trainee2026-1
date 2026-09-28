@@ -8,6 +8,7 @@ export const colors = {
     50: '#eefaf3',
     100: '#d6f2e1',
     200: '#b0e4c8',
+    300: '#7acba3',
     500: '#238e58',
     600: '#1c7a4b',
     700: '#17633c',
@@ -28,10 +29,19 @@ export const colors = {
     500: '#f59e0b',
     600: '#d97706',
     800: '#92400e',
+    900: '#78350f',
+  },
+  // Tons terrosos usados nas telas do morador (histórico e impacto).
+  earth: {
+    50: '#f7f0e6',
+    100: '#eadcc7',
+    600: '#78562d',
+    700: '#604324',
   },
   danger: {
     50: '#fef2f2',
     100: '#fee2e2',
+    200: '#fecaca',
     500: '#ef4444',
     600: '#dc2626',
     700: '#b91c1c',
@@ -49,6 +59,7 @@ export const colors = {
     700: '#33403a',
     800: '#1f2b25',
     900: '#142019',
+    950: '#0b120e',
   },
   // Cores de status: texto/ícone (`status-*`) e fundo suave (`status-*-bg`).
   status: {
