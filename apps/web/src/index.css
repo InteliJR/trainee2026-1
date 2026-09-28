@@ -9,6 +9,7 @@
   }
 
   body {
+    min-width: 320px;
     @apply bg-neutral-50 text-neutral-900 antialiased;
   }
 
@@ -31,5 +32,134 @@
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+@layer components {
+  .eco-page {
+    background-color: #e8f5ec;
+    background-image:
+      linear-gradient(180deg, rgb(215 240 226 / 0.92) 0%, rgb(244 247 245 / 0.96) 42%, rgb(247 240 230 / 0.96) 100%),
+      url("data:image/svg+xml,%3Csvg width='96' height='96' viewBox='0 0 96 96' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23238e58' stroke-opacity='.09' stroke-width='2'%3E%3Cpath d='M18 54c18-28 42-28 60 0'/%3E%3Cpath d='M26 58c10 8 20 8 30 0'/%3E%3Cpath d='M20 18c14 2 22 10 24 24-14-2-22-10-24-24z'/%3E%3Cpath d='M66 24c-10 5-15 13-13 24 11-4 16-12 13-24z'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: auto, 96px 96px;
+  }
+
+  .eco-hero {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgb(255 255 255 / 0.20);
+    background:
+      linear-gradient(135deg, rgb(20 32 25 / 0.15), transparent 42%),
+      linear-gradient(120deg, #0f6f42 0%, #238e58 42%, #06b6d4 100%);
+    box-shadow: 0 20px 48px rgb(20 32 25 / 0.22);
+  }
+
+  .eco-hero::after {
+    position: absolute;
+    right: -20px;
+    bottom: 0;
+    width: 220px;
+    height: 100%;
+    content: "";
+    background:
+      repeating-linear-gradient(135deg, rgb(255 255 255 / 0.18) 0 10px, transparent 10px 22px);
+    clip-path: polygon(34% 0, 100% 0, 100% 100%, 0 100%);
+  }
+
+  .eco-hero > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .eco-panel {
+    border: 1px solid rgb(35 142 88 / 0.24);
+    background:
+      linear-gradient(145deg, rgb(255 255 255 / 0.98), rgb(215 240 226 / 0.82)),
+      linear-gradient(90deg, rgb(35 142 88 / 0.16), rgb(245 158 11 / 0.12));
+    box-shadow: 0 18px 45px rgb(20 32 25 / 0.14);
+  }
+
+  .eco-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgb(174 224 198 / 0.84);
+    background:
+      linear-gradient(180deg, rgb(255 255 255 / 0.99), rgb(238 250 243 / 0.72)),
+      linear-gradient(120deg, rgb(35 142 88 / 0.10), rgb(120 86 45 / 0.08));
+    box-shadow: 0 12px 30px rgb(20 32 25 / 0.10);
+  }
+
+  .eco-card::before {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 5px;
+    content: "";
+    background: linear-gradient(180deg, #238e58, #06b6d4);
+  }
+
+  .eco-card-selected {
+    border-color: #238e58;
+    background:
+      linear-gradient(180deg, rgb(215 240 226 / 0.98), rgb(255 255 255 / 0.98)),
+      linear-gradient(120deg, rgb(35 142 88 / 0.18), rgb(245 158 11 / 0.14));
+    box-shadow:
+      0 0 0 3px rgb(35 142 88 / 0.18),
+      0 18px 38px rgb(20 32 25 / 0.16);
+  }
+
+  .eco-icon-tile {
+    background:
+      linear-gradient(145deg, #238e58, #06b6d4),
+      #238e58;
+    color: #ffffff;
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.28),
+      0 10px 20px rgb(35 142 88 / 0.22);
+  }
+
+  .eco-primary-button {
+    background:
+      linear-gradient(135deg, #238e58, #1d7449),
+      #238e58;
+    box-shadow: 0 10px 24px rgb(35 142 88 / 0.24);
+  }
+
+  .eco-primary-button:hover {
+    background:
+      linear-gradient(135deg, #1d7449, #142019),
+      #1d7449;
+  }
+
+  .eco-secondary-button {
+    background: linear-gradient(180deg, #ffffff, #eefaf3);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.8);
+  }
+
+  .eco-section-rule {
+    background-image: linear-gradient(90deg, #238e58 0 16%, #aee0c6 16% 54%, #78562d 54% 72%, transparent 72%);
+  }
+
+  .eco-confetti {
+    display: flex;
+    justify-content: space-around;
+    height: 1.25rem;
+    overflow: hidden;
+    color: #238e58;
+  }
+
+  .eco-confetti span {
+    animation: eco-confetti 1.4s ease-out both;
+    color: #f59e0b;
+  }
+
+  .eco-confetti span:nth-child(even) {
+    color: #06b6d4;
+    animation-delay: 120ms;
+  }
+
+  @keyframes eco-confetti {
+    from { opacity: 0; transform: translateY(-1rem) rotate(0deg); }
+    45% { opacity: 1; }
+    to { opacity: 0.35; transform: translateY(0.25rem) rotate(80deg); }
   }
 }
