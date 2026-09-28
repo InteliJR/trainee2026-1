@@ -134,7 +134,7 @@ Tela (React) → rota da nossa API (Fastify) → serviço de domínio → reposi
 **Acompanhar status (RF06, RF15, RN09)** — atualização por **via dupla**:
 - ativa: Socket.IO (room do morador) repassa eventos `request.*` vindos do consumidor WS do backend;
 - passiva: polling `GET /requests` a cada 5 s como fallback/recuperação de estado.
-A tradução técnico→amigável (`pending` → "aguardando coletor", `in_service` → "coletor a caminho") vive em `packages/shared` — definida uma vez, usada por todas as telas. Cancelamento: `POST /requests/{id}/cancel` com **confirmação dupla** (RN01) e janela mínima de 2 h antes do agendado (RN02).
+A tradução técnico→amigável (`pending` → "aguardando coletor", `in_service` → "coletor a caminho") vive em `packages/shared` — definida uma vez, usada por todas as telas. Cancelamento: `POST /requests/{id}/cancel` com **confirmação dupla** (RN01). Prazo mínimo de cancelamento (RN02): **pendente de decisão do time** — este documento registrava 2 h, a `docs_mafe` registra 1 dia, e a implementação atual (`apps/api/src/modules/requests/request.service.ts`) usa 1 dia como constante fixa no código, sem confirmação formal do produto.
 
 **Histórico + engajamento (RF12, RF13, RF16, RF17, RN03)** — `GET /me/requests` + `GET /me/rewards` → `Request`, `PointsLog`, `Badge`, `Goal`. Pontos são creditados **somente pelo listener de `request.completed` no backend** — nunca por chamada da tela — garantindo RN03 (nada de recompensa antes da coleta confirmada). É gamificação virtual (streak, meta do mês, confete, mascote); sem dinheiro real no escopo atual.
 
@@ -145,8 +145,6 @@ A tradução técnico→amigável (`pending` → "aguardando coletor", `in_servi
 **Painel do dia (RF08, RN05)** — tela → `GET /collector/requests` → `RequestService` filtra as coletas cujo `CollectorProfile.ecoRotaId` é o logado. Disponibilidade: `POST /collector/availability` → atualiza `CollectorProfile` → `EcoRotaClient.updateCollector({available})` — indisponível para de receber trabalho na EcoRota (RN05).
 
 **Detalhe da coleta (RF09)** — `GET /collector/requests/:id` → ponto (da `OperationState`) + material esperado. Confirmação: `POST /collector/requests/:id/complete` → serviço valida que o coletor é `custom` **e** o status é `in_service` (regra do guia) → `EcoRotaClient.completeRequest`. Cancelar: `POST /collector/requests/:id/cancel`.
-
-**Morador ausente (RN06)** — variante do cancelamento que exige registro do motivo e oferece reagendamento (cancela + cria nova solicitação com nova `externalReference`).
 
 ### 10.3 Dashboard operacional (`/dashboard`)
 

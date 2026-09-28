@@ -108,6 +108,8 @@ Esta seção descreve os requisitos funcionais e não funcionais da aplicação 
 | RN08 | Impedir duplicidade: não permitir duas solicitações abertas para o mesmo endereço na mesma data | RF04 |
 | RN09 | Sincronizar o status da coleta entre o sistema e a API EcoRota em tempo (quase) real, via WebSocket quando disponível | RF15 |
 
+> RN02: prazo pendente de decisão do time. Este documento registra 1 dia; `documents/Luiz/arquitetura-Luiz.md` chegou a registrar 2 h. A implementação atual usa 1 dia (constante fixa em `apps/api/src/modules/requests/request.service.ts`), mas isso não foi formalmente confirmado como regra de produto.
+
 ---
 
 ### Requisitos Não Funcionais — Eixos ISO/IEC 25010
