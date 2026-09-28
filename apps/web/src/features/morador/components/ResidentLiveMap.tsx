@@ -28,13 +28,13 @@ export function ResidentLiveMap({ point, collector }: ResidentLiveMapProps) {
     : 'Aguardando a posição do coletor.';
 
   return (
-    <div className="eco-card mt-6 rounded-lg p-4">
+    <section className="mt-6 border-t border-neutral-200 pt-4" aria-label="Coletor ao vivo">
       <h3 className="flex items-center gap-2 text-base font-bold text-neutral-950">
         <Icon name="truck" className="h-5 w-5 text-brand-700" />
         Coletor ao vivo
       </h3>
       <p className="mt-1 text-sm text-neutral-600">{summary}</p>
-      <div className="mt-3 h-64 overflow-hidden rounded-md border border-brand-100">
+      <div className="mt-3 h-64 overflow-hidden rounded-md border border-neutral-200">
         <MapContainer
           points={[point]}
           collectors={collector && position ? [collector] : []}
@@ -43,6 +43,6 @@ export function ResidentLiveMap({ point, collector }: ResidentLiveMapProps) {
           minHeight="16rem"
         />
       </div>
-    </div>
+    </section>
   );
 }

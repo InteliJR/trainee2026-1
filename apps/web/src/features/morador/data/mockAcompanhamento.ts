@@ -5,7 +5,7 @@ export const residentRequests: ResidentCollectionRequest[] = [
     id: 'req-1024',
     protocol: 'ECO-1024',
     materialId: 'plastico',
-    materialName: 'Plasticos',
+    materialName: 'Plásticos',
     pointName: 'Ecoponto Vila Mariana',
     pointAddress: 'Rua Madre Cabrini, 210',
     neighborhood: 'Vila Mariana',
@@ -20,7 +20,7 @@ export const residentRequests: ResidentCollectionRequest[] = [
     timeline: [
       {
         status: 'pending',
-        label: 'Solicitacao recebida',
+        label: 'Solicitação recebida',
         occurredAt: '09:10',
         description: 'Seu pedido entrou na fila do ponto selecionado.',
       },
@@ -28,7 +28,7 @@ export const residentRequests: ResidentCollectionRequest[] = [
         status: 'assigned',
         label: 'Coletor a caminho',
         occurredAt: '14:35',
-        description: 'Paulo assumiu a coleta e esta indo ate o local.',
+        description: 'Paulo assumiu a coleta e está indo até o local.',
       },
       {
         status: 'in_service',
@@ -38,9 +38,9 @@ export const residentRequests: ResidentCollectionRequest[] = [
       },
       {
         status: 'completed',
-        label: 'Coleta concluida',
+        label: 'Coleta concluída',
         occurredAt: null,
-        description: 'Os pontos serao creditados apos a conclusao.',
+        description: 'Os pontos serão creditados após a conclusão.',
       },
     ],
   },
@@ -63,15 +63,15 @@ export const residentRequests: ResidentCollectionRequest[] = [
     timeline: [
       {
         status: 'pending',
-        label: 'Solicitacao recebida',
+        label: 'Solicitação recebida',
         occurredAt: '11:42',
-        description: 'Estamos procurando um coletor disponivel para este horario.',
+        description: 'Estamos procurando um coletor disponível para este horário.',
       },
       {
         status: 'assigned',
         label: 'Coletor a caminho',
         occurredAt: null,
-        description: 'Voce sera avisado quando alguem assumir a coleta.',
+        description: 'Você será avisado quando alguem assumir a coleta.',
       },
       {
         status: 'in_service',
@@ -81,9 +81,9 @@ export const residentRequests: ResidentCollectionRequest[] = [
       },
       {
         status: 'completed',
-        label: 'Coleta concluida',
+        label: 'Coleta concluída',
         occurredAt: null,
-        description: 'A pontuacao aparece no historico depois da confirmacao.',
+        description: 'A pontuação aparece no histórico depois da confirmação.',
       },
     ],
   },
@@ -91,12 +91,12 @@ export const residentRequests: ResidentCollectionRequest[] = [
     id: 'req-1008',
     protocol: 'ECO-1008',
     materialId: 'papel',
-    materialName: 'Papel e papelao',
+    materialName: 'Papel e papelão',
     pointName: 'Cooperativa Pinheiros',
     pointAddress: 'Rua dos Pinheiros, 890',
     neighborhood: 'Pinheiros',
     scheduledDate: '2026-09-19',
-    shiftLabel: 'Manha',
+    shiftLabel: 'Manhã',
     shiftWindow: '08:00 - 12:00',
     status: 'completed',
     collectorName: 'Lucia Pereira',
@@ -106,7 +106,7 @@ export const residentRequests: ResidentCollectionRequest[] = [
     timeline: [
       {
         status: 'pending',
-        label: 'Solicitacao recebida',
+        label: 'Solicitação recebida',
         occurredAt: '08:05',
         description: 'Pedido registrado no sistema.',
       },
@@ -124,7 +124,7 @@ export const residentRequests: ResidentCollectionRequest[] = [
       },
       {
         status: 'completed',
-        label: 'Coleta concluida',
+        label: 'Coleta concluída',
         occurredAt: '09:24',
         description: 'Material retirado e impacto registrado.',
       },

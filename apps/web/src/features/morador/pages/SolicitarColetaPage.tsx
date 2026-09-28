@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EcoPageHeader } from '../components/EcoPageHeader';
 import { MaterialStep } from '../components/MaterialStep';
@@ -13,8 +13,9 @@ import {
   neighborhoodFilters,
   shiftOptions,
 } from '../data/mockSolicitacao';
+import { fetchCollectionPoints, fetchDefaultAddress } from '../lib/residentApi';
 import { createResidentRequest, type CreateRequestResult } from '../lib/residentRequests';
-import type { MaterialCategory, ResidentRequestDraft, Shift } from '../types';
+import type { CollectionPoint, MaterialCategory, ResidentRequestDraft, Shift } from '../types';
 
 const initialDraft: ResidentRequestDraft = {
   materialId: null,
@@ -32,6 +33,31 @@ export function SolicitarColetaPage() {
   const [sending, setSending] = useState(false);
   const [submission, setSubmission] = useState<CreateRequestResult | null>(null);
   const [submitError, setSubmitError] = useState('');
+  // Começa com os pontos de exemplo e troca pelos pontos reais da EcoRota assim que a API responder.
+  const [points, setPoints] = useState<CollectionPoint[]>(collectionPoints);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      // O endereço padrão permite que a API calcule a distância até cada ponto.
+      const address = await fetchDefaultAddress().catch(() => null);
+      const near = address ? { latitude: address.latitude, longitude: address.longitude } : undefined;
+      const apiPoints = await fetchCollectionPoints(near).catch(() => null);
+      if (active && apiPoints && apiPoints.length > 0) setPoints(apiPoints);
+    };
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Com pontos reais, os filtros viram os circuitos presentes; com exemplos, mantém os bairros fixos.
+  const neighborhoods = useMemo(
+    () => (points === collectionPoints
+      ? neighborhoodFilters
+      : ['Todos', ...Array.from(new Set(points.map((point) => point.neighborhood))).sort()]),
+    [points],
+  );
 
   const selectedMaterial = useMemo(
     () => materialOptions.find((material) => material.id === draft.materialId) ?? null,
@@ -39,8 +65,8 @@ export function SolicitarColetaPage() {
   );
 
   const selectedPoint = useMemo(
-    () => collectionPoints.find((point) => point.id === draft.pointId) ?? null,
-    [draft.pointId],
+    () => points.find((point) => point.id === draft.pointId) ?? null,
+    [draft.pointId, points],
   );
 
   const canContinue =
@@ -78,7 +104,8 @@ export function SolicitarColetaPage() {
       setSending(true);
       setSubmitError('');
       try {
-        const result = await createResidentRequest(draft);
+        if (!selectedPoint) throw new Error('Selecione um ponto de coleta.');
+        const result = await createResidentRequest(draft, selectedPoint);
         setSubmission(result);
         setSubmitted(true);
       } catch (error) {
@@ -117,17 +144,17 @@ export function SolicitarColetaPage() {
               </span>
             </div>
             <div aria-hidden="true" className="eco-confetti mt-5"><span>✦</span><span>✳</span><span>✦</span><span>✳</span><span>✦</span></div>
-            <p className="mt-5 text-sm font-semibold uppercase text-brand-700">Solicitacao criada</p>
+            <p className="mt-5 text-sm font-semibold uppercase text-brand-700">Solicitação criada</p>
             <h1 className="mt-2 text-3xl font-bold">Coleta agendada</h1>
             <p className="mt-3 text-sm leading-6 text-neutral-600">
-              Vamos avisar quando um coletor assumir. Voce tambem pode acompanhar o status pelo app.
+              Vamos avisar quando um coletor assumir. Você também pode acompanhar o status pelo app.
             </p>
             {submission?.source === 'demo' ? (
               <p role="status" className="mt-4 rounded-md border border-reward-100 bg-reward-100/70 p-3 text-sm text-reward-900">
                 API indisponível. Solicitação salva neste dispositivo em modo demonstração.
               </p>
             ) : (
-              <p role="status" className="mt-4 rounded-md border border-brand-100 bg-brand-50 p-3 text-sm text-brand-700">
+              <p role="status" className="mt-4 rounded-md border border-neutral-200 bg-brand-50 p-3 text-sm text-brand-700">
                 Solicitação enviada para a EcoRota. Protocolo {submission?.request.protocol}.
               </p>
             )}
@@ -142,7 +169,7 @@ export function SolicitarColetaPage() {
                 <dd className="text-right font-semibold">{selectedPoint.name}</dd>
               </div>
               <div className="flex justify-between gap-3 py-3">
-                <dt className="text-neutral-500">Horario</dt>
+                <dt className="text-neutral-500">Horário</dt>
                 <dd className="text-right font-semibold">
               {draft.desiredDate} - {selectedShift?.label} ({selectedShift?.window})
                 </dd>
@@ -154,7 +181,7 @@ export function SolicitarColetaPage() {
                 <Icon name="leaf" className="mt-0.5 h-5 w-5 shrink-0 text-brand-700" />
                 <p>
                   <strong>Impacto previsto:</strong> +{selectedMaterial.points} pontos ao confirmar a
-                  coleta concluida.
+                  coleta concluída.
                 </p>
               </div>
             </div>
@@ -186,7 +213,7 @@ export function SolicitarColetaPage() {
       <div className="mx-auto grid max-w-dashboard gap-section lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section className="space-y-6">
           <EcoPageHeader
-            description="Separe o material, escolha um ponto compativel e agende o melhor turno para fechar o ciclo do descarte."
+            description="Separe o material, escolha um ponto compatível e agende o melhor turno para fechar o ciclo do descarte."
             eyebrow="Morador"
             metric="3 etapas"
             metricLabel="fluxo guiado"
@@ -205,11 +232,11 @@ export function SolicitarColetaPage() {
 
             {currentStep === 2 && selectedMaterial ? (
               <PointStep
-                points={collectionPoints}
+                points={points}
                 selectedMaterialId={selectedMaterial.id}
                 selectedPointId={draft.pointId}
                 selectedNeighborhood={selectedNeighborhood}
-                neighborhoods={neighborhoodFilters}
+                neighborhoods={neighborhoods}
                 onNeighborhoodChange={setSelectedNeighborhood}
                 onSelect={selectPoint}
               />
@@ -244,7 +271,7 @@ export function SolicitarColetaPage() {
               disabled={!canContinue || sending}
               className="eco-primary-button inline-flex min-h-touch items-center justify-center gap-2 rounded-md px-5 text-sm font-bold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-operational-500 disabled:cursor-not-allowed disabled:bg-none disabled:bg-neutral-300"
             >
-              {sending ? 'Enviando...' : currentStep === 3 ? 'Confirmar solicitacao' : 'Continuar'}
+              {sending ? 'Enviando...' : currentStep === 3 ? 'Confirmar solicitação' : 'Continuar'}
               <Icon name={currentStep === 3 ? 'check' : 'arrow-right'} className="h-4 w-4" />
             </button>
           </div>
@@ -261,13 +288,13 @@ export function SolicitarColetaPage() {
           <h2 className="mt-1 text-xl font-bold text-neutral-950">Sua coleta</h2>
 
           <div className="mt-5 grid gap-3 text-sm">
-            <SummaryLine icon="trash" label="Material" value={selectedMaterial?.name ?? 'Nao escolhido'} />
-            <SummaryLine icon="map-pin" label="Ponto" value={selectedPoint?.name ?? 'Nao escolhido'} />
-            <SummaryLine icon="calendar" label="Data" value={draft.desiredDate || 'Nao escolhida'} />
+            <SummaryLine icon="trash" label="Material" value={selectedMaterial?.name ?? 'Não escolhido'} />
+            <SummaryLine icon="map-pin" label="Ponto" value={selectedPoint?.name ?? 'Não escolhido'} />
+            <SummaryLine icon="calendar" label="Data" value={draft.desiredDate || 'Não escolhida'} />
             <SummaryLine
               icon="clock"
               label="Turno"
-              value={shiftOptions.find((shift) => shift.id === draft.shift)?.label ?? 'Nao escolhido'}
+              value={shiftOptions.find((shift) => shift.id === draft.shift)?.label ?? 'Não escolhido'}
             />
           </div>
         </aside>

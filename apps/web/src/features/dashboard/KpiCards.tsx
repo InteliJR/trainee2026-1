@@ -1,38 +1,42 @@
 /**
  * Faixa de cards com os KPIs principais do painel operacional.
  * Recebe o estado do hook useIndicadores e mostra placeholders enquanto os dados não chegam.
+ * Nomes e visual seguem o guia de estilos: título curto, valor grande, contexto e estado quando aplicável.
  */
-import type { IndicatorsState } from './useIndicadores';
+import type { IndicatorsState, OperationIndicators } from './useIndicadores';
 
 // Descreve um card: valor principal em destaque e uma linha de contexto logo abaixo.
 interface KpiCardProps {
   label: string;
   value: string;
   detail: string;
-  // Destaca em vermelho indicadores que pedem atenção do operador.
+  // Destaca indicadores que pedem atenção do operador.
   alert?: boolean;
 }
 
-// Desenha um único card com estilos inline, no mesmo padrão do cabeçalho do painel.
+// Desenha um único card com os tokens do guia (shadow-kpi, neutral e danger para alerta).
 function KpiCard({ label, value, detail, alert = false }: KpiCardProps) {
   return (
     <div
-      style={{
-        flex: '1 1 160px',
-        minWidth: 0,
-        background: '#FFFFFF',
-        border: `1px solid ${alert ? '#FCA5A5' : '#E5E7EB'}`,
-        borderRadius: '10px',
-        padding: '10px 14px',
-      }}
+      className={`min-w-0 flex-[1_1_10rem] rounded-lg border bg-neutral-0 px-4 py-3 shadow-kpi ${
+        alert ? 'border-danger-500' : 'border-neutral-200'
+      }`}
     >
-      <p style={{ margin: 0, color: '#6B7280', fontSize: '12px', fontWeight: 600 }}>{label}</p>
-      <p style={{ margin: '2px 0', color: alert ? '#B91C1C' : '#111827', fontSize: '24px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-        {value}
+      <p className="text-sm font-semibold text-neutral-600">{label}</p>
+      <p className={`mt-0.5 text-2xl font-bold tabular-nums ${alert ? 'text-danger-700' : 'text-neutral-900'}`}>{value}</p>
+      <p className="text-sm text-neutral-500">
+        {alert ? <span className="font-semibold text-danger-700">Atenção · </span> : null}
+        {detail}
       </p>
-      <p style={{ margin: 0, color: '#6B7280', fontSize: '12px' }}>{detail}</p>
     </div>
   );
+}
+
+// Calcula a taxa de cancelamento do mês entre as solicitações já encerradas.
+export function cancellationRate(data: OperationIndicators): number {
+  const { concluidasNoMes, canceladasNoMes } = data.tracao;
+  const finished = concluidasNoMes + canceladasNoMes;
+  return finished === 0 ? 0 : (canceladasNoMes / finished) * 100;
 }
 
 // Monta a faixa completa a partir dos indicadores; valores ausentes aparecem como travessão.
@@ -45,17 +49,17 @@ export function KpiCards({ indicators }: { indicators: IndicatorsState }) {
   const staleTelemetry = collectors?.telemetriaDesatualizada ?? 0;
 
   return (
-    <section aria-label="Indicadores operacionais" style={{ padding: '10px 18px', background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+    <section aria-label="Indicadores operacionais" className="border-b border-neutral-200 bg-neutral-50 px-screen py-3 lg:px-6">
+      <div className="flex flex-wrap gap-3">
         <KpiCard
-          label="Coletas hoje"
-          value={format(data?.coletasRealizadas.hoje)}
-          detail={data ? `${data.coletasRealizadas.semanaAtual} na semana · ${data.coletasRealizadas.mesAtual} no mês` : '—'}
+          label="Ativas agora"
+          value={format(activeRequests)}
+          detail={requests ? `${requests.pendentes} aguardando · ${requests.atribuidas} a caminho · ${requests.emAtendimento} no local` : '—'}
         />
         <KpiCard
-          label="Solicitações ativas"
-          value={format(activeRequests)}
-          detail={requests ? `${requests.pendentes} pendentes · ${requests.atribuidas} atribuídas · ${requests.emAtendimento} em atendimento` : '—'}
+          label="Concluídas hoje"
+          value={format(data?.coletasRealizadas.hoje)}
+          detail={data ? `${data.coletasRealizadas.semanaAtual} na semana · ${data.coletasRealizadas.mesAtual} no mês` : '—'}
         />
         <KpiCard
           label="Coletores disponíveis"
@@ -69,13 +73,13 @@ export function KpiCards({ indicators }: { indicators: IndicatorsState }) {
           alert={staleTelemetry > 0}
         />
         <KpiCard
-          label="Taxa de conclusão (mês)"
-          value={data ? `${data.tracao.taxaConclusaoPercentual.toLocaleString('pt-BR')}%` : '—'}
-          detail={data ? `${data.tracao.concluidasNoMes} concluídas · ${data.tracao.canceladasNoMes} canceladas` : '—'}
+          label="Taxa de cancelamento"
+          value={data ? `${cancellationRate(data).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : '—'}
+          detail={data ? `${data.tracao.canceladasNoMes} canceladas · ${data.tracao.concluidasNoMes} concluídas no mês` : '—'}
         />
       </div>
       {indicators.errorMessage && (
-        <p role="status" style={{ margin: '8px 0 0', color: '#92400E', fontSize: '12px' }}>
+        <p role="status" className="mt-2 text-sm text-reward-800">
           {indicators.errorMessage}
         </p>
       )}

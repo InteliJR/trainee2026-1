@@ -5,7 +5,7 @@ import { EcoPageHeader } from '../components/EcoPageHeader';
 import { Icon } from '../components/Icon';
 import { ResidentBottomNav } from '../components/ResidentBottomNav';
 import { ResidentLiveMap } from '../components/ResidentLiveMap';
-import { getResidentRequests, refreshResidentRequests, updateResidentRequest } from '../lib/residentRequests';
+import { cancelResidentRequest, getResidentRequests, refreshResidentRequests } from '../lib/residentRequests';
 import {
   applyLiveToRequest,
   isTrackable,
@@ -26,11 +26,11 @@ const statusTone: Record<RequestStatus, string> = {
 };
 
 const statusHelper: Record<RequestStatus, string> = {
-  pending: 'Estamos procurando um coletor disponivel para o horario escolhido.',
-  assigned: 'Um coletor assumiu a coleta e esta a caminho.',
+  pending: 'Estamos procurando um coletor disponível para o horário escolhido.',
+  assigned: 'Um coletor assumiu a coleta e está a caminho.',
   in_service: 'O coletor chegou ao local combinado.',
-  completed: 'Coleta finalizada. Seu impacto ja pode aparecer no historico.',
-  cancelled: 'Esta coleta foi cancelada e permanece registrada no historico.',
+  completed: 'Coleta finalizada. Seu impacto já pode aparecer no histórico.',
+  cancelled: 'Esta coleta foi cancelada e permanece registrada no histórico.',
 };
 
 export function AcompanharStatusPage() {
@@ -38,6 +38,7 @@ export function AcompanharStatusPage() {
   const [selectedRequestId, setSelectedRequestId] = useState(residentRequests[0]?.id ?? '');
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelledIds, setCancelledIds] = useState<string[]>([]);
+  const [cancelError, setCancelError] = useState('');
   // Recebe pelo Socket.IO o status das solicitações do morador e a posição do coletor que o atende.
   const realtime = useTempoReal({});
 
@@ -72,16 +73,22 @@ export function AcompanharStatusPage() {
     : null;
   const isLive = realtime.connectionStatus === 'conectado';
 
-  function cancelSelectedRequest() {
+  async function cancelSelectedRequest() {
     if (!selectedRequest) {
       return;
     }
 
-    const cancelledRequest = { ...selectedRequest, status: 'cancelled' as const };
+    setCancelError('');
+    try {
+      // Cancela na API quando a solicitação é real; a tela só muda depois da confirmação.
+      await cancelResidentRequest(selectedRequest);
+    } catch (error) {
+      setCancelError(error instanceof Error ? error.message : 'Não foi possível cancelar a coleta.');
+      return;
+    }
     setCancelledIds((previous) =>
       previous.includes(selectedRequest.id) ? previous : [...previous, selectedRequest.id],
     );
-    updateResidentRequest(cancelledRequest);
     setResidentRequests(getResidentRequests());
     setShowCancelConfirm(false);
   }
@@ -91,7 +98,7 @@ export function AcompanharStatusPage() {
       <div className="mx-auto grid max-w-dashboard gap-section lg:grid-cols-[22rem_minmax(0,1fr)]">
         <section className="space-y-4" aria-labelledby="requests-title">
           <EcoPageHeader
-            description="Acompanhe cada coleta como uma rota de renovacao: pedido, coletor, chegada e conclusao."
+            description="Acompanhe cada coleta como uma rota de renovação: pedido, coletor, chegada e conclusão."
             eyebrow="Morador"
             metric={`${requests.length}`}
             metricLabel="coletas"
@@ -113,6 +120,7 @@ export function AcompanharStatusPage() {
                 onSelect={() => {
                   setSelectedRequestId(request.id);
                   setShowCancelConfirm(false);
+                  setCancelError('');
                 }}
                 request={request}
               />
@@ -123,9 +131,13 @@ export function AcompanharStatusPage() {
         {selectedRequest ? (
           <StatusDetail
             live={selectedRequest.status === 'cancelled' ? null : selectedLive}
-            onCancel={cancelSelectedRequest}
+            cancelError={cancelError}
+            onCancel={() => void cancelSelectedRequest()}
             onCancelIntent={() => setShowCancelConfirm(true)}
-            onKeepRequest={() => setShowCancelConfirm(false)}
+            onKeepRequest={() => {
+              setShowCancelConfirm(false);
+              setCancelError('');
+            }}
             request={selectedRequest}
             showCancelConfirm={showCancelConfirm}
           />
@@ -162,7 +174,7 @@ function RequestListButton({ request, isSelected, onSelect }: RequestListButtonP
         </div>
         <StatusBadge status={request.status} />
       </div>
-      <div className="mt-4 flex items-center gap-2 border-t border-brand-100 pt-3 text-sm text-neutral-600">
+      <div className="mt-4 flex items-center gap-2 border-t border-neutral-200 pt-3 text-sm text-neutral-600">
         <Icon name="leaf" className="h-4 w-4 text-brand-700" />
         {request.scheduledDate} - {request.shiftLabel}
       </div>
@@ -173,6 +185,7 @@ function RequestListButton({ request, isSelected, onSelect }: RequestListButtonP
 interface StatusDetailProps {
   request: ResidentCollectionRequest;
   live: ResidentLiveInfo | null;
+  cancelError: string;
   showCancelConfirm: boolean;
   onCancelIntent: () => void;
   onCancel: () => void;
@@ -182,6 +195,7 @@ interface StatusDetailProps {
 function StatusDetail({
   request,
   live,
+  cancelError,
   showCancelConfirm,
   onCancelIntent,
   onCancel,
@@ -208,7 +222,7 @@ function StatusDetail({
         <StatusBadge status={request.status} />
       </div>
 
-      <div className="mt-6 grid gap-4 border-y border-brand-100 py-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid gap-4 border-y border-neutral-200 py-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <InfoItem icon="trash" label="Material" value={request.materialName} />
         <InfoItem icon="map-pin" label="Ponto" value={request.pointName} />
         <InfoItem icon="calendar" label="Data" value={request.scheduledDate} />
@@ -216,7 +230,7 @@ function StatusDetail({
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="eco-card rounded-lg p-4">
+        <div>
           <h3 className="flex items-center gap-2 text-base font-bold text-neutral-950">
             <Icon name="route" className="h-5 w-5 text-brand-700" />
             Linha do tempo
@@ -234,12 +248,12 @@ function StatusDetail({
                       'mt-0.5 flex h-8 w-8 items-center justify-center rounded-full border',
                       isDone
                         ? 'border-brand-600 bg-brand-600 text-white shadow-card'
-                        : 'border-brand-100 bg-earth-50 text-earth-600',
+                        : 'border-neutral-200 bg-earth-50 text-earth-600',
                     ].join(' ')}
                   >
                     <Icon name={isDone ? 'check' : 'leaf'} className="h-4 w-4" />
                   </span>
-                  <span className="border-b border-brand-100 pb-4">
+                  <span className="border-b border-neutral-200 pb-4">
                     <span className="flex flex-wrap items-center gap-2">
                       <strong className="text-sm text-neutral-950">{item.label}</strong>
                       {isCurrent ? (
@@ -250,7 +264,7 @@ function StatusDetail({
                     </span>
                     <span className="mt-1 block text-sm leading-6 text-neutral-600">{item.description}</span>
                     <span className="mt-1 block text-xs font-semibold text-neutral-500">
-                      {item.occurredAt ?? 'Ainda nao aconteceu'}
+                      {item.occurredAt ?? 'Ainda não aconteceu'}
                     </span>
                   </span>
                 </li>
@@ -259,7 +273,7 @@ function StatusDetail({
           </ol>
         </div>
 
-        <aside className="eco-card rounded-lg p-4">
+        <aside className="border-t border-neutral-200 pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
           <h3 className="flex items-center gap-2 text-base font-bold text-neutral-950">
             <Icon name="truck" className="h-5 w-5 text-brand-700" />
             Coletor
@@ -272,7 +286,7 @@ function StatusDetail({
               </p>
               <p>
                 <span className="block text-neutral-500">Chegada prevista</span>
-                <strong className="text-neutral-950">{request.estimatedArrival ?? 'Sem previsao'}</strong>
+                <strong className="text-neutral-950">{request.estimatedArrival ?? 'Sem previsão'}</strong>
               </p>
               <p className="flex items-center gap-2 text-neutral-700">
                 <Icon name="phone" className="h-4 w-4 text-operational-700" />
@@ -281,11 +295,11 @@ function StatusDetail({
             </div>
           ) : (
             <p className="mt-4 text-sm leading-6 text-neutral-600">
-              Ainda nao ha coletor responsavel. O status muda automaticamente quando alguem assumir.
+              Ainda não há coletor responsável. O status muda automaticamente quando alguém assumir.
             </p>
           )}
 
-          <div className="mt-5 border-t border-brand-100 pt-4 text-sm">
+          <div className="mt-5 border-t border-neutral-200 pt-4 text-sm">
             <span className="block text-neutral-500">Pontos previstos</span>
             <strong className="mt-1 block text-reward-800">+{request.pointsPreview} pontos</strong>
           </div>
@@ -295,18 +309,18 @@ function StatusDetail({
       {isTrackable(live) ? <ResidentLiveMap point={live.point} collector={live.collector} /> : null}
 
       {request.status === 'completed' ? (
-        <div role="status" className="mt-6 rounded-lg border border-brand-100 bg-brand-50 p-4">
+        <div role="status" className="mt-6 rounded-lg border border-neutral-200 bg-brand-50 p-4">
           <div aria-hidden="true" className="eco-confetti"><span>✦</span><span>✳</span><span>✦</span><span>✳</span><span>✦</span></div>
           <p className="text-center text-sm font-bold text-brand-700">Coleta concluída! Seu impacto já está no histórico.</p>
         </div>
       ) : null}
 
       {canCancel && request.status !== 'cancelled' ? (
-        <div className="mt-6 border-t border-brand-100 pt-4">
+        <div className="mt-6 border-t border-neutral-200 pt-4">
           {showCancelConfirm ? (
             <div className="grid gap-3 rounded-lg border border-danger-200 bg-danger-50 p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
               <p className="text-sm leading-6 text-danger-800">
-                Tem certeza? Cancelar remove esta coleta da fila, mas ela continua no historico.
+                Tem certeza? Cancelar remove esta coleta da fila, mas ela continua no histórico.
               </p>
               <button
                 className="eco-secondary-button inline-flex min-h-touch items-center justify-center gap-2 rounded-md border border-neutral-300 px-4 text-sm font-bold text-neutral-700 transition hover:border-brand-300 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-operational-500"
@@ -323,6 +337,11 @@ function StatusDetail({
                 <Icon name="x" className="h-4 w-4" />
                 Cancelar
               </button>
+              {cancelError ? (
+                <p role="alert" className="text-sm font-semibold text-danger-800 sm:col-span-3">
+                  {cancelError}
+                </p>
+              ) : null}
             </div>
           ) : (
             <button
@@ -369,7 +388,7 @@ function StatusBadge({ status }: { status: RequestStatus }) {
 function EmptyState() {
   return (
     <section className="eco-card rounded-lg p-6 text-sm leading-6 text-neutral-600">
-      Nenhuma coleta encontrada. Solicite uma coleta para comecar.
+      Nenhuma coleta encontrada. Solicite uma coleta para começar.
     </section>
   );
 }

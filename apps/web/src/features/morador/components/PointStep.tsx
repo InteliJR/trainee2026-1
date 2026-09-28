@@ -53,7 +53,7 @@ export function PointStep({
                 'min-h-touch shrink-0 rounded-full border px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-operational-500',
                 isSelected
                   ? 'border-brand-600 bg-brand-600 text-white shadow-card'
-                  : 'border-brand-100 bg-white/80 text-neutral-700 hover:border-brand-300 hover:bg-brand-50',
+                  : 'border-neutral-200 bg-white/80 text-neutral-700 hover:border-brand-300 hover:bg-brand-50',
               ].join(' ')}
             >
               {neighborhood}
@@ -97,7 +97,7 @@ export function PointStep({
                 </span>
               </div>
 
-              <dl className="mt-4 grid gap-3 border-t border-brand-100 pt-4 text-sm sm:grid-cols-3">
+              <dl className="mt-4 grid gap-3 border-t border-neutral-200 pt-4 text-sm sm:grid-cols-3">
                 <div>
                   <dt className="text-neutral-500">Bairro</dt>
                   <dd className="mt-1 font-semibold text-neutral-900">{point.neighborhood}</dd>
@@ -107,7 +107,7 @@ export function PointStep({
                   <dd className="mt-1 font-semibold text-neutral-900">{activeDemand}</dd>
                 </div>
                 <div>
-                  <dt className="text-neutral-500">Proximo</dt>
+                  <dt className="text-neutral-500">Próximo</dt>
                   <dd className="mt-1 font-semibold text-neutral-900">{point.nextAvailability}</dd>
                 </div>
               </dl>

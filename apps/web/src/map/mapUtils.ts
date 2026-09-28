@@ -3,6 +3,7 @@
  * Ficam fora do componente para que telemetria, animação e rotas sejam testadas sem MapLibre nem DOM.
  */
 import type { RealtimeRoute } from '../realtime/socketClient';
+import { colors } from '../styles/design-tokens';
 
 // Tipos GeoJSON mínimos da camada de rotas, compatíveis com o setData do MapLibre.
 export interface RouteFeature {
@@ -17,7 +18,15 @@ export interface RouteFeatureCollection {
 }
 
 // Paleta usada para diferenciar a rota de cada coletor sem depender da ordem de chegada dos eventos.
-export const ROUTE_COLORS = ['#2563EB', '#7C3AED', '#DB2777', '#EA580C', '#0891B2', '#65A30D'] as const;
+// Vem dos tokens do guia; danger fica de fora porque indica erro, não uma rota comum.
+export const ROUTE_COLORS = [
+  colors.operational[600],
+  colors.reward[600],
+  colors.brand[700],
+  colors.operational[800],
+  colors.reward[800],
+  colors.neutral[700],
+] as const;
 
 // Determina se uma data de telemetria é inválida ou antiga demais para ser tratada como atual.
 export function isTelemetryStale(observedAt: string, now: number, staleAfterMs: number): boolean {

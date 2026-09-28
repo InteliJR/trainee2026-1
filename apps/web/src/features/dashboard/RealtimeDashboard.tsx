@@ -1,6 +1,7 @@
 /**
  * Painel operacional que liga o hook Socket.IO ao mapa MapLibre.
  * A tela mostra conexão, versão do estado e contagens suficientes para diagnosticar a integração do MVP.
+ * Segue o guia de estilos: tokens do Tailwind, tons `operational` para separar o dashboard da experiência do morador.
  */
 import { useState } from 'react';
 import { MapContainer } from '../../map/MapContainer';
@@ -18,13 +19,13 @@ const CONNECTION_LABELS: Record<RealtimeConnectionStatus, string> = {
   erro: 'Falha na conexão',
 };
 
-// Associa cada estado a uma cor sem depender de classes geradas dinamicamente pelo Tailwind.
-const CONNECTION_COLORS: Record<RealtimeConnectionStatus, string> = {
-  conectando: '#D97706',
-  conectado: '#047857',
-  reconectando: '#D97706',
-  desconectado: '#6B7280',
-  erro: '#B91C1C',
+// Classes completas por estado (o Tailwind só gera classes escritas por inteiro no código).
+const CONNECTION_CLASSES: Record<RealtimeConnectionStatus, string> = {
+  conectando: 'bg-reward-100 text-reward-800',
+  conectado: 'bg-brand-600 text-neutral-0',
+  reconectando: 'bg-reward-100 text-reward-800',
+  desconectado: 'bg-neutral-200 text-neutral-700',
+  erro: 'bg-danger-600 text-neutral-0',
 };
 
 // Renderiza a visão operacional e fornece ao mapa apenas as coleções autorizadas pelo servidor.
@@ -47,39 +48,34 @@ export function RealtimeDashboard() {
 
   // Em telas largas ocupa a janela inteira com a tabela ao lado do mapa; em telas estreitas empilha e rola.
   return (
-    <main className="min-h-screen lg:h-screen" style={{ width: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'sans-serif' }}>
-      <header style={{ padding: '14px 18px', background: '#FFFFFF', borderBottom: '1px solid #E5E7EB', zIndex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+    <main className="flex min-h-screen w-full flex-col bg-neutral-50 text-neutral-900 lg:h-screen">
+      <header className="z-[1] border-b border-neutral-200 border-t-4 border-t-operational-600 bg-neutral-0 px-screen py-3 lg:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 style={{ margin: 0, color: '#111827', fontSize: '22px' }}>Dashboard Operacional EcoRota</h1>
-            <p style={{ margin: '4px 0 0', color: '#6B7280', fontSize: '13px' }}>
+            <p className="text-sm font-semibold uppercase text-operational-700">Operação EcoRota</p>
+            <h1 className="text-2xl font-bold text-neutral-900">Dashboard operacional</h1>
+            <p className="mt-1 text-sm text-neutral-600">
               {points.length} pontos · {collectors.length} coletores · {realtime.snapshot?.requests.length ?? 0} solicitações
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap items-center gap-3">
             {realtime.snapshot && (
-              <span style={{ color: '#4B5563', fontSize: '12px' }}>
+              <span className="text-sm text-neutral-500">
                 Geração {realtime.snapshot.generation} · revisão {realtime.snapshot.revision}
               </span>
             )}
             <span
               role="status"
               aria-live="polite"
-              style={{
-                color: '#FFFFFF',
-                background: CONNECTION_COLORS[realtime.connectionStatus],
-                borderRadius: '999px',
-                padding: '6px 10px',
-                fontSize: '12px',
-                fontWeight: 700,
-              }}
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold ${CONNECTION_CLASSES[realtime.connectionStatus]}`}
             >
+              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-current" />
               {CONNECTION_LABELS[realtime.connectionStatus]}
             </span>
           </div>
         </div>
         {realtime.errorMessage && (
-          <p role="alert" style={{ margin: '10px 0 0', color: '#991B1B', background: '#FEE2E2', padding: '8px 10px', borderRadius: '6px', fontSize: '13px' }}>
+          <p role="alert" className="mt-3 rounded-md border border-danger-100 bg-danger-50 px-3 py-2 text-sm text-danger-800">
             {realtime.errorMessage}
           </p>
         )}
@@ -87,9 +83,9 @@ export function RealtimeDashboard() {
       <KpiCards indicators={indicators} />
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <section className="min-h-[420px] flex-1" aria-label="Visualização da operação">
-          <MapContainer points={points} collectors={collectors} routes={routes} focus={focus} minHeight="420px" />
+          <MapContainer points={points} collectors={collectors} routes={routes} focus={focus} minHeight="420px" showLegend />
         </section>
-        <aside className="h-[420px] border-t border-neutral-200 lg:h-auto lg:w-[360px] lg:border-l lg:border-t-0">
+        <aside className="h-[420px] border-t border-neutral-200 lg:h-auto lg:w-[380px] lg:border-l lg:border-t-0">
           <RecentRequestsTable
             snapshot={realtime.snapshot}
             lastRequestEvent={realtime.lastRequestEvent}

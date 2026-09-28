@@ -3,45 +3,45 @@ import type { CollectionPoint, MaterialOption, ShiftOption } from '../types';
 export const materialOptions: MaterialOption[] = [
   {
     id: 'papel',
-    name: 'Papel e papelao',
+    name: 'Papel e papelão',
     helper: 'Caixas, folhas, jornais e embalagens limpas.',
     points: 12,
     acceptedExamples: ['Caixa desmontada', 'Caderno usado', 'Jornal seco'],
   },
   {
     id: 'plastico',
-    name: 'Plasticos',
-    helper: 'Garrafas PET, potes e embalagens sem residuo organico.',
+    name: 'Plásticos',
+    helper: 'Garrafas PET, potes e embalagens sem resíduo orgânico.',
     points: 14,
     acceptedExamples: ['PET limpa', 'Pote de shampoo', 'Embalagem lavada'],
   },
   {
     id: 'vidro',
     name: 'Vidro',
-    helper: 'Garrafas, potes e frascos embalados com seguranca.',
+    helper: 'Garrafas, potes e frascos embalados com segurança.',
     points: 18,
     acceptedExamples: ['Garrafa', 'Pote de conserva', 'Frasco'],
   },
   {
     id: 'metal',
     name: 'Metal',
-    helper: 'Latas, tampas e pequenas pecas metalicas.',
+    helper: 'Latas, tampas e pequenas peças metálicas.',
     points: 16,
-    acceptedExamples: ['Lata de aluminio', 'Tampa metalica', 'Ferragem pequena'],
+    acceptedExamples: ['Lata de aluminio', 'Tampa metálica', 'Ferragem pequena'],
   },
   {
     id: 'eletronicos',
-    name: 'Eletronicos',
+    name: 'Eletrônicos',
     helper: 'Cabos, carregadores, pilhas e itens pequenos.',
     points: 24,
     acceptedExamples: ['Cabo USB', 'Carregador', 'Pilhas separadas'],
   },
   {
     id: 'oleo',
-    name: 'Oleo de cozinha',
-    helper: 'Oleo usado em garrafa PET bem fechada.',
+    name: 'Óleo de cozinha',
+    helper: 'Óleo usado em garrafa PET bem fechada.',
     points: 20,
-    acceptedExamples: ['Garrafa PET vedada', 'Oleo filtrado', 'Recipiente limpo'],
+    acceptedExamples: ['Garrafa PET vedada', 'Óleo filtrado', 'Recipiente limpo'],
   },
 ];
 
@@ -70,7 +70,7 @@ export const collectionPoints: CollectionPoint[] = [
     neighborhood: 'Pinheiros',
     distanceKm: 2.8,
     accepts: ['papel', 'plastico', 'metal', 'eletronicos'],
-    nextAvailability: 'Amanha de manha',
+    nextAvailability: 'Amanhã de manhã',
   },
   {
     id: 'ponto-bela-vista',
@@ -101,7 +101,7 @@ export const collectionPoints: CollectionPoint[] = [
 ];
 
 export const shiftOptions: ShiftOption[] = [
-  { id: 'manha', label: 'Manha', window: '08:00 - 12:00', slots: 4 },
+  { id: 'manha', label: 'Manhã', window: '08:00 - 12:00', slots: 4 },
   { id: 'tarde', label: 'Tarde', window: '13:00 - 17:00', slots: 6 },
   { id: 'noite', label: 'Noite', window: '18:00 - 20:00', slots: 2 },
 ];

@@ -11,6 +11,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 // importar com ?worker&url faz o Vite gerar o worker com suas dependências e devolver a URL final.
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import type { RealtimeRoute } from '../realtime/socketClient';
+import { colors } from '../styles/design-tokens';
 import {
   formatAge,
   interpolateLngLat,
@@ -72,6 +73,8 @@ interface MapContainerProps {
   focus?: { pointId: string; nonce: number } | null;
   // Altura mínima do contêiner; mapas embutidos em cards usam um valor menor.
   minHeight?: string;
+  // Mostra a legenda dos marcadores; o mapa pequeno do morador dispensa.
+  showLegend?: boolean;
 }
 
 // Agrupa o marcador de um ponto com os nós que precisam ser atualizados sem recriá-lo.
@@ -101,6 +104,7 @@ export function MapContainer({
   telemetryStaleAfterMs = DEFAULT_TELEMETRY_STALE_AFTER_MS,
   focus = null,
   minHeight = '500px',
+  showLegend = false,
 }: MapContainerProps) {
   // Guarda o elemento DOM em que o MapLibre montará seu canvas.
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -252,8 +256,8 @@ export function MapContainer({
 
       // Cria o marcador somente na primeira vez em que o coletor aparece com posição.
       if (!existing) {
-        const element = createCollectorElement(collector);
-        applyCollectorStaleStyle(element, stale);
+        const element = createCollectorElement();
+        applyCollectorStyle(element, collector, stale);
         const popup = createPopupHandle(collector.name, fields);
         const marker = new maplibregl.Marker({ element })
           .setLngLat(target)
@@ -264,7 +268,7 @@ export function MapContainer({
       }
 
       // Atualiza aparência e texto no mesmo elemento, preservando um popup que esteja aberto.
-      applyCollectorStaleStyle(existing.element, stale);
+      applyCollectorStyle(existing.element, collector, stale);
       existing.popup.update(collector.name, fields);
       // Só anima quando a posição realmente mudou; o relógio de telemetria não deve mover o marcador.
       if (existing.target[0] !== target[0] || existing.target[1] !== target[1]) {
@@ -315,7 +319,32 @@ export function MapContainer({
           filter: 'contrast(92%) brightness(104%) saturate(80%)',
         }}
       />
+      {showLegend ? <MapLegend /> : null}
     </div>
+  );
+}
+
+// Legenda dos marcadores: cada estado tem rótulo em texto, não só cor (guia de estilos).
+function MapLegend() {
+  const items: Array<{ label: string; swatch: string }> = [
+    { label: 'Ponto habitual', swatch: 'bg-brand-600' },
+    { label: 'Ponto adicional', swatch: 'bg-reward-600' },
+    { label: 'Coletor disponível', swatch: 'bg-operational-600' },
+    { label: 'Coletor indisponível', swatch: 'bg-neutral-600' },
+    { label: 'Sem sinal recente', swatch: 'border-2 border-dashed border-neutral-400 bg-neutral-600 opacity-50' },
+  ];
+  return (
+    <ul
+      aria-label="Legenda do mapa"
+      className="absolute bottom-8 left-3 space-y-1 rounded-md border border-neutral-200 bg-neutral-0/95 px-3 py-2 text-sm text-neutral-700 shadow-card"
+    >
+      {items.map((item) => (
+        <li key={item.label} className="flex items-center gap-2">
+          <span aria-hidden="true" className={`h-3 w-3 shrink-0 rounded-full ${item.swatch}`} />
+          {item.label}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -346,7 +375,7 @@ function animateMarker(entry: CollectorMarkerEntry, target: [number, number]): v
 // Lista as informações exibidas no popup de um ponto de coleta.
 function pointFields(point: Point): Array<[string, string]> {
   return [
-    ['Tipo', point.kind],
+    ['Tipo', point.kind === 'habitual' ? 'Habitual' : 'Adicional'],
     ['Circuito', String(point.circuit)],
     ['Pendentes', String(point.demand.pending)],
   ];
@@ -356,7 +385,8 @@ function pointFields(point: Point): Array<[string, string]> {
 function collectorFields(collector: Collector, stale: boolean, now: number): Array<[string, string]> {
   const age = formatAge(collector.observedAt, now);
   return [
-    ['Origem', collector.origin],
+    ['Disponibilidade', collector.available ? 'Disponível' : 'Indisponível'],
+    ['Origem', collector.origin === 'system' ? 'Sistema' : 'Personalizado'],
     ['Status', collector.status],
     ['Circuito', String(collector.circuit)],
     ['Telemetria', stale ? `sem sinal ${age}` : `atualizada ${age}`],
@@ -372,14 +402,14 @@ function createPointElement(point: Point): HTMLDivElement {
     width: '24px',
     height: '24px',
     borderRadius: '50%',
-    backgroundColor: point.kind === 'habitual' ? '#10B981' : '#F59E0B',
-    border: '2px solid #FFFFFF',
+    backgroundColor: point.kind === 'habitual' ? colors.brand[600] : colors.reward[600],
+    border: `2px solid ${colors.neutral[0]}`,
     boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: '11px',
     fontWeight: 'bold',
   });
@@ -395,20 +425,19 @@ function pointLabel(point: Point): string {
 }
 
 // Constrói o símbolo do veículo; a aparência de telemetria é aplicada separadamente.
-function createCollectorElement(collector: Collector): HTMLDivElement {
+function createCollectorElement(): HTMLDivElement {
   const element = document.createElement('div');
   element.className = 'collector-marker';
   Object.assign(element.style, {
     width: '30px',
     height: '30px',
     borderRadius: '50%',
-    backgroundColor: collector.origin === 'system' ? '#3B82F6' : '#8B5CF6',
     boxShadow: '0 3px 6px rgba(0,0,0,0.4)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#FFFFFF',
+    color: colors.neutral[0],
     fontSize: '14px',
     transition: 'opacity 300ms ease',
   });
@@ -417,9 +446,11 @@ function createCollectorElement(collector: Collector): HTMLDivElement {
   return element;
 }
 
-// Reduz a opacidade e usa borda tracejada quando a posição do coletor está antiga.
-function applyCollectorStaleStyle(element: HTMLDivElement, stale: boolean): void {
-  element.style.border = stale ? '3px dashed #6B7280' : '3px solid #FFFFFF';
+// Cor pela disponibilidade (guia: diferenciar coletor disponível e indisponível); telemetria antiga
+// fica transparente e com borda tracejada, para o estado não depender só da cor.
+function applyCollectorStyle(element: HTMLDivElement, collector: Collector, stale: boolean): void {
+  element.style.backgroundColor = collector.available ? colors.operational[600] : colors.neutral[600];
+  element.style.border = stale ? `3px dashed ${colors.neutral[400]}` : `3px solid ${colors.neutral[0]}`;
   element.style.opacity = stale ? '0.5' : '1';
 }
 
@@ -439,13 +470,13 @@ function createPopupHandle(title: string, fields: Array<[string, string]>): Popu
   // Reescreve título e linhas via textContent, o que também serve para atualizações posteriores.
   const update = (nextTitle: string, nextFields: Array<[string, string]>): void => {
     const heading = document.createElement('h4');
-    heading.style.cssText = 'margin:0 0 4px 0;color:#111827;';
+    heading.style.cssText = `margin:0 0 4px 0;color:${colors.neutral[900]};`;
     heading.textContent = nextTitle;
 
     // Converte cada par de rótulo e valor em uma linha separada do popup.
     const paragraphs = nextFields.map(([label, value]) => {
       const paragraph = document.createElement('p');
-      paragraph.style.cssText = 'margin:0 0 2px 0;font-size:12px;color:#4B5563;';
+      paragraph.style.cssText = `margin:0 0 2px 0;font-size:13px;color:${colors.neutral[600]};`;
       paragraph.append(document.createTextNode(`${label}: `));
       // Insere o valor externo via textContent para evitar execução de marcação.
       const strong = document.createElement('strong');

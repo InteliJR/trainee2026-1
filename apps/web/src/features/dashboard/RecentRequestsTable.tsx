@@ -7,7 +7,6 @@ import { translateStatus } from '@ecorota/shared';
 import { useEffect, useMemo, useState } from 'react';
 import { formatAge } from '../../map/mapUtils';
 import type { RealtimeRequestEvent, RealtimeRequestStatus, RealtimeSnapshot } from '../../realtime/socketClient';
-import { colors } from '../../styles/design-tokens';
 import { countByFilter, selectRecentRequests, type RecentRequestRow, type RequestFilter } from './recentRequests';
 
 // Rótulos dos filtros rápidos na ordem em que aparecem.
@@ -18,13 +17,13 @@ const FILTERS: Array<[RequestFilter, string]> = [
   ['canceladas', 'Canceladas'],
 ];
 
-// Reaproveita as cores de status do guia de estilos (texto e fundo suave).
-const STATUS_COLORS: Record<RealtimeRequestStatus, { text: string; background: string }> = {
-  pending: { text: colors.status.pending, background: colors.status['pending-bg'] },
-  assigned: { text: colors.status.assigned, background: colors.status['assigned-bg'] },
-  in_service: { text: colors.status['in-service'], background: colors.status['in-service-bg'] },
-  completed: { text: colors.status.completed, background: colors.status['completed-bg'] },
-  cancelled: { text: colors.status.cancelled, background: colors.status['cancelled-bg'] },
+// Cores de status do guia (texto e fundo suave), escritas por inteiro para o Tailwind gerar as classes.
+const STATUS_CLASSES: Record<RealtimeRequestStatus, string> = {
+  pending: 'bg-status-pending-bg text-status-pending',
+  assigned: 'bg-status-assigned-bg text-status-assigned',
+  in_service: 'bg-status-in-service-bg text-status-in-service',
+  completed: 'bg-status-completed-bg text-status-completed',
+  cancelled: 'bg-status-cancelled-bg text-status-cancelled',
 };
 
 // Tempo em que a linha alterada fica destacada depois de um evento.
@@ -64,15 +63,12 @@ export function RecentRequestsTable({ snapshot, lastRequestEvent, onSelectPoint 
   }, [lastRequestEvent]);
 
   return (
-    <section
-      aria-labelledby="recent-requests-title"
-      style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', background: '#FFFFFF', fontFamily: 'sans-serif' }}
-    >
-      <header style={{ padding: '12px 14px 8px', borderBottom: '1px solid #E5E7EB' }}>
-        <h2 id="recent-requests-title" style={{ margin: 0, fontSize: '15px', color: '#111827' }}>
+    <section aria-labelledby="recent-requests-title" className="flex h-full min-h-0 flex-col bg-neutral-0">
+      <header className="border-b border-neutral-200 px-4 pb-3 pt-3">
+        <h2 id="recent-requests-title" className="text-lg font-bold text-neutral-900">
           Solicitações recentes
         </h2>
-        <div role="group" aria-label="Filtrar solicitações" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+        <div role="group" aria-label="Filtrar solicitações" className="mt-2 flex flex-wrap gap-2">
           {FILTERS.map(([value, label]) => {
             const active = filter === value;
             return (
@@ -81,16 +77,11 @@ export function RecentRequestsTable({ snapshot, lastRequestEvent, onSelectPoint 
                 type="button"
                 aria-pressed={active}
                 onClick={() => setFilter(value)}
-                style={{
-                  border: `1px solid ${active ? '#111827' : '#D1D5DB'}`,
-                  background: active ? '#111827' : '#FFFFFF',
-                  color: active ? '#FFFFFF' : '#374151',
-                  borderRadius: '999px',
-                  padding: '4px 10px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
+                className={`inline-flex min-h-touch items-center rounded-full border px-3 text-sm font-semibold transition ${
+                  active
+                    ? 'border-operational-700 bg-operational-700 text-neutral-0'
+                    : 'border-neutral-300 bg-neutral-0 text-neutral-700 hover:border-operational-600 hover:text-operational-700'
+                }`}
               >
                 {label} · {counts[value]}
               </button>
@@ -100,11 +91,11 @@ export function RecentRequestsTable({ snapshot, lastRequestEvent, onSelectPoint 
       </header>
 
       {rows.length === 0 ? (
-        <p style={{ margin: 0, padding: '16px 14px', color: '#6B7280', fontSize: '13px' }}>
-          {snapshot ? 'Nenhuma solicitação neste filtro.' : 'Aguardando o estado da operação…'}
+        <p className="px-4 py-4 text-sm text-neutral-600">
+          {snapshot ? 'Nenhuma solicitação neste filtro.' : 'Carregando solicitações…'}
         </p>
       ) : (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, overflowY: 'auto', flex: 1 }}>
+        <ul className="min-h-0 flex-1 overflow-y-auto">
           {rows.map((row) => (
             <RequestRow
               key={row.id}
@@ -129,51 +120,23 @@ interface RequestRowProps {
 
 // Desenha uma linha clicável com status, ponto, coletor e há quanto tempo mudou.
 function RequestRow({ row, now, highlighted, onSelect }: RequestRowProps) {
-  const tone = STATUS_COLORS[row.status];
   return (
-    <li style={{ borderBottom: '1px solid #F3F4F6' }}>
+    <li className="border-b border-neutral-100">
       <button
         type="button"
         onClick={onSelect}
         disabled={!onSelect}
         title={onSelect ? 'Mostrar no mapa' : undefined}
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) auto',
-          gap: '2px 10px',
-          width: '100%',
-          padding: '9px 14px',
-          border: 0,
-          textAlign: 'left',
-          cursor: onSelect ? 'pointer' : 'default',
-          background: highlighted ? '#FEF9C3' : 'transparent',
-          transition: 'background-color 600ms ease',
-          font: 'inherit',
-        }}
+        className={`grid min-h-touch w-full grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 px-4 py-2.5 text-left transition-colors duration-500 enabled:hover:bg-operational-50 ${
+          highlighted ? 'bg-reward-100' : 'bg-transparent'
+        }`}
       >
-        <strong style={{ fontSize: '13px', color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {row.pointName}
-        </strong>
-        <span
-          style={{
-            justifySelf: 'end',
-            color: tone.text,
-            background: tone.background,
-            borderRadius: '999px',
-            padding: '2px 8px',
-            fontSize: '11px',
-            fontWeight: 700,
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <strong className="truncate text-sm text-neutral-900">{row.pointName}</strong>
+        <span className={`justify-self-end whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-bold ${STATUS_CLASSES[row.status]}`}>
           {translateStatus(row.status)}
         </span>
-        <span style={{ fontSize: '12px', color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {row.collectorName ?? 'Aguardando coletor'}
-        </span>
-        <span style={{ justifySelf: 'end', fontSize: '12px', color: '#6B7280', whiteSpace: 'nowrap' }}>
-          {formatAge(row.updatedAt, now)}
-        </span>
+        <span className="truncate text-sm text-neutral-600">{row.collectorName ?? 'Aguardando coletor'}</span>
+        <span className="justify-self-end whitespace-nowrap text-sm text-neutral-500">{formatAge(row.updatedAt, now)}</span>
       </button>
     </li>
   );
