@@ -8,6 +8,7 @@ import { EscolhaPerfilPage } from './features/inicio/EscolhaPerfilPage';
 import { ColetorRoutes } from './features/coletor/routes';
 import { RequireResident } from './features/morador/components/RequireResident';
 import { AcompanharStatusPage } from './features/morador/pages/AcompanharStatusPage';
+import { CadastrarContaPage } from './features/morador/pages/CadastrarContaPage';
 import { CadastrarEnderecoPage } from './features/morador/pages/CadastrarEnderecoPage';
 import { LoginMoradorPage } from './features/morador/pages/LoginMoradorPage';
 import { SolicitarColetaPage } from './features/morador/pages/SolicitarColetaPage';
@@ -20,6 +21,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<EscolhaPerfilPage />} />
         <Route path="/morador/login" element={<LoginMoradorPage />} />
+        <Route path="/morador/cadastro" element={<CadastrarContaPage />} />
         <Route path="/morador" element={<RequireResident><SolicitarColetaPage /></RequireResident>} />
         <Route path="/morador/solicitar" element={<RequireResident><SolicitarColetaPage /></RequireResident>} />
         <Route path="/morador/acompanhar" element={<RequireResident><AcompanharStatusPage /></RequireResident>} />

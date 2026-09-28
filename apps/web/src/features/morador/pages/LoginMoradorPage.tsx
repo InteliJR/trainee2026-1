@@ -12,6 +12,7 @@ export function LoginMoradorPage() {
       icon={<Icon name="leaf" className="h-6 w-6" />}
       defaultRedirect="/morador"
       onLogin={loginResident}
+      registerHref="/morador/cadastro"
     />
   );
 }
