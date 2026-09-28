@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../../components/Button';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -6,25 +6,33 @@ import { Icon } from '../../../components/Icon';
 import { InlineNotice } from '../../../components/InlineNotice';
 import { PageTitle } from '../../../components/PageTitle';
 import { ErrorState, LoadingState } from '../../../components/StateView';
+import type { SessionUser } from '../../../lib/session';
 import { usePoints } from '../api/hooks';
-import { useAuth } from '../auth/AuthContext';
+import { checkCollectorSession, logoutCollector } from '../lib/collectorAuth';
 import { MESSAGES, friendlyError } from '../lib/messages';
 import { levelFor } from '../lib/pointsCopy';
 
 // Perfil do coletor: quem está logado, os pontos acumulados e a saída da conta.
 // "Sair" pede confirmação para não ser tocado sem querer.
 export default function PerfilPage() {
-  const { collector, logout } = useAuth();
+  const [collector, setCollector] = useState<SessionUser>();
   const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState<string>();
   const points = usePoints();
 
+  // RequireCollector já garantiu a sessão; aqui só busca os dados pra mostrar.
+  useEffect(() => {
+    void checkCollectorSession().then((result) => {
+      if (result.kind === 'autorizado') setCollector(result.user);
+    });
+  }, []);
+
   async function confirmLogout() {
     setLeaving(true);
     try {
-      await logout();
+      await logoutCollector();
       navigate('/coletor/login', { replace: true });
     } catch (e) {
       setError(friendlyError(e, MESSAGES.actionError));
@@ -44,7 +52,7 @@ export default function PerfilPage() {
       <dl className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-neutral-0 px-4 shadow-card">
         <div className="py-3">
           <dt className="text-base text-neutral-700">Nome</dt>
-          <dd className="text-2xl font-bold text-neutral-900">{collector?.name}</dd>
+          <dd className="text-2xl font-bold text-neutral-900">{collector?.nome}</dd>
         </div>
         <div className="py-3">
           <dt className="text-base text-neutral-700">E-mail</dt>

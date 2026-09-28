@@ -8,8 +8,6 @@ export const MESSAGES = {
   notOnSite: 'Ainda não dá para confirmar. Inicie o atendimento primeiro.',
   notAssigned: 'Esta coleta não está atribuída a você.',
   cannotCancel: 'Esta coleta não pode mais ser cancelada.',
-  wrongCredentials: 'E-mail ou senha incorretos. Confira e tente de novo.',
-  wrongRole: 'Esta conta não é de coletor. Moradores entram pela área do morador.',
 } as const;
 
 export function friendlyError(error: unknown, fallback: string = MESSAGES.loadError): string {
