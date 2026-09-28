@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model User
- * 
+ * Identidade central de moradores, coletores e operadores.
  */
 export type UserModel = runtime.Types.Result.DefaultSelection<Prisma.$UserPayload>
 
@@ -211,6 +211,7 @@ export type UserWhereInput = {
   requests?: Prisma.CollectionRequestListRelationFilter
   statusChanges?: Prisma.RequestStatusHistoryListRelationFilter
   pointsLogs?: Prisma.PointsLogListRelationFilter
+  createdCollectionPoints?: Prisma.CollectionPointListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -227,6 +228,7 @@ export type UserOrderByWithRelationInput = {
   requests?: Prisma.CollectionRequestOrderByRelationAggregateInput
   statusChanges?: Prisma.RequestStatusHistoryOrderByRelationAggregateInput
   pointsLogs?: Prisma.PointsLogOrderByRelationAggregateInput
+  createdCollectionPoints?: Prisma.CollectionPointOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -246,6 +248,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   requests?: Prisma.CollectionRequestListRelationFilter
   statusChanges?: Prisma.RequestStatusHistoryListRelationFilter
   pointsLogs?: Prisma.PointsLogListRelationFilter
+  createdCollectionPoints?: Prisma.CollectionPointListRelationFilter
 }, "id" | "email" | "phone">
 
 export type UserOrderByWithAggregationInput = {
@@ -290,6 +293,7 @@ export type UserCreateInput = {
   requests?: Prisma.CollectionRequestCreateNestedManyWithoutResidentInput
   statusChanges?: Prisma.RequestStatusHistoryCreateNestedManyWithoutChangedByUserInput
   pointsLogs?: Prisma.PointsLogCreateNestedManyWithoutUserInput
+  createdCollectionPoints?: Prisma.CollectionPointCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -306,6 +310,7 @@ export type UserUncheckedCreateInput = {
   requests?: Prisma.CollectionRequestUncheckedCreateNestedManyWithoutResidentInput
   statusChanges?: Prisma.RequestStatusHistoryUncheckedCreateNestedManyWithoutChangedByUserInput
   pointsLogs?: Prisma.PointsLogUncheckedCreateNestedManyWithoutUserInput
+  createdCollectionPoints?: Prisma.CollectionPointUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUpdateInput = {
@@ -322,6 +327,7 @@ export type UserUpdateInput = {
   requests?: Prisma.CollectionRequestUpdateManyWithoutResidentNestedInput
   statusChanges?: Prisma.RequestStatusHistoryUpdateManyWithoutChangedByUserNestedInput
   pointsLogs?: Prisma.PointsLogUpdateManyWithoutUserNestedInput
+  createdCollectionPoints?: Prisma.CollectionPointUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -338,6 +344,7 @@ export type UserUncheckedUpdateInput = {
   requests?: Prisma.CollectionRequestUncheckedUpdateManyWithoutResidentNestedInput
   statusChanges?: Prisma.RequestStatusHistoryUncheckedUpdateManyWithoutChangedByUserNestedInput
   pointsLogs?: Prisma.PointsLogUncheckedUpdateManyWithoutUserNestedInput
+  createdCollectionPoints?: Prisma.CollectionPointUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -504,6 +511,20 @@ export type UserUpdateOneRequiredWithoutPointsLogsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutPointsLogsInput, Prisma.UserUpdateWithoutPointsLogsInput>, Prisma.UserUncheckedUpdateWithoutPointsLogsInput>
 }
 
+export type UserCreateNestedOneWithoutCreatedCollectionPointsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCreatedCollectionPointsInput, Prisma.UserUncheckedCreateWithoutCreatedCollectionPointsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreatedCollectionPointsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutCreatedCollectionPointsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCreatedCollectionPointsInput, Prisma.UserUncheckedCreateWithoutCreatedCollectionPointsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreatedCollectionPointsInput
+  upsert?: Prisma.UserUpsertWithoutCreatedCollectionPointsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCreatedCollectionPointsInput, Prisma.UserUpdateWithoutCreatedCollectionPointsInput>, Prisma.UserUncheckedUpdateWithoutCreatedCollectionPointsInput>
+}
+
 export type UserCreateWithoutAddressesInput = {
   id?: string
   name: string
@@ -517,6 +538,7 @@ export type UserCreateWithoutAddressesInput = {
   requests?: Prisma.CollectionRequestCreateNestedManyWithoutResidentInput
   statusChanges?: Prisma.RequestStatusHistoryCreateNestedManyWithoutChangedByUserInput
   pointsLogs?: Prisma.PointsLogCreateNestedManyWithoutUserInput
+  createdCollectionPoints?: Prisma.CollectionPointCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutAddressesInput = {
@@ -532,6 +554,7 @@ export type UserUncheckedCreateWithoutAddressesInput = {
   requests?: Prisma.CollectionRequestUncheckedCreateNestedManyWithoutResidentInput
   statusChanges?: Prisma.RequestStatusHistoryUncheckedCreateNestedManyWithoutChangedByUserInput
   pointsLogs?: Prisma.PointsLogUncheckedCreateNestedManyWithoutUserInput
+  createdCollectionPoints?: Prisma.CollectionPointUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutAddressesInput = {
@@ -563,6 +586,7 @@ export type UserUpdateWithoutAddressesInput = {
   requests?: Prisma.CollectionRequestUpdateManyWithoutResidentNestedInput
   statusChanges?: Prisma.RequestStatusHistoryUpdateManyWithoutChangedByUserNestedInput
   pointsLogs?: Prisma.PointsLogUpdateManyWithoutUserNestedInput
+  createdCollectionPoints?: Prisma.CollectionPointUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAddressesInput = {
@@ -578,6 +602,7 @@ export type UserUncheckedUpdateWithoutAddressesInput = {
   requests?: Prisma.CollectionRequestUncheckedUpdateManyWithoutResidentNestedInput
   statusChanges?: Prisma.RequestStatusHistoryUncheckedUpdateManyWithoutChangedByUserNestedInput
   pointsLogs?: Prisma.PointsLogUncheckedUpdateManyWithoutUserNestedInput
+  createdCollectionPoints?: Prisma.CollectionPointUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutCollectorProfileInput = {
@@ -593,6 +618,7 @@ export type UserCreateWithoutCollectorProfileInput = {
   requests?: Prisma.CollectionRequestCreateNestedManyWithoutResidentInput
   statusChanges?: Prisma.RequestStatusHistoryCreateNestedManyWithoutChangedByUserInput
   pointsLogs?: Prisma.PointsLogCreateNestedManyWithoutUserInput
+  createdCollectionPoints?: Prisma.CollectionPointCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutCollectorProfileInput = {
@@ -608,6 +634,7 @@ export type UserUncheckedCreateWithoutCollectorProfileInput = {
   requests?: Prisma.CollectionRequestUncheckedCreateNestedManyWithoutResidentInput
   statusChanges?: Prisma.RequestStatusHistoryUncheckedCreateNestedManyWithoutChangedByUserInput
   pointsLogs?: Prisma.PointsLogUncheckedCreateNestedManyWithoutUserInput
+  createdCollectionPoints?: Prisma.CollectionPointUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutCollectorProfileInput = {
@@ -639,6 +666,7 @@ export type UserUpdateWithoutCollectorProfileInput = {
   requests?: Prisma.CollectionRequestUpdateManyWithoutResidentNestedInput
   statusChanges?: Prisma.RequestStatusHistoryUpdateManyWithoutChangedByUserNestedInput
   pointsLogs?: Prisma.PointsLogUpdateManyWithoutUserNestedInput
+  createdCollectionPoints?: Prisma.CollectionPointUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCollectorProfileInput = {
@@ -654,6 +682,7 @@ export type UserUncheckedUpdateWithoutCollectorProfileInput = {
   requests?: Prisma.CollectionRequestUncheckedUpdateManyWithoutResidentNestedInput
   statusChanges?: Prisma.RequestStatusHistoryUncheckedUpdateManyWithoutChangedByUserNestedInput
   pointsLogs?: Prisma.PointsLogUncheckedUpdateManyWithoutUserNestedInput
+  createdCollectionPoints?: Prisma.CollectionPointUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutRequestsInput = {
@@ -669,6 +698,7 @@ export type UserCreateWithoutRequestsInput = {
   collectorProfile?: Prisma.CollectorProfileCreateNestedOneWithoutUserInput
   statusChanges?: Prisma.RequestStatusHistoryCreateNestedManyWithoutChangedByUserInput
   pointsLogs?: Prisma.PointsLogCreateNestedManyWithoutUserInput
+  createdCollectionPoints?: Prisma.CollectionPointCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutRequestsInput = {
@@ -684,6 +714,7 @@ export type UserUncheckedCreateWithoutRequestsInput = {
   collectorProfile?: Prisma.CollectorProfileUncheckedCreateNestedOneWithoutUserInput
   statusChanges?: Prisma.RequestStatusHistoryUncheckedCreateNestedManyWithoutChangedByUserInput
   pointsLogs?: Prisma.PointsLogUncheckedCreateNestedManyWithoutUserInput
+  createdCollectionPoints?: Prisma.CollectionPointUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutRequestsInput = {
@@ -715,6 +746,7 @@ export type UserUpdateWithoutRequestsInput = {
   collectorProfile?: Prisma.CollectorProfileUpdateOneWithoutUserNestedInput
   statusChanges?: Prisma.RequestStatusHistoryUpdateManyWithoutChangedByUserNestedInput
   pointsLogs?: Prisma.PointsLogUpdateManyWithoutUserNestedInput
+  createdCollectionPoints?: Prisma.CollectionPointUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRequestsInput = {
@@ -730,6 +762,7 @@ export type UserUncheckedUpdateWithoutRequestsInput = {
   collectorProfile?: Prisma.CollectorProfileUncheckedUpdateOneWithoutUserNestedInput
   statusChanges?: Prisma.RequestStatusHistoryUncheckedUpdateManyWithoutChangedByUserNestedInput
   pointsLogs?: Prisma.PointsLogUncheckedUpdateManyWithoutUserNestedInput
+  createdCollectionPoints?: Prisma.CollectionPointUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutStatusChangesInput = {
@@ -745,6 +778,7 @@ export type UserCreateWithoutStatusChangesInput = {
   collectorProfile?: Prisma.CollectorProfileCreateNestedOneWithoutUserInput
   requests?: Prisma.CollectionRequestCreateNestedManyWithoutResidentInput
   pointsLogs?: Prisma.PointsLogCreateNestedManyWithoutUserInput
+  createdCollectionPoints?: Prisma.CollectionPointCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutStatusChangesInput = {
@@ -760,6 +794,7 @@ export type UserUncheckedCreateWithoutStatusChangesInput = {
   collectorProfile?: Prisma.CollectorProfileUncheckedCreateNestedOneWithoutUserInput
   requests?: Prisma.CollectionRequestUncheckedCreateNestedManyWithoutResidentInput
   pointsLogs?: Prisma.PointsLogUncheckedCreateNestedManyWithoutUserInput
+  createdCollectionPoints?: Prisma.CollectionPointUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutStatusChangesInput = {
@@ -791,6 +826,7 @@ export type UserUpdateWithoutStatusChangesInput = {
   collectorProfile?: Prisma.CollectorProfileUpdateOneWithoutUserNestedInput
   requests?: Prisma.CollectionRequestUpdateManyWithoutResidentNestedInput
   pointsLogs?: Prisma.PointsLogUpdateManyWithoutUserNestedInput
+  createdCollectionPoints?: Prisma.CollectionPointUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutStatusChangesInput = {
@@ -806,6 +842,7 @@ export type UserUncheckedUpdateWithoutStatusChangesInput = {
   collectorProfile?: Prisma.CollectorProfileUncheckedUpdateOneWithoutUserNestedInput
   requests?: Prisma.CollectionRequestUncheckedUpdateManyWithoutResidentNestedInput
   pointsLogs?: Prisma.PointsLogUncheckedUpdateManyWithoutUserNestedInput
+  createdCollectionPoints?: Prisma.CollectionPointUncheckedUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserCreateWithoutPointsLogsInput = {
@@ -821,6 +858,7 @@ export type UserCreateWithoutPointsLogsInput = {
   collectorProfile?: Prisma.CollectorProfileCreateNestedOneWithoutUserInput
   requests?: Prisma.CollectionRequestCreateNestedManyWithoutResidentInput
   statusChanges?: Prisma.RequestStatusHistoryCreateNestedManyWithoutChangedByUserInput
+  createdCollectionPoints?: Prisma.CollectionPointCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserUncheckedCreateWithoutPointsLogsInput = {
@@ -836,6 +874,7 @@ export type UserUncheckedCreateWithoutPointsLogsInput = {
   collectorProfile?: Prisma.CollectorProfileUncheckedCreateNestedOneWithoutUserInput
   requests?: Prisma.CollectionRequestUncheckedCreateNestedManyWithoutResidentInput
   statusChanges?: Prisma.RequestStatusHistoryUncheckedCreateNestedManyWithoutChangedByUserInput
+  createdCollectionPoints?: Prisma.CollectionPointUncheckedCreateNestedManyWithoutCreatedByInput
 }
 
 export type UserCreateOrConnectWithoutPointsLogsInput = {
@@ -867,6 +906,7 @@ export type UserUpdateWithoutPointsLogsInput = {
   collectorProfile?: Prisma.CollectorProfileUpdateOneWithoutUserNestedInput
   requests?: Prisma.CollectionRequestUpdateManyWithoutResidentNestedInput
   statusChanges?: Prisma.RequestStatusHistoryUpdateManyWithoutChangedByUserNestedInput
+  createdCollectionPoints?: Prisma.CollectionPointUpdateManyWithoutCreatedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutPointsLogsInput = {
@@ -882,6 +922,87 @@ export type UserUncheckedUpdateWithoutPointsLogsInput = {
   collectorProfile?: Prisma.CollectorProfileUncheckedUpdateOneWithoutUserNestedInput
   requests?: Prisma.CollectionRequestUncheckedUpdateManyWithoutResidentNestedInput
   statusChanges?: Prisma.RequestStatusHistoryUncheckedUpdateManyWithoutChangedByUserNestedInput
+  createdCollectionPoints?: Prisma.CollectionPointUncheckedUpdateManyWithoutCreatedByNestedInput
+}
+
+export type UserCreateWithoutCreatedCollectionPointsInput = {
+  id?: string
+  name: string
+  email: string
+  phone?: string | null
+  passwordHash: string
+  role: $Enums.UserRole
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  addresses?: Prisma.AddressCreateNestedManyWithoutUserInput
+  collectorProfile?: Prisma.CollectorProfileCreateNestedOneWithoutUserInput
+  requests?: Prisma.CollectionRequestCreateNestedManyWithoutResidentInput
+  statusChanges?: Prisma.RequestStatusHistoryCreateNestedManyWithoutChangedByUserInput
+  pointsLogs?: Prisma.PointsLogCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutCreatedCollectionPointsInput = {
+  id?: string
+  name: string
+  email: string
+  phone?: string | null
+  passwordHash: string
+  role: $Enums.UserRole
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  addresses?: Prisma.AddressUncheckedCreateNestedManyWithoutUserInput
+  collectorProfile?: Prisma.CollectorProfileUncheckedCreateNestedOneWithoutUserInput
+  requests?: Prisma.CollectionRequestUncheckedCreateNestedManyWithoutResidentInput
+  statusChanges?: Prisma.RequestStatusHistoryUncheckedCreateNestedManyWithoutChangedByUserInput
+  pointsLogs?: Prisma.PointsLogUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutCreatedCollectionPointsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutCreatedCollectionPointsInput, Prisma.UserUncheckedCreateWithoutCreatedCollectionPointsInput>
+}
+
+export type UserUpsertWithoutCreatedCollectionPointsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutCreatedCollectionPointsInput, Prisma.UserUncheckedUpdateWithoutCreatedCollectionPointsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutCreatedCollectionPointsInput, Prisma.UserUncheckedCreateWithoutCreatedCollectionPointsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutCreatedCollectionPointsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutCreatedCollectionPointsInput, Prisma.UserUncheckedUpdateWithoutCreatedCollectionPointsInput>
+}
+
+export type UserUpdateWithoutCreatedCollectionPointsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  addresses?: Prisma.AddressUpdateManyWithoutUserNestedInput
+  collectorProfile?: Prisma.CollectorProfileUpdateOneWithoutUserNestedInput
+  requests?: Prisma.CollectionRequestUpdateManyWithoutResidentNestedInput
+  statusChanges?: Prisma.RequestStatusHistoryUpdateManyWithoutChangedByUserNestedInput
+  pointsLogs?: Prisma.PointsLogUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutCreatedCollectionPointsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  addresses?: Prisma.AddressUncheckedUpdateManyWithoutUserNestedInput
+  collectorProfile?: Prisma.CollectorProfileUncheckedUpdateOneWithoutUserNestedInput
+  requests?: Prisma.CollectionRequestUncheckedUpdateManyWithoutResidentNestedInput
+  statusChanges?: Prisma.RequestStatusHistoryUncheckedUpdateManyWithoutChangedByUserNestedInput
+  pointsLogs?: Prisma.PointsLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -894,6 +1015,7 @@ export type UserCountOutputType = {
   requests: number
   statusChanges: number
   pointsLogs: number
+  createdCollectionPoints: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -901,6 +1023,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   requests?: boolean | UserCountOutputTypeCountRequestsArgs
   statusChanges?: boolean | UserCountOutputTypeCountStatusChangesArgs
   pointsLogs?: boolean | UserCountOutputTypeCountPointsLogsArgs
+  createdCollectionPoints?: boolean | UserCountOutputTypeCountCreatedCollectionPointsArgs
 }
 
 /**
@@ -941,6 +1064,13 @@ export type UserCountOutputTypeCountPointsLogsArgs<ExtArgs extends runtime.Types
   where?: Prisma.PointsLogWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountCreatedCollectionPointsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CollectionPointWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -956,6 +1086,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   requests?: boolean | Prisma.User$requestsArgs<ExtArgs>
   statusChanges?: boolean | Prisma.User$statusChangesArgs<ExtArgs>
   pointsLogs?: boolean | Prisma.User$pointsLogsArgs<ExtArgs>
+  createdCollectionPoints?: boolean | Prisma.User$createdCollectionPointsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -999,6 +1130,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   requests?: boolean | Prisma.User$requestsArgs<ExtArgs>
   statusChanges?: boolean | Prisma.User$statusChangesArgs<ExtArgs>
   pointsLogs?: boolean | Prisma.User$pointsLogsArgs<ExtArgs>
+  createdCollectionPoints?: boolean | Prisma.User$createdCollectionPointsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1012,6 +1144,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     requests: Prisma.$CollectionRequestPayload<ExtArgs>[]
     statusChanges: Prisma.$RequestStatusHistoryPayload<ExtArgs>[]
     pointsLogs: Prisma.$PointsLogPayload<ExtArgs>[]
+    createdCollectionPoints: Prisma.$CollectionPointPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1421,6 +1554,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   requests<T extends Prisma.User$requestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$requestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CollectionRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   statusChanges<T extends Prisma.User$statusChangesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$statusChangesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RequestStatusHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   pointsLogs<T extends Prisma.User$pointsLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$pointsLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PointsLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  createdCollectionPoints<T extends Prisma.User$createdCollectionPointsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$createdCollectionPointsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CollectionPointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1963,6 +2097,30 @@ export type User$pointsLogsArgs<ExtArgs extends runtime.Types.Extensions.Interna
   take?: number
   skip?: number
   distinct?: Prisma.PointsLogScalarFieldEnum | Prisma.PointsLogScalarFieldEnum[]
+}
+
+/**
+ * User.createdCollectionPoints
+ */
+export type User$createdCollectionPointsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CollectionPoint
+   */
+  select?: Prisma.CollectionPointSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CollectionPoint
+   */
+  omit?: Prisma.CollectionPointOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CollectionPointInclude<ExtArgs> | null
+  where?: Prisma.CollectionPointWhereInput
+  orderBy?: Prisma.CollectionPointOrderByWithRelationInput | Prisma.CollectionPointOrderByWithRelationInput[]
+  cursor?: Prisma.CollectionPointWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CollectionPointScalarFieldEnum | Prisma.CollectionPointScalarFieldEnum[]
 }
 
 /**

@@ -1,6 +1,5 @@
 import type { CollectionPoint, ResidentRequestDraft, ResidentCollectionRequest } from '../types';
 import { materialOptions, shiftOptions } from '../data/mockSolicitacao';
-import { residentRequests } from '../data/mockAcompanhamento';
 import { ApiError } from '../../../lib/api';
 import {
   buildTimeline,
@@ -40,12 +39,9 @@ function writeList(key: string, requests: ResidentCollectionRequest[]) {
   }
 }
 
-// Com dados da API em cache, mostra só eles; sem API, mostra os pedidos de demonstração e os exemplos.
+// Mostra apenas solicitações reais da conta autenticada.
 export function getResidentRequests(): ResidentCollectionRequest[] {
-  const fromApi = readList(API_CACHE_KEY);
-  if (fromApi) return fromApi;
-  const stored = readList(STORAGE_KEY) ?? [];
-  return [...stored, ...residentRequests.filter((mock) => !stored.some((item) => item.id === mock.id))];
+  return readList(API_CACHE_KEY) ?? [];
 }
 
 // O resumo pessoal usa apenas solicitações retornadas pela API, nunca os exemplos da demonstração.
@@ -84,16 +80,9 @@ export async function createResidentRequest(
   draft: ResidentRequestDraft,
   point: CollectionPoint,
 ): Promise<CreateRequestResult> {
-  try {
-    const request = await createRequestInApi(draft, point);
-    writeList(API_CACHE_KEY, [request, ...(readList(API_CACHE_KEY) ?? [])]);
-    return { request, source: 'api' };
-  } catch (error) {
-    if (!(error instanceof ApiError) || error.status !== 0) throw error;
-    const request = buildDemoRequest(draft, point);
-    updateResidentRequest(request);
-    return { request, source: 'demo' };
-  }
+  const request = await createRequestInApi(draft, point);
+  writeList(API_CACHE_KEY, [request, ...(readList(API_CACHE_KEY) ?? [])]);
+  return { request, source: 'api' };
 }
 
 // Cancela na API quando a solicitação veio de lá; pedidos de demonstração são cancelados só localmente.

@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model RequestStatusHistory
- * 
+ * Registro imutável de cada transição local ou externa de uma solicitação.
  */
 export type RequestStatusHistoryModel = runtime.Types.Result.DefaultSelection<Prisma.$RequestStatusHistoryPayload>
 

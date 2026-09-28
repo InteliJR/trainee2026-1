@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model PointsLog
- * 
+ * Crédito de gamificação concedido a um usuário por uma coleta concluída.
  */
 export type PointsLogModel = runtime.Types.Result.DefaultSelection<Prisma.$PointsLogPayload>
 

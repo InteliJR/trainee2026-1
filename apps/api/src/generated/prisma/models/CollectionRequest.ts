@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model CollectionRequest
- * 
+ * Agregado principal da coleta, conectando morador, endereço, coletor, integração e estado atual.
  */
 export type CollectionRequestModel = runtime.Types.Result.DefaultSelection<Prisma.$CollectionRequestPayload>
 
@@ -28,6 +28,7 @@ export type CollectionRequestMinAggregateOutputType = {
   id: string | null
   residentId: string | null
   addressId: string | null
+  collectionPointId: string | null
   collectorProfileId: string | null
   ecoRotaRequestId: string | null
   externalReference: string | null
@@ -47,6 +48,7 @@ export type CollectionRequestMaxAggregateOutputType = {
   id: string | null
   residentId: string | null
   addressId: string | null
+  collectionPointId: string | null
   collectorProfileId: string | null
   ecoRotaRequestId: string | null
   externalReference: string | null
@@ -66,6 +68,7 @@ export type CollectionRequestCountAggregateOutputType = {
   id: number
   residentId: number
   addressId: number
+  collectionPointId: number
   collectorProfileId: number
   ecoRotaRequestId: number
   externalReference: number
@@ -87,6 +90,7 @@ export type CollectionRequestMinAggregateInputType = {
   id?: true
   residentId?: true
   addressId?: true
+  collectionPointId?: true
   collectorProfileId?: true
   ecoRotaRequestId?: true
   externalReference?: true
@@ -106,6 +110,7 @@ export type CollectionRequestMaxAggregateInputType = {
   id?: true
   residentId?: true
   addressId?: true
+  collectionPointId?: true
   collectorProfileId?: true
   ecoRotaRequestId?: true
   externalReference?: true
@@ -125,6 +130,7 @@ export type CollectionRequestCountAggregateInputType = {
   id?: true
   residentId?: true
   addressId?: true
+  collectionPointId?: true
   collectorProfileId?: true
   ecoRotaRequestId?: true
   externalReference?: true
@@ -216,7 +222,8 @@ export type CollectionRequestGroupByArgs<ExtArgs extends runtime.Types.Extension
 export type CollectionRequestGroupByOutputType = {
   id: string
   residentId: string
-  addressId: string
+  addressId: string | null
+  collectionPointId: string | null
   collectorProfileId: string | null
   ecoRotaRequestId: string | null
   externalReference: string
@@ -256,7 +263,8 @@ export type CollectionRequestWhereInput = {
   NOT?: Prisma.CollectionRequestWhereInput | Prisma.CollectionRequestWhereInput[]
   id?: Prisma.UuidFilter<"CollectionRequest"> | string
   residentId?: Prisma.UuidFilter<"CollectionRequest"> | string
-  addressId?: Prisma.UuidFilter<"CollectionRequest"> | string
+  addressId?: Prisma.UuidNullableFilter<"CollectionRequest"> | string | null
+  collectionPointId?: Prisma.UuidNullableFilter<"CollectionRequest"> | string | null
   collectorProfileId?: Prisma.UuidNullableFilter<"CollectionRequest"> | string | null
   ecoRotaRequestId?: Prisma.StringNullableFilter<"CollectionRequest"> | string | null
   externalReference?: Prisma.StringFilter<"CollectionRequest"> | string
@@ -271,7 +279,8 @@ export type CollectionRequestWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"CollectionRequest"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CollectionRequest"> | Date | string
   resident?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  address?: Prisma.XOR<Prisma.AddressScalarRelationFilter, Prisma.AddressWhereInput>
+  address?: Prisma.XOR<Prisma.AddressNullableScalarRelationFilter, Prisma.AddressWhereInput> | null
+  collectionPoint?: Prisma.XOR<Prisma.CollectionPointNullableScalarRelationFilter, Prisma.CollectionPointWhereInput> | null
   collectorProfile?: Prisma.XOR<Prisma.CollectorProfileNullableScalarRelationFilter, Prisma.CollectorProfileWhereInput> | null
   materials?: Prisma.RequestMaterialListRelationFilter
   statusHistory?: Prisma.RequestStatusHistoryListRelationFilter
@@ -281,7 +290,8 @@ export type CollectionRequestWhereInput = {
 export type CollectionRequestOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   residentId?: Prisma.SortOrder
-  addressId?: Prisma.SortOrder
+  addressId?: Prisma.SortOrderInput | Prisma.SortOrder
+  collectionPointId?: Prisma.SortOrderInput | Prisma.SortOrder
   collectorProfileId?: Prisma.SortOrderInput | Prisma.SortOrder
   ecoRotaRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
   externalReference?: Prisma.SortOrder
@@ -297,6 +307,7 @@ export type CollectionRequestOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   resident?: Prisma.UserOrderByWithRelationInput
   address?: Prisma.AddressOrderByWithRelationInput
+  collectionPoint?: Prisma.CollectionPointOrderByWithRelationInput
   collectorProfile?: Prisma.CollectorProfileOrderByWithRelationInput
   materials?: Prisma.RequestMaterialOrderByRelationAggregateInput
   statusHistory?: Prisma.RequestStatusHistoryOrderByRelationAggregateInput
@@ -311,7 +322,8 @@ export type CollectionRequestWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.CollectionRequestWhereInput[]
   NOT?: Prisma.CollectionRequestWhereInput | Prisma.CollectionRequestWhereInput[]
   residentId?: Prisma.UuidFilter<"CollectionRequest"> | string
-  addressId?: Prisma.UuidFilter<"CollectionRequest"> | string
+  addressId?: Prisma.UuidNullableFilter<"CollectionRequest"> | string | null
+  collectionPointId?: Prisma.UuidNullableFilter<"CollectionRequest"> | string | null
   collectorProfileId?: Prisma.UuidNullableFilter<"CollectionRequest"> | string | null
   externalPointId?: Prisma.StringNullableFilter<"CollectionRequest"> | string | null
   externalCollectorId?: Prisma.StringNullableFilter<"CollectionRequest"> | string | null
@@ -324,7 +336,8 @@ export type CollectionRequestWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"CollectionRequest"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CollectionRequest"> | Date | string
   resident?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-  address?: Prisma.XOR<Prisma.AddressScalarRelationFilter, Prisma.AddressWhereInput>
+  address?: Prisma.XOR<Prisma.AddressNullableScalarRelationFilter, Prisma.AddressWhereInput> | null
+  collectionPoint?: Prisma.XOR<Prisma.CollectionPointNullableScalarRelationFilter, Prisma.CollectionPointWhereInput> | null
   collectorProfile?: Prisma.XOR<Prisma.CollectorProfileNullableScalarRelationFilter, Prisma.CollectorProfileWhereInput> | null
   materials?: Prisma.RequestMaterialListRelationFilter
   statusHistory?: Prisma.RequestStatusHistoryListRelationFilter
@@ -334,7 +347,8 @@ export type CollectionRequestWhereUniqueInput = Prisma.AtLeast<{
 export type CollectionRequestOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   residentId?: Prisma.SortOrder
-  addressId?: Prisma.SortOrder
+  addressId?: Prisma.SortOrderInput | Prisma.SortOrder
+  collectionPointId?: Prisma.SortOrderInput | Prisma.SortOrder
   collectorProfileId?: Prisma.SortOrderInput | Prisma.SortOrder
   ecoRotaRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
   externalReference?: Prisma.SortOrder
@@ -359,7 +373,8 @@ export type CollectionRequestScalarWhereWithAggregatesInput = {
   NOT?: Prisma.CollectionRequestScalarWhereWithAggregatesInput | Prisma.CollectionRequestScalarWhereWithAggregatesInput[]
   id?: Prisma.UuidWithAggregatesFilter<"CollectionRequest"> | string
   residentId?: Prisma.UuidWithAggregatesFilter<"CollectionRequest"> | string
-  addressId?: Prisma.UuidWithAggregatesFilter<"CollectionRequest"> | string
+  addressId?: Prisma.UuidNullableWithAggregatesFilter<"CollectionRequest"> | string | null
+  collectionPointId?: Prisma.UuidNullableWithAggregatesFilter<"CollectionRequest"> | string | null
   collectorProfileId?: Prisma.UuidNullableWithAggregatesFilter<"CollectionRequest"> | string | null
   ecoRotaRequestId?: Prisma.StringNullableWithAggregatesFilter<"CollectionRequest"> | string | null
   externalReference?: Prisma.StringWithAggregatesFilter<"CollectionRequest"> | string
@@ -390,7 +405,8 @@ export type CollectionRequestCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   resident: Prisma.UserCreateNestedOneWithoutRequestsInput
-  address: Prisma.AddressCreateNestedOneWithoutRequestsInput
+  address?: Prisma.AddressCreateNestedOneWithoutRequestsInput
+  collectionPoint?: Prisma.CollectionPointCreateNestedOneWithoutRequestsInput
   collectorProfile?: Prisma.CollectorProfileCreateNestedOneWithoutAssignedRequestsInput
   materials?: Prisma.RequestMaterialCreateNestedManyWithoutRequestInput
   statusHistory?: Prisma.RequestStatusHistoryCreateNestedManyWithoutRequestInput
@@ -400,7 +416,8 @@ export type CollectionRequestCreateInput = {
 export type CollectionRequestUncheckedCreateInput = {
   id?: string
   residentId: string
-  addressId: string
+  addressId?: string | null
+  collectionPointId?: string | null
   collectorProfileId?: string | null
   ecoRotaRequestId?: string | null
   externalReference: string
@@ -434,7 +451,8 @@ export type CollectionRequestUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resident?: Prisma.UserUpdateOneRequiredWithoutRequestsNestedInput
-  address?: Prisma.AddressUpdateOneRequiredWithoutRequestsNestedInput
+  address?: Prisma.AddressUpdateOneWithoutRequestsNestedInput
+  collectionPoint?: Prisma.CollectionPointUpdateOneWithoutRequestsNestedInput
   collectorProfile?: Prisma.CollectorProfileUpdateOneWithoutAssignedRequestsNestedInput
   materials?: Prisma.RequestMaterialUpdateManyWithoutRequestNestedInput
   statusHistory?: Prisma.RequestStatusHistoryUpdateManyWithoutRequestNestedInput
@@ -444,7 +462,8 @@ export type CollectionRequestUpdateInput = {
 export type CollectionRequestUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   residentId?: Prisma.StringFieldUpdateOperationsInput | string
-  addressId?: Prisma.StringFieldUpdateOperationsInput | string
+  addressId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collectionPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collectorProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ecoRotaRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.StringFieldUpdateOperationsInput | string
@@ -466,7 +485,8 @@ export type CollectionRequestUncheckedUpdateInput = {
 export type CollectionRequestCreateManyInput = {
   id?: string
   residentId: string
-  addressId: string
+  addressId?: string | null
+  collectionPointId?: string | null
   collectorProfileId?: string | null
   ecoRotaRequestId?: string | null
   externalReference: string
@@ -501,7 +521,8 @@ export type CollectionRequestUpdateManyMutationInput = {
 export type CollectionRequestUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   residentId?: Prisma.StringFieldUpdateOperationsInput | string
-  addressId?: Prisma.StringFieldUpdateOperationsInput | string
+  addressId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collectionPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collectorProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ecoRotaRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.StringFieldUpdateOperationsInput | string
@@ -531,6 +552,7 @@ export type CollectionRequestCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   residentId?: Prisma.SortOrder
   addressId?: Prisma.SortOrder
+  collectionPointId?: Prisma.SortOrder
   collectorProfileId?: Prisma.SortOrder
   ecoRotaRequestId?: Prisma.SortOrder
   externalReference?: Prisma.SortOrder
@@ -550,6 +572,7 @@ export type CollectionRequestMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   residentId?: Prisma.SortOrder
   addressId?: Prisma.SortOrder
+  collectionPointId?: Prisma.SortOrder
   collectorProfileId?: Prisma.SortOrder
   ecoRotaRequestId?: Prisma.SortOrder
   externalReference?: Prisma.SortOrder
@@ -569,6 +592,7 @@ export type CollectionRequestMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   residentId?: Prisma.SortOrder
   addressId?: Prisma.SortOrder
+  collectionPointId?: Prisma.SortOrder
   collectorProfileId?: Prisma.SortOrder
   ecoRotaRequestId?: Prisma.SortOrder
   externalReference?: Prisma.SortOrder
@@ -765,6 +789,48 @@ export type CollectionRequestUpdateOneRequiredWithoutPointsLogsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CollectionRequestUpdateToOneWithWhereWithoutPointsLogsInput, Prisma.CollectionRequestUpdateWithoutPointsLogsInput>, Prisma.CollectionRequestUncheckedUpdateWithoutPointsLogsInput>
 }
 
+export type CollectionRequestCreateNestedManyWithoutCollectionPointInput = {
+  create?: Prisma.XOR<Prisma.CollectionRequestCreateWithoutCollectionPointInput, Prisma.CollectionRequestUncheckedCreateWithoutCollectionPointInput> | Prisma.CollectionRequestCreateWithoutCollectionPointInput[] | Prisma.CollectionRequestUncheckedCreateWithoutCollectionPointInput[]
+  connectOrCreate?: Prisma.CollectionRequestCreateOrConnectWithoutCollectionPointInput | Prisma.CollectionRequestCreateOrConnectWithoutCollectionPointInput[]
+  createMany?: Prisma.CollectionRequestCreateManyCollectionPointInputEnvelope
+  connect?: Prisma.CollectionRequestWhereUniqueInput | Prisma.CollectionRequestWhereUniqueInput[]
+}
+
+export type CollectionRequestUncheckedCreateNestedManyWithoutCollectionPointInput = {
+  create?: Prisma.XOR<Prisma.CollectionRequestCreateWithoutCollectionPointInput, Prisma.CollectionRequestUncheckedCreateWithoutCollectionPointInput> | Prisma.CollectionRequestCreateWithoutCollectionPointInput[] | Prisma.CollectionRequestUncheckedCreateWithoutCollectionPointInput[]
+  connectOrCreate?: Prisma.CollectionRequestCreateOrConnectWithoutCollectionPointInput | Prisma.CollectionRequestCreateOrConnectWithoutCollectionPointInput[]
+  createMany?: Prisma.CollectionRequestCreateManyCollectionPointInputEnvelope
+  connect?: Prisma.CollectionRequestWhereUniqueInput | Prisma.CollectionRequestWhereUniqueInput[]
+}
+
+export type CollectionRequestUpdateManyWithoutCollectionPointNestedInput = {
+  create?: Prisma.XOR<Prisma.CollectionRequestCreateWithoutCollectionPointInput, Prisma.CollectionRequestUncheckedCreateWithoutCollectionPointInput> | Prisma.CollectionRequestCreateWithoutCollectionPointInput[] | Prisma.CollectionRequestUncheckedCreateWithoutCollectionPointInput[]
+  connectOrCreate?: Prisma.CollectionRequestCreateOrConnectWithoutCollectionPointInput | Prisma.CollectionRequestCreateOrConnectWithoutCollectionPointInput[]
+  upsert?: Prisma.CollectionRequestUpsertWithWhereUniqueWithoutCollectionPointInput | Prisma.CollectionRequestUpsertWithWhereUniqueWithoutCollectionPointInput[]
+  createMany?: Prisma.CollectionRequestCreateManyCollectionPointInputEnvelope
+  set?: Prisma.CollectionRequestWhereUniqueInput | Prisma.CollectionRequestWhereUniqueInput[]
+  disconnect?: Prisma.CollectionRequestWhereUniqueInput | Prisma.CollectionRequestWhereUniqueInput[]
+  delete?: Prisma.CollectionRequestWhereUniqueInput | Prisma.CollectionRequestWhereUniqueInput[]
+  connect?: Prisma.CollectionRequestWhereUniqueInput | Prisma.CollectionRequestWhereUniqueInput[]
+  update?: Prisma.CollectionRequestUpdateWithWhereUniqueWithoutCollectionPointInput | Prisma.CollectionRequestUpdateWithWhereUniqueWithoutCollectionPointInput[]
+  updateMany?: Prisma.CollectionRequestUpdateManyWithWhereWithoutCollectionPointInput | Prisma.CollectionRequestUpdateManyWithWhereWithoutCollectionPointInput[]
+  deleteMany?: Prisma.CollectionRequestScalarWhereInput | Prisma.CollectionRequestScalarWhereInput[]
+}
+
+export type CollectionRequestUncheckedUpdateManyWithoutCollectionPointNestedInput = {
+  create?: Prisma.XOR<Prisma.CollectionRequestCreateWithoutCollectionPointInput, Prisma.CollectionRequestUncheckedCreateWithoutCollectionPointInput> | Prisma.CollectionRequestCreateWithoutCollectionPointInput[] | Prisma.CollectionRequestUncheckedCreateWithoutCollectionPointInput[]
+  connectOrCreate?: Prisma.CollectionRequestCreateOrConnectWithoutCollectionPointInput | Prisma.CollectionRequestCreateOrConnectWithoutCollectionPointInput[]
+  upsert?: Prisma.CollectionRequestUpsertWithWhereUniqueWithoutCollectionPointInput | Prisma.CollectionRequestUpsertWithWhereUniqueWithoutCollectionPointInput[]
+  createMany?: Prisma.CollectionRequestCreateManyCollectionPointInputEnvelope
+  set?: Prisma.CollectionRequestWhereUniqueInput | Prisma.CollectionRequestWhereUniqueInput[]
+  disconnect?: Prisma.CollectionRequestWhereUniqueInput | Prisma.CollectionRequestWhereUniqueInput[]
+  delete?: Prisma.CollectionRequestWhereUniqueInput | Prisma.CollectionRequestWhereUniqueInput[]
+  connect?: Prisma.CollectionRequestWhereUniqueInput | Prisma.CollectionRequestWhereUniqueInput[]
+  update?: Prisma.CollectionRequestUpdateWithWhereUniqueWithoutCollectionPointInput | Prisma.CollectionRequestUpdateWithWhereUniqueWithoutCollectionPointInput[]
+  updateMany?: Prisma.CollectionRequestUpdateManyWithWhereWithoutCollectionPointInput | Prisma.CollectionRequestUpdateManyWithWhereWithoutCollectionPointInput[]
+  deleteMany?: Prisma.CollectionRequestScalarWhereInput | Prisma.CollectionRequestScalarWhereInput[]
+}
+
 export type CollectionRequestCreateWithoutResidentInput = {
   id?: string
   ecoRotaRequestId?: string | null
@@ -779,7 +845,8 @@ export type CollectionRequestCreateWithoutResidentInput = {
   completedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  address: Prisma.AddressCreateNestedOneWithoutRequestsInput
+  address?: Prisma.AddressCreateNestedOneWithoutRequestsInput
+  collectionPoint?: Prisma.CollectionPointCreateNestedOneWithoutRequestsInput
   collectorProfile?: Prisma.CollectorProfileCreateNestedOneWithoutAssignedRequestsInput
   materials?: Prisma.RequestMaterialCreateNestedManyWithoutRequestInput
   statusHistory?: Prisma.RequestStatusHistoryCreateNestedManyWithoutRequestInput
@@ -788,7 +855,8 @@ export type CollectionRequestCreateWithoutResidentInput = {
 
 export type CollectionRequestUncheckedCreateWithoutResidentInput = {
   id?: string
-  addressId: string
+  addressId?: string | null
+  collectionPointId?: string | null
   collectorProfileId?: string | null
   ecoRotaRequestId?: string | null
   externalReference: string
@@ -839,7 +907,8 @@ export type CollectionRequestScalarWhereInput = {
   NOT?: Prisma.CollectionRequestScalarWhereInput | Prisma.CollectionRequestScalarWhereInput[]
   id?: Prisma.UuidFilter<"CollectionRequest"> | string
   residentId?: Prisma.UuidFilter<"CollectionRequest"> | string
-  addressId?: Prisma.UuidFilter<"CollectionRequest"> | string
+  addressId?: Prisma.UuidNullableFilter<"CollectionRequest"> | string | null
+  collectionPointId?: Prisma.UuidNullableFilter<"CollectionRequest"> | string | null
   collectorProfileId?: Prisma.UuidNullableFilter<"CollectionRequest"> | string | null
   ecoRotaRequestId?: Prisma.StringNullableFilter<"CollectionRequest"> | string | null
   externalReference?: Prisma.StringFilter<"CollectionRequest"> | string
@@ -870,6 +939,7 @@ export type CollectionRequestCreateWithoutAddressInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   resident: Prisma.UserCreateNestedOneWithoutRequestsInput
+  collectionPoint?: Prisma.CollectionPointCreateNestedOneWithoutRequestsInput
   collectorProfile?: Prisma.CollectorProfileCreateNestedOneWithoutAssignedRequestsInput
   materials?: Prisma.RequestMaterialCreateNestedManyWithoutRequestInput
   statusHistory?: Prisma.RequestStatusHistoryCreateNestedManyWithoutRequestInput
@@ -879,6 +949,7 @@ export type CollectionRequestCreateWithoutAddressInput = {
 export type CollectionRequestUncheckedCreateWithoutAddressInput = {
   id?: string
   residentId: string
+  collectionPointId?: string | null
   collectorProfileId?: string | null
   ecoRotaRequestId?: string | null
   externalReference: string
@@ -938,7 +1009,8 @@ export type CollectionRequestCreateWithoutCollectorProfileInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   resident: Prisma.UserCreateNestedOneWithoutRequestsInput
-  address: Prisma.AddressCreateNestedOneWithoutRequestsInput
+  address?: Prisma.AddressCreateNestedOneWithoutRequestsInput
+  collectionPoint?: Prisma.CollectionPointCreateNestedOneWithoutRequestsInput
   materials?: Prisma.RequestMaterialCreateNestedManyWithoutRequestInput
   statusHistory?: Prisma.RequestStatusHistoryCreateNestedManyWithoutRequestInput
   pointsLogs?: Prisma.PointsLogCreateNestedManyWithoutRequestInput
@@ -947,7 +1019,8 @@ export type CollectionRequestCreateWithoutCollectorProfileInput = {
 export type CollectionRequestUncheckedCreateWithoutCollectorProfileInput = {
   id?: string
   residentId: string
-  addressId: string
+  addressId?: string | null
+  collectionPointId?: string | null
   ecoRotaRequestId?: string | null
   externalReference: string
   externalPointId?: string | null
@@ -1006,7 +1079,8 @@ export type CollectionRequestCreateWithoutMaterialsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   resident: Prisma.UserCreateNestedOneWithoutRequestsInput
-  address: Prisma.AddressCreateNestedOneWithoutRequestsInput
+  address?: Prisma.AddressCreateNestedOneWithoutRequestsInput
+  collectionPoint?: Prisma.CollectionPointCreateNestedOneWithoutRequestsInput
   collectorProfile?: Prisma.CollectorProfileCreateNestedOneWithoutAssignedRequestsInput
   statusHistory?: Prisma.RequestStatusHistoryCreateNestedManyWithoutRequestInput
   pointsLogs?: Prisma.PointsLogCreateNestedManyWithoutRequestInput
@@ -1015,7 +1089,8 @@ export type CollectionRequestCreateWithoutMaterialsInput = {
 export type CollectionRequestUncheckedCreateWithoutMaterialsInput = {
   id?: string
   residentId: string
-  addressId: string
+  addressId?: string | null
+  collectionPointId?: string | null
   collectorProfileId?: string | null
   ecoRotaRequestId?: string | null
   externalReference: string
@@ -1064,7 +1139,8 @@ export type CollectionRequestUpdateWithoutMaterialsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resident?: Prisma.UserUpdateOneRequiredWithoutRequestsNestedInput
-  address?: Prisma.AddressUpdateOneRequiredWithoutRequestsNestedInput
+  address?: Prisma.AddressUpdateOneWithoutRequestsNestedInput
+  collectionPoint?: Prisma.CollectionPointUpdateOneWithoutRequestsNestedInput
   collectorProfile?: Prisma.CollectorProfileUpdateOneWithoutAssignedRequestsNestedInput
   statusHistory?: Prisma.RequestStatusHistoryUpdateManyWithoutRequestNestedInput
   pointsLogs?: Prisma.PointsLogUpdateManyWithoutRequestNestedInput
@@ -1073,7 +1149,8 @@ export type CollectionRequestUpdateWithoutMaterialsInput = {
 export type CollectionRequestUncheckedUpdateWithoutMaterialsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   residentId?: Prisma.StringFieldUpdateOperationsInput | string
-  addressId?: Prisma.StringFieldUpdateOperationsInput | string
+  addressId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collectionPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collectorProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ecoRotaRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1106,7 +1183,8 @@ export type CollectionRequestCreateWithoutStatusHistoryInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   resident: Prisma.UserCreateNestedOneWithoutRequestsInput
-  address: Prisma.AddressCreateNestedOneWithoutRequestsInput
+  address?: Prisma.AddressCreateNestedOneWithoutRequestsInput
+  collectionPoint?: Prisma.CollectionPointCreateNestedOneWithoutRequestsInput
   collectorProfile?: Prisma.CollectorProfileCreateNestedOneWithoutAssignedRequestsInput
   materials?: Prisma.RequestMaterialCreateNestedManyWithoutRequestInput
   pointsLogs?: Prisma.PointsLogCreateNestedManyWithoutRequestInput
@@ -1115,7 +1193,8 @@ export type CollectionRequestCreateWithoutStatusHistoryInput = {
 export type CollectionRequestUncheckedCreateWithoutStatusHistoryInput = {
   id?: string
   residentId: string
-  addressId: string
+  addressId?: string | null
+  collectionPointId?: string | null
   collectorProfileId?: string | null
   ecoRotaRequestId?: string | null
   externalReference: string
@@ -1164,7 +1243,8 @@ export type CollectionRequestUpdateWithoutStatusHistoryInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resident?: Prisma.UserUpdateOneRequiredWithoutRequestsNestedInput
-  address?: Prisma.AddressUpdateOneRequiredWithoutRequestsNestedInput
+  address?: Prisma.AddressUpdateOneWithoutRequestsNestedInput
+  collectionPoint?: Prisma.CollectionPointUpdateOneWithoutRequestsNestedInput
   collectorProfile?: Prisma.CollectorProfileUpdateOneWithoutAssignedRequestsNestedInput
   materials?: Prisma.RequestMaterialUpdateManyWithoutRequestNestedInput
   pointsLogs?: Prisma.PointsLogUpdateManyWithoutRequestNestedInput
@@ -1173,7 +1253,8 @@ export type CollectionRequestUpdateWithoutStatusHistoryInput = {
 export type CollectionRequestUncheckedUpdateWithoutStatusHistoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   residentId?: Prisma.StringFieldUpdateOperationsInput | string
-  addressId?: Prisma.StringFieldUpdateOperationsInput | string
+  addressId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collectionPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collectorProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ecoRotaRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1206,7 +1287,8 @@ export type CollectionRequestCreateWithoutPointsLogsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   resident: Prisma.UserCreateNestedOneWithoutRequestsInput
-  address: Prisma.AddressCreateNestedOneWithoutRequestsInput
+  address?: Prisma.AddressCreateNestedOneWithoutRequestsInput
+  collectionPoint?: Prisma.CollectionPointCreateNestedOneWithoutRequestsInput
   collectorProfile?: Prisma.CollectorProfileCreateNestedOneWithoutAssignedRequestsInput
   materials?: Prisma.RequestMaterialCreateNestedManyWithoutRequestInput
   statusHistory?: Prisma.RequestStatusHistoryCreateNestedManyWithoutRequestInput
@@ -1215,7 +1297,8 @@ export type CollectionRequestCreateWithoutPointsLogsInput = {
 export type CollectionRequestUncheckedCreateWithoutPointsLogsInput = {
   id?: string
   residentId: string
-  addressId: string
+  addressId?: string | null
+  collectionPointId?: string | null
   collectorProfileId?: string | null
   ecoRotaRequestId?: string | null
   externalReference: string
@@ -1264,7 +1347,8 @@ export type CollectionRequestUpdateWithoutPointsLogsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resident?: Prisma.UserUpdateOneRequiredWithoutRequestsNestedInput
-  address?: Prisma.AddressUpdateOneRequiredWithoutRequestsNestedInput
+  address?: Prisma.AddressUpdateOneWithoutRequestsNestedInput
+  collectionPoint?: Prisma.CollectionPointUpdateOneWithoutRequestsNestedInput
   collectorProfile?: Prisma.CollectorProfileUpdateOneWithoutAssignedRequestsNestedInput
   materials?: Prisma.RequestMaterialUpdateManyWithoutRequestNestedInput
   statusHistory?: Prisma.RequestStatusHistoryUpdateManyWithoutRequestNestedInput
@@ -1273,7 +1357,8 @@ export type CollectionRequestUpdateWithoutPointsLogsInput = {
 export type CollectionRequestUncheckedUpdateWithoutPointsLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   residentId?: Prisma.StringFieldUpdateOperationsInput | string
-  addressId?: Prisma.StringFieldUpdateOperationsInput | string
+  addressId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collectionPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collectorProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ecoRotaRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1291,9 +1376,80 @@ export type CollectionRequestUncheckedUpdateWithoutPointsLogsInput = {
   statusHistory?: Prisma.RequestStatusHistoryUncheckedUpdateManyWithoutRequestNestedInput
 }
 
+export type CollectionRequestCreateWithoutCollectionPointInput = {
+  id?: string
+  ecoRotaRequestId?: string | null
+  externalReference: string
+  externalPointId?: string | null
+  externalCollectorId?: string | null
+  status?: $Enums.RequestStatus
+  syncStatus?: $Enums.SyncStatus
+  desiredAt: Date | string
+  cancellationReason?: string | null
+  completionPhotoUrl?: string | null
+  completedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  resident: Prisma.UserCreateNestedOneWithoutRequestsInput
+  address?: Prisma.AddressCreateNestedOneWithoutRequestsInput
+  collectorProfile?: Prisma.CollectorProfileCreateNestedOneWithoutAssignedRequestsInput
+  materials?: Prisma.RequestMaterialCreateNestedManyWithoutRequestInput
+  statusHistory?: Prisma.RequestStatusHistoryCreateNestedManyWithoutRequestInput
+  pointsLogs?: Prisma.PointsLogCreateNestedManyWithoutRequestInput
+}
+
+export type CollectionRequestUncheckedCreateWithoutCollectionPointInput = {
+  id?: string
+  residentId: string
+  addressId?: string | null
+  collectorProfileId?: string | null
+  ecoRotaRequestId?: string | null
+  externalReference: string
+  externalPointId?: string | null
+  externalCollectorId?: string | null
+  status?: $Enums.RequestStatus
+  syncStatus?: $Enums.SyncStatus
+  desiredAt: Date | string
+  cancellationReason?: string | null
+  completionPhotoUrl?: string | null
+  completedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  materials?: Prisma.RequestMaterialUncheckedCreateNestedManyWithoutRequestInput
+  statusHistory?: Prisma.RequestStatusHistoryUncheckedCreateNestedManyWithoutRequestInput
+  pointsLogs?: Prisma.PointsLogUncheckedCreateNestedManyWithoutRequestInput
+}
+
+export type CollectionRequestCreateOrConnectWithoutCollectionPointInput = {
+  where: Prisma.CollectionRequestWhereUniqueInput
+  create: Prisma.XOR<Prisma.CollectionRequestCreateWithoutCollectionPointInput, Prisma.CollectionRequestUncheckedCreateWithoutCollectionPointInput>
+}
+
+export type CollectionRequestCreateManyCollectionPointInputEnvelope = {
+  data: Prisma.CollectionRequestCreateManyCollectionPointInput | Prisma.CollectionRequestCreateManyCollectionPointInput[]
+  skipDuplicates?: boolean
+}
+
+export type CollectionRequestUpsertWithWhereUniqueWithoutCollectionPointInput = {
+  where: Prisma.CollectionRequestWhereUniqueInput
+  update: Prisma.XOR<Prisma.CollectionRequestUpdateWithoutCollectionPointInput, Prisma.CollectionRequestUncheckedUpdateWithoutCollectionPointInput>
+  create: Prisma.XOR<Prisma.CollectionRequestCreateWithoutCollectionPointInput, Prisma.CollectionRequestUncheckedCreateWithoutCollectionPointInput>
+}
+
+export type CollectionRequestUpdateWithWhereUniqueWithoutCollectionPointInput = {
+  where: Prisma.CollectionRequestWhereUniqueInput
+  data: Prisma.XOR<Prisma.CollectionRequestUpdateWithoutCollectionPointInput, Prisma.CollectionRequestUncheckedUpdateWithoutCollectionPointInput>
+}
+
+export type CollectionRequestUpdateManyWithWhereWithoutCollectionPointInput = {
+  where: Prisma.CollectionRequestScalarWhereInput
+  data: Prisma.XOR<Prisma.CollectionRequestUpdateManyMutationInput, Prisma.CollectionRequestUncheckedUpdateManyWithoutCollectionPointInput>
+}
+
 export type CollectionRequestCreateManyResidentInput = {
   id?: string
-  addressId: string
+  addressId?: string | null
+  collectionPointId?: string | null
   collectorProfileId?: string | null
   ecoRotaRequestId?: string | null
   externalReference: string
@@ -1323,7 +1479,8 @@ export type CollectionRequestUpdateWithoutResidentInput = {
   completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  address?: Prisma.AddressUpdateOneRequiredWithoutRequestsNestedInput
+  address?: Prisma.AddressUpdateOneWithoutRequestsNestedInput
+  collectionPoint?: Prisma.CollectionPointUpdateOneWithoutRequestsNestedInput
   collectorProfile?: Prisma.CollectorProfileUpdateOneWithoutAssignedRequestsNestedInput
   materials?: Prisma.RequestMaterialUpdateManyWithoutRequestNestedInput
   statusHistory?: Prisma.RequestStatusHistoryUpdateManyWithoutRequestNestedInput
@@ -1332,7 +1489,8 @@ export type CollectionRequestUpdateWithoutResidentInput = {
 
 export type CollectionRequestUncheckedUpdateWithoutResidentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  addressId?: Prisma.StringFieldUpdateOperationsInput | string
+  addressId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collectionPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collectorProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ecoRotaRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1353,7 +1511,8 @@ export type CollectionRequestUncheckedUpdateWithoutResidentInput = {
 
 export type CollectionRequestUncheckedUpdateManyWithoutResidentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  addressId?: Prisma.StringFieldUpdateOperationsInput | string
+  addressId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collectionPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collectorProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ecoRotaRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1372,6 +1531,7 @@ export type CollectionRequestUncheckedUpdateManyWithoutResidentInput = {
 export type CollectionRequestCreateManyAddressInput = {
   id?: string
   residentId: string
+  collectionPointId?: string | null
   collectorProfileId?: string | null
   ecoRotaRequestId?: string | null
   externalReference: string
@@ -1402,6 +1562,7 @@ export type CollectionRequestUpdateWithoutAddressInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resident?: Prisma.UserUpdateOneRequiredWithoutRequestsNestedInput
+  collectionPoint?: Prisma.CollectionPointUpdateOneWithoutRequestsNestedInput
   collectorProfile?: Prisma.CollectorProfileUpdateOneWithoutAssignedRequestsNestedInput
   materials?: Prisma.RequestMaterialUpdateManyWithoutRequestNestedInput
   statusHistory?: Prisma.RequestStatusHistoryUpdateManyWithoutRequestNestedInput
@@ -1411,6 +1572,7 @@ export type CollectionRequestUpdateWithoutAddressInput = {
 export type CollectionRequestUncheckedUpdateWithoutAddressInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   residentId?: Prisma.StringFieldUpdateOperationsInput | string
+  collectionPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collectorProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ecoRotaRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1432,6 +1594,7 @@ export type CollectionRequestUncheckedUpdateWithoutAddressInput = {
 export type CollectionRequestUncheckedUpdateManyWithoutAddressInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   residentId?: Prisma.StringFieldUpdateOperationsInput | string
+  collectionPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   collectorProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ecoRotaRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1450,7 +1613,8 @@ export type CollectionRequestUncheckedUpdateManyWithoutAddressInput = {
 export type CollectionRequestCreateManyCollectorProfileInput = {
   id?: string
   residentId: string
-  addressId: string
+  addressId?: string | null
+  collectionPointId?: string | null
   ecoRotaRequestId?: string | null
   externalReference: string
   externalPointId?: string | null
@@ -1480,7 +1644,8 @@ export type CollectionRequestUpdateWithoutCollectorProfileInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resident?: Prisma.UserUpdateOneRequiredWithoutRequestsNestedInput
-  address?: Prisma.AddressUpdateOneRequiredWithoutRequestsNestedInput
+  address?: Prisma.AddressUpdateOneWithoutRequestsNestedInput
+  collectionPoint?: Prisma.CollectionPointUpdateOneWithoutRequestsNestedInput
   materials?: Prisma.RequestMaterialUpdateManyWithoutRequestNestedInput
   statusHistory?: Prisma.RequestStatusHistoryUpdateManyWithoutRequestNestedInput
   pointsLogs?: Prisma.PointsLogUpdateManyWithoutRequestNestedInput
@@ -1489,7 +1654,8 @@ export type CollectionRequestUpdateWithoutCollectorProfileInput = {
 export type CollectionRequestUncheckedUpdateWithoutCollectorProfileInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   residentId?: Prisma.StringFieldUpdateOperationsInput | string
-  addressId?: Prisma.StringFieldUpdateOperationsInput | string
+  addressId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collectionPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ecoRotaRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.StringFieldUpdateOperationsInput | string
   externalPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1510,7 +1676,90 @@ export type CollectionRequestUncheckedUpdateWithoutCollectorProfileInput = {
 export type CollectionRequestUncheckedUpdateManyWithoutCollectorProfileInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   residentId?: Prisma.StringFieldUpdateOperationsInput | string
-  addressId?: Prisma.StringFieldUpdateOperationsInput | string
+  addressId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collectionPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ecoRotaRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  externalReference?: Prisma.StringFieldUpdateOperationsInput | string
+  externalPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  externalCollectorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumRequestStatusFieldUpdateOperationsInput | $Enums.RequestStatus
+  syncStatus?: Prisma.EnumSyncStatusFieldUpdateOperationsInput | $Enums.SyncStatus
+  desiredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  completionPhotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type CollectionRequestCreateManyCollectionPointInput = {
+  id?: string
+  residentId: string
+  addressId?: string | null
+  collectorProfileId?: string | null
+  ecoRotaRequestId?: string | null
+  externalReference: string
+  externalPointId?: string | null
+  externalCollectorId?: string | null
+  status?: $Enums.RequestStatus
+  syncStatus?: $Enums.SyncStatus
+  desiredAt: Date | string
+  cancellationReason?: string | null
+  completionPhotoUrl?: string | null
+  completedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type CollectionRequestUpdateWithoutCollectionPointInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  ecoRotaRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  externalReference?: Prisma.StringFieldUpdateOperationsInput | string
+  externalPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  externalCollectorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumRequestStatusFieldUpdateOperationsInput | $Enums.RequestStatus
+  syncStatus?: Prisma.EnumSyncStatusFieldUpdateOperationsInput | $Enums.SyncStatus
+  desiredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  completionPhotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  resident?: Prisma.UserUpdateOneRequiredWithoutRequestsNestedInput
+  address?: Prisma.AddressUpdateOneWithoutRequestsNestedInput
+  collectorProfile?: Prisma.CollectorProfileUpdateOneWithoutAssignedRequestsNestedInput
+  materials?: Prisma.RequestMaterialUpdateManyWithoutRequestNestedInput
+  statusHistory?: Prisma.RequestStatusHistoryUpdateManyWithoutRequestNestedInput
+  pointsLogs?: Prisma.PointsLogUpdateManyWithoutRequestNestedInput
+}
+
+export type CollectionRequestUncheckedUpdateWithoutCollectionPointInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  residentId?: Prisma.StringFieldUpdateOperationsInput | string
+  addressId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collectorProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ecoRotaRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  externalReference?: Prisma.StringFieldUpdateOperationsInput | string
+  externalPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  externalCollectorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumRequestStatusFieldUpdateOperationsInput | $Enums.RequestStatus
+  syncStatus?: Prisma.EnumSyncStatusFieldUpdateOperationsInput | $Enums.SyncStatus
+  desiredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  completionPhotoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  materials?: Prisma.RequestMaterialUncheckedUpdateManyWithoutRequestNestedInput
+  statusHistory?: Prisma.RequestStatusHistoryUncheckedUpdateManyWithoutRequestNestedInput
+  pointsLogs?: Prisma.PointsLogUncheckedUpdateManyWithoutRequestNestedInput
+}
+
+export type CollectionRequestUncheckedUpdateManyWithoutCollectionPointInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  residentId?: Prisma.StringFieldUpdateOperationsInput | string
+  addressId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  collectorProfileId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ecoRotaRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.StringFieldUpdateOperationsInput | string
   externalPointId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1578,6 +1827,7 @@ export type CollectionRequestSelect<ExtArgs extends runtime.Types.Extensions.Int
   id?: boolean
   residentId?: boolean
   addressId?: boolean
+  collectionPointId?: boolean
   collectorProfileId?: boolean
   ecoRotaRequestId?: boolean
   externalReference?: boolean
@@ -1592,7 +1842,8 @@ export type CollectionRequestSelect<ExtArgs extends runtime.Types.Extensions.Int
   createdAt?: boolean
   updatedAt?: boolean
   resident?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  address?: boolean | Prisma.AddressDefaultArgs<ExtArgs>
+  address?: boolean | Prisma.CollectionRequest$addressArgs<ExtArgs>
+  collectionPoint?: boolean | Prisma.CollectionRequest$collectionPointArgs<ExtArgs>
   collectorProfile?: boolean | Prisma.CollectionRequest$collectorProfileArgs<ExtArgs>
   materials?: boolean | Prisma.CollectionRequest$materialsArgs<ExtArgs>
   statusHistory?: boolean | Prisma.CollectionRequest$statusHistoryArgs<ExtArgs>
@@ -1604,6 +1855,7 @@ export type CollectionRequestSelectCreateManyAndReturn<ExtArgs extends runtime.T
   id?: boolean
   residentId?: boolean
   addressId?: boolean
+  collectionPointId?: boolean
   collectorProfileId?: boolean
   ecoRotaRequestId?: boolean
   externalReference?: boolean
@@ -1618,7 +1870,8 @@ export type CollectionRequestSelectCreateManyAndReturn<ExtArgs extends runtime.T
   createdAt?: boolean
   updatedAt?: boolean
   resident?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  address?: boolean | Prisma.AddressDefaultArgs<ExtArgs>
+  address?: boolean | Prisma.CollectionRequest$addressArgs<ExtArgs>
+  collectionPoint?: boolean | Prisma.CollectionRequest$collectionPointArgs<ExtArgs>
   collectorProfile?: boolean | Prisma.CollectionRequest$collectorProfileArgs<ExtArgs>
 }, ExtArgs["result"]["collectionRequest"]>
 
@@ -1626,6 +1879,7 @@ export type CollectionRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   id?: boolean
   residentId?: boolean
   addressId?: boolean
+  collectionPointId?: boolean
   collectorProfileId?: boolean
   ecoRotaRequestId?: boolean
   externalReference?: boolean
@@ -1640,7 +1894,8 @@ export type CollectionRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   createdAt?: boolean
   updatedAt?: boolean
   resident?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  address?: boolean | Prisma.AddressDefaultArgs<ExtArgs>
+  address?: boolean | Prisma.CollectionRequest$addressArgs<ExtArgs>
+  collectionPoint?: boolean | Prisma.CollectionRequest$collectionPointArgs<ExtArgs>
   collectorProfile?: boolean | Prisma.CollectionRequest$collectorProfileArgs<ExtArgs>
 }, ExtArgs["result"]["collectionRequest"]>
 
@@ -1648,6 +1903,7 @@ export type CollectionRequestSelectScalar = {
   id?: boolean
   residentId?: boolean
   addressId?: boolean
+  collectionPointId?: boolean
   collectorProfileId?: boolean
   ecoRotaRequestId?: boolean
   externalReference?: boolean
@@ -1663,10 +1919,11 @@ export type CollectionRequestSelectScalar = {
   updatedAt?: boolean
 }
 
-export type CollectionRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "residentId" | "addressId" | "collectorProfileId" | "ecoRotaRequestId" | "externalReference" | "externalPointId" | "externalCollectorId" | "status" | "syncStatus" | "desiredAt" | "cancellationReason" | "completionPhotoUrl" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["collectionRequest"]>
+export type CollectionRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "residentId" | "addressId" | "collectionPointId" | "collectorProfileId" | "ecoRotaRequestId" | "externalReference" | "externalPointId" | "externalCollectorId" | "status" | "syncStatus" | "desiredAt" | "cancellationReason" | "completionPhotoUrl" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["collectionRequest"]>
 export type CollectionRequestInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   resident?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  address?: boolean | Prisma.AddressDefaultArgs<ExtArgs>
+  address?: boolean | Prisma.CollectionRequest$addressArgs<ExtArgs>
+  collectionPoint?: boolean | Prisma.CollectionRequest$collectionPointArgs<ExtArgs>
   collectorProfile?: boolean | Prisma.CollectionRequest$collectorProfileArgs<ExtArgs>
   materials?: boolean | Prisma.CollectionRequest$materialsArgs<ExtArgs>
   statusHistory?: boolean | Prisma.CollectionRequest$statusHistoryArgs<ExtArgs>
@@ -1675,12 +1932,14 @@ export type CollectionRequestInclude<ExtArgs extends runtime.Types.Extensions.In
 }
 export type CollectionRequestIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   resident?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  address?: boolean | Prisma.AddressDefaultArgs<ExtArgs>
+  address?: boolean | Prisma.CollectionRequest$addressArgs<ExtArgs>
+  collectionPoint?: boolean | Prisma.CollectionRequest$collectionPointArgs<ExtArgs>
   collectorProfile?: boolean | Prisma.CollectionRequest$collectorProfileArgs<ExtArgs>
 }
 export type CollectionRequestIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   resident?: boolean | Prisma.UserDefaultArgs<ExtArgs>
-  address?: boolean | Prisma.AddressDefaultArgs<ExtArgs>
+  address?: boolean | Prisma.CollectionRequest$addressArgs<ExtArgs>
+  collectionPoint?: boolean | Prisma.CollectionRequest$collectionPointArgs<ExtArgs>
   collectorProfile?: boolean | Prisma.CollectionRequest$collectorProfileArgs<ExtArgs>
 }
 
@@ -1688,7 +1947,8 @@ export type $CollectionRequestPayload<ExtArgs extends runtime.Types.Extensions.I
   name: "CollectionRequest"
   objects: {
     resident: Prisma.$UserPayload<ExtArgs>
-    address: Prisma.$AddressPayload<ExtArgs>
+    address: Prisma.$AddressPayload<ExtArgs> | null
+    collectionPoint: Prisma.$CollectionPointPayload<ExtArgs> | null
     collectorProfile: Prisma.$CollectorProfilePayload<ExtArgs> | null
     materials: Prisma.$RequestMaterialPayload<ExtArgs>[]
     statusHistory: Prisma.$RequestStatusHistoryPayload<ExtArgs>[]
@@ -1697,7 +1957,8 @@ export type $CollectionRequestPayload<ExtArgs extends runtime.Types.Extensions.I
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     residentId: string
-    addressId: string
+    addressId: string | null
+    collectionPointId: string | null
     collectorProfileId: string | null
     ecoRotaRequestId: string | null
     externalReference: string
@@ -2106,7 +2367,8 @@ readonly fields: CollectionRequestFieldRefs;
 export interface Prisma__CollectionRequestClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   resident<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  address<T extends Prisma.AddressDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AddressDefaultArgs<ExtArgs>>): Prisma.Prisma__AddressClient<runtime.Types.Result.GetResult<Prisma.$AddressPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  address<T extends Prisma.CollectionRequest$addressArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CollectionRequest$addressArgs<ExtArgs>>): Prisma.Prisma__AddressClient<runtime.Types.Result.GetResult<Prisma.$AddressPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  collectionPoint<T extends Prisma.CollectionRequest$collectionPointArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CollectionRequest$collectionPointArgs<ExtArgs>>): Prisma.Prisma__CollectionPointClient<runtime.Types.Result.GetResult<Prisma.$CollectionPointPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   collectorProfile<T extends Prisma.CollectionRequest$collectorProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CollectionRequest$collectorProfileArgs<ExtArgs>>): Prisma.Prisma__CollectorProfileClient<runtime.Types.Result.GetResult<Prisma.$CollectorProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   materials<T extends Prisma.CollectionRequest$materialsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CollectionRequest$materialsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RequestMaterialPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   statusHistory<T extends Prisma.CollectionRequest$statusHistoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CollectionRequest$statusHistoryArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RequestStatusHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2143,6 +2405,7 @@ export interface CollectionRequestFieldRefs {
   readonly id: Prisma.FieldRef<"CollectionRequest", 'String'>
   readonly residentId: Prisma.FieldRef<"CollectionRequest", 'String'>
   readonly addressId: Prisma.FieldRef<"CollectionRequest", 'String'>
+  readonly collectionPointId: Prisma.FieldRef<"CollectionRequest", 'String'>
   readonly collectorProfileId: Prisma.FieldRef<"CollectionRequest", 'String'>
   readonly ecoRotaRequestId: Prisma.FieldRef<"CollectionRequest", 'String'>
   readonly externalReference: Prisma.FieldRef<"CollectionRequest", 'String'>
@@ -2554,6 +2817,44 @@ export type CollectionRequestDeleteManyArgs<ExtArgs extends runtime.Types.Extens
    * Limit how many CollectionRequests to delete.
    */
   limit?: number
+}
+
+/**
+ * CollectionRequest.address
+ */
+export type CollectionRequest$addressArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Address
+   */
+  select?: Prisma.AddressSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Address
+   */
+  omit?: Prisma.AddressOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AddressInclude<ExtArgs> | null
+  where?: Prisma.AddressWhereInput
+}
+
+/**
+ * CollectionRequest.collectionPoint
+ */
+export type CollectionRequest$collectionPointArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CollectionPoint
+   */
+  select?: Prisma.CollectionPointSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CollectionPoint
+   */
+  omit?: Prisma.CollectionPointOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CollectionPointInclude<ExtArgs> | null
+  where?: Prisma.CollectionPointWhereInput
 }
 
 /**

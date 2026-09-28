@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model Address
- * 
+ * Local de coleta pertencente a um morador, com coordenadas usadas no mapa.
  */
 export type AddressModel = runtime.Types.Result.DefaultSelection<Prisma.$AddressPayload>
 
@@ -638,9 +638,9 @@ export type AddressSumOrderByAggregateInput = {
   longitude?: Prisma.SortOrder
 }
 
-export type AddressScalarRelationFilter = {
-  is?: Prisma.AddressWhereInput
-  isNot?: Prisma.AddressWhereInput
+export type AddressNullableScalarRelationFilter = {
+  is?: Prisma.AddressWhereInput | null
+  isNot?: Prisma.AddressWhereInput | null
 }
 
 export type AddressCreateNestedManyWithoutUserInput = {
@@ -703,10 +703,12 @@ export type AddressCreateNestedOneWithoutRequestsInput = {
   connect?: Prisma.AddressWhereUniqueInput
 }
 
-export type AddressUpdateOneRequiredWithoutRequestsNestedInput = {
+export type AddressUpdateOneWithoutRequestsNestedInput = {
   create?: Prisma.XOR<Prisma.AddressCreateWithoutRequestsInput, Prisma.AddressUncheckedCreateWithoutRequestsInput>
   connectOrCreate?: Prisma.AddressCreateOrConnectWithoutRequestsInput
   upsert?: Prisma.AddressUpsertWithoutRequestsInput
+  disconnect?: Prisma.AddressWhereInput | boolean
+  delete?: Prisma.AddressWhereInput | boolean
   connect?: Prisma.AddressWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.AddressUpdateToOneWithWhereWithoutRequestsInput, Prisma.AddressUpdateWithoutRequestsInput>, Prisma.AddressUncheckedUpdateWithoutRequestsInput>
 }

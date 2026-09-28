@@ -429,6 +429,23 @@ export type IntWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedIntFilter<$PrismaModel>
 }
 
+export type EnumCollectionPointKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.CollectionPointKind | Prisma.EnumCollectionPointKindFieldRefInput<$PrismaModel>
+  in?: $Enums.CollectionPointKind[] | Prisma.ListEnumCollectionPointKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CollectionPointKind[] | Prisma.ListEnumCollectionPointKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCollectionPointKindFilter<$PrismaModel> | $Enums.CollectionPointKind
+}
+
+export type EnumCollectionPointKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CollectionPointKind | Prisma.EnumCollectionPointKindFieldRefInput<$PrismaModel>
+  in?: $Enums.CollectionPointKind[] | Prisma.ListEnumCollectionPointKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CollectionPointKind[] | Prisma.ListEnumCollectionPointKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCollectionPointKindWithAggregatesFilter<$PrismaModel> | $Enums.CollectionPointKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCollectionPointKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCollectionPointKindFilter<$PrismaModel>
+}
+
 export type NestedUuidFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -851,6 +868,23 @@ export type NestedFloatFilter<$PrismaModel = never> = {
   gt?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   gte?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   not?: Prisma.NestedFloatFilter<$PrismaModel> | number
+}
+
+export type NestedEnumCollectionPointKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.CollectionPointKind | Prisma.EnumCollectionPointKindFieldRefInput<$PrismaModel>
+  in?: $Enums.CollectionPointKind[] | Prisma.ListEnumCollectionPointKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CollectionPointKind[] | Prisma.ListEnumCollectionPointKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCollectionPointKindFilter<$PrismaModel> | $Enums.CollectionPointKind
+}
+
+export type NestedEnumCollectionPointKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.CollectionPointKind | Prisma.EnumCollectionPointKindFieldRefInput<$PrismaModel>
+  in?: $Enums.CollectionPointKind[] | Prisma.ListEnumCollectionPointKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.CollectionPointKind[] | Prisma.ListEnumCollectionPointKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumCollectionPointKindWithAggregatesFilter<$PrismaModel> | $Enums.CollectionPointKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumCollectionPointKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumCollectionPointKindFilter<$PrismaModel>
 }
 
 

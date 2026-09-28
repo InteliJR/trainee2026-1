@@ -78,7 +78,6 @@ export function PointStep({
         <div className="grid gap-3">
         {visiblePoints.map((point) => {
           const isSelected = point.id === selectedPointId;
-          const activeDemand = point.demand.pending + point.demand.assigned + point.demand.in_service;
 
           return (
             <button
@@ -106,24 +105,10 @@ export function PointStep({
                   </div>
                 </div>
                 <span className="rounded-full border border-operational-100 bg-operational-100 px-3 py-1 text-sm font-semibold text-operational-800">
-                  {point.distanceKm.toFixed(1)} km
+                  Circuito {point.circuit}
                 </span>
               </div>
 
-              <dl className="mt-4 grid gap-3 border-t border-neutral-200 pt-4 text-sm sm:grid-cols-3">
-                <div>
-                  <dt className="text-neutral-500">Bairro</dt>
-                  <dd className="mt-1 font-semibold text-neutral-900">{point.neighborhood}</dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-500">Demandas</dt>
-                  <dd className="mt-1 font-semibold text-neutral-900">{activeDemand}</dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-500">Próximo</dt>
-                  <dd className="mt-1 font-semibold text-neutral-900">{point.nextAvailability}</dd>
-                </div>
-              </dl>
             </button>
           );
         })}

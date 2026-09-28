@@ -111,7 +111,7 @@ export function ScheduleStep({
             <dd className="text-right font-semibold text-neutral-950">{point.name}</dd>
           </div>
           <div className="flex justify-between gap-3">
-            <dt>Endereço</dt>
+            <dt>Local do ponto</dt>
             <dd className="text-right font-semibold text-neutral-950">{point.address}</dd>
           </div>
           <div className="flex justify-between gap-3">

@@ -4,14 +4,11 @@ import { useTempoReal } from '../../../realtime/useTempoReal';
 import { EcoPageHeader } from '../components/EcoPageHeader';
 import { Icon } from '../components/Icon';
 import { ResidentBottomNav } from '../components/ResidentBottomNav';
-import { ResidentLiveMap } from '../components/ResidentLiveMap';
 import { cancelResidentRequest, getResidentRequests, refreshResidentRequests } from '../lib/residentRequests';
 import {
   applyLiveToRequest,
-  isTrackable,
   residentRequestKey,
   resolveResidentLive,
-  type ResidentLiveInfo,
 } from '../lib/residentLive';
 import type { ResidentCollectionRequest } from '../types';
 
@@ -69,9 +66,6 @@ export function AcompanharStatusPage() {
   );
 
   const selectedRequest = requests.find((request) => request.id === selectedRequestId) ?? requests[0];
-  const selectedLive = selectedRequest
-    ? resolveResidentLive(realtime.snapshot, residentRequestKey(selectedRequest))
-    : null;
   const isLive = realtime.connectionStatus === 'conectado';
 
   async function cancelSelectedRequest() {
@@ -131,7 +125,6 @@ export function AcompanharStatusPage() {
 
         {selectedRequest ? (
           <StatusDetail
-            live={selectedRequest.status === 'cancelled' ? null : selectedLive}
             cancelError={cancelError}
             onCancel={() => void cancelSelectedRequest()}
             onCancelIntent={() => setCancelStep(1)}
@@ -186,7 +179,6 @@ function RequestListButton({ request, isSelected, onSelect }: RequestListButtonP
 
 interface StatusDetailProps {
   request: ResidentCollectionRequest;
-  live: ResidentLiveInfo | null;
   cancelError: string;
   // RN01: 0 = nada, 1 = primeira confirmação, 2 = confirmação final (cancela de fato).
   cancelStep: 0 | 1 | 2;
@@ -198,7 +190,6 @@ interface StatusDetailProps {
 
 function StatusDetail({
   request,
-  live,
   cancelError,
   cancelStep,
   onCancelIntent,
@@ -310,8 +301,6 @@ function StatusDetail({
           </div>
         </aside>
       </div>
-
-      {isTrackable(live) ? <ResidentLiveMap point={live.point} collector={live.collector} /> : null}
 
       {request.status === 'completed' ? (
         <div role="status" className="mt-6 rounded-lg border border-neutral-200 bg-brand-50 p-4">

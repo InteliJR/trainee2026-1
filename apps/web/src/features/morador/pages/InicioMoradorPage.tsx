@@ -79,7 +79,7 @@ export function InicioMoradorPage() {
                       {current.materialName} · {new Date(`${current.scheduledDate}T12:00:00`).toLocaleDateString('pt-BR')} · {translateStatus(current.status)}
                     </p>
                   ) : (
-                    <p className="mt-2 text-sm text-neutral-700">Separe seu material e escolha o melhor dia para solicitar a retirada.</p>
+                    <p className="mt-2 text-sm text-neutral-700">Separe seu material, escolha um ponto de coleta e o melhor dia.</p>
                   )}
                 </div>
               </div>

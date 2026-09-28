@@ -40,11 +40,12 @@ export interface RequestDTO {
   id: string;
   referenciaExterna: string;
   status: string;
-  integracao: { pontoColetaExternoId: string };
+  integracao: { pontoColetaExternoId: string | null; pontoColetaId?: string | null };
+  pontoColeta?: { id: string; nome: string; circuito: number; coordenadas: { latitude: number; longitude: number } } | null;
   dataDesejada: string;
   criadoEm: string;
   concluidaEm: string | null;
-  endereco: { logradouro: string; numero: string; bairro: string };
+  endereco: { logradouro: string; numero: string; bairro: string } | null;
   materiais: Array<{ tipo: string }>;
   coletor: { nome: string } | null;
   pontosConcedidos: Array<{ pontos: number }>;
@@ -161,9 +162,9 @@ export function requestFromApi(dto: RequestDTO, pointNames: ReadonlyMap<string, 
     protocol: `ECO-${dto.id.slice(-6).toUpperCase()}`,
     materialId,
     materialName: material.name,
-    pointName: pointNames.get(dto.integracao.pontoColetaExternoId) ?? 'Ponto de coleta',
-    pointAddress: `${dto.endereco.logradouro}, ${dto.endereco.numero}`,
-    neighborhood: dto.endereco.bairro,
+    pointName: dto.pontoColeta?.nome ?? pointNames.get(dto.integracao.pontoColetaExternoId ?? '') ?? 'Ponto de coleta',
+    pointAddress: dto.pontoColeta ? `Circuito ${dto.pontoColeta.circuito}` : dto.endereco ? `${dto.endereco.logradouro}, ${dto.endereco.numero}` : 'Ponto de coleta',
+    neighborhood: dto.pontoColeta ? `Circuito ${dto.pontoColeta.circuito}` : dto.endereco?.bairro ?? '',
     scheduledDate: localDate(desired),
     shiftLabel: shift.label,
     shiftWindow: shift.window,
@@ -184,11 +185,17 @@ export async function fetchDefaultAddress(): Promise<AddressDTO | null> {
   return dados.find((address) => address.padrao) ?? dados[0] ?? null;
 }
 
-// Pontos reais da EcoRota, com distância calculada a partir do endereço quando ele é informado.
+// Pontos ativos cadastrados pelo operador.
 export async function fetchCollectionPoints(near?: { latitude: number; longitude: number }): Promise<CollectionPoint[]> {
-  const query = near ? `?latitude=${near.latitude}&longitude=${near.longitude}` : '';
-  const { dados } = await apiRequest<{ dados: PointDTO[] }>('GET', `/pontos-coleta${query}`);
-  return dados.map(pointFromApi);
+  void near;
+  const { dados } = await apiRequest<{ dados: Array<{ id: string; nome: string; tipo: string; coordenadas: { latitude: number; longitude: number }; circuito: number; descricao: string | null }> }>('GET', '/pontos-coleta-locais');
+  return dados.map((point) => ({
+    id: point.id, name: point.nome, kind: point.tipo === 'ADICIONAL' ? 'additional' : 'habitual',
+    coordinates: [point.coordenadas.longitude, point.coordenadas.latitude], circuit: point.circuito,
+    demand: { pending: 0, assigned: 0, in_service: 0, completed: 0, cancelled: 0 },
+    address: point.descricao ?? `Circuito ${point.circuito}`, neighborhood: `Circuito ${point.circuito}`,
+    distanceKm: 0, accepts: materialOptions.map((material) => material.id), nextAvailability: 'Conforme a rota do coletor',
+  }));
 }
 
 // Solicitações do morador autenticado, já no formato das telas.
@@ -207,16 +214,13 @@ export async function fetchResidentRequests(): Promise<ResidentCollectionRequest
   return dados.map((dto) => requestFromApi(dto, pointNames));
 }
 
-// Cria a solicitação no endereço padrão do morador.
+// Cria a solicitação no ponto cadastrado pelo operador, sem endereço residencial.
 export async function createRequestInApi(draft: ResidentRequestDraft, point: CollectionPoint): Promise<ResidentCollectionRequest> {
   if (!draft.materialId || !draft.shift || !draft.desiredDate) {
     throw new ApiError(400, 'Complete os dados da coleta antes de continuar.');
   }
-  const address = await fetchDefaultAddress();
-  if (!address) throw new ApiError(400, 'Cadastre um endereço antes de solicitar uma coleta.');
   const dto = await apiRequest<RequestDTO>('POST', '/solicitacoes-coleta', {
-    enderecoId: address.id,
-    pontoColetaExternoId: point.id,
+    pontoColetaId: point.id,
     dataDesejada: desiredDateToIso(draft.desiredDate, draft.shift),
     materiais: [{ tipo: MATERIAL_TO_API[draft.materialId] }],
   });

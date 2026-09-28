@@ -4,8 +4,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   addressToApi,
+  createRequestInApi,
   desiredDateToIso,
   fetchResidentRequests,
+  fetchCollectionPoints,
   pointFromApi,
   requestFromApi,
   validateAddress,
@@ -59,6 +61,31 @@ describe('pointFromApi', () => {
   });
 });
 
+describe('pontos do operador', () => {
+  it('lista pontos ativos e solicita no ponto escolhido sem enviar endereço', async () => {
+    const calls: Array<{ path: string; body?: string }> = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: string, init?: RequestInit) => {
+      const path = String(input);
+      calls.push({ path, body: init?.body as string | undefined });
+      const data = path.includes('/pontos-coleta-locais')
+        ? { dados: [{ id: POINT.id, nome: 'Ecoponto Centro', tipo: 'HABITUAL', coordenadas: POINT.coordenadas, circuito: 2, descricao: 'Praça central' }] }
+        : createRequestDto({ endereco: null, integracao: { pontoColetaExternoId: null, pontoColetaId: POINT.id },
+          pontoColeta: { id: POINT.id, nome: 'Ecoponto Centro', circuito: 2, coordenadas: POINT.coordenadas } });
+      return { ok: true, json: async () => data };
+    }));
+    try {
+      const points = await fetchCollectionPoints();
+      expect(points[0]).toMatchObject({ name: 'Ecoponto Centro', address: 'Praça central' });
+      await createRequestInApi({ materialId: 'papel', pointId: POINT.id, desiredDate: '2026-12-01', shift: 'manha', notes: '' }, points[0]!);
+      const body = JSON.parse(calls.find((call) => call.path.includes('/solicitacoes-coleta'))!.body!);
+      expect(body).toMatchObject({ pontoColetaId: POINT.id, materiais: [{ tipo: 'PAPEL' }] });
+      expect(body).not.toHaveProperty('enderecoId');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 describe('fetchResidentRequests', () => {
   it('inclui todas as páginas para o resumo contar todas as coletas', async () => {
     const paths: string[] = [];
@@ -92,6 +119,14 @@ describe('desiredDateToIso', () => {
 });
 
 describe('requestFromApi', () => {
+  it('usa o ponto do operador quando a coleta não tem endereço residencial', () => {
+    const request = requestFromApi(createRequestDto({
+      endereco: null,
+      integracao: { pontoColetaExternoId: null, pontoColetaId: POINT.id },
+      pontoColeta: { id: POINT.id, nome: 'Ecoponto Centro', circuito: 2, coordenadas: POINT.coordenadas },
+    }), new Map());
+    expect(request).toMatchObject({ pointName: 'Ecoponto Centro', pointAddress: 'Circuito 2' });
+  });
   it('traduz status, material, turno, ponto e coletor', () => {
     const request = requestFromApi(createRequestDto(), new Map([[POINT.id, 'Ponto 01']]));
     expect(request).toMatchObject({

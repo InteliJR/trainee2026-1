@@ -21,6 +21,7 @@ function mapRepositoryError(error: unknown): never {
   if (error instanceof RepositoryRuleError) {
     const errors = {
       ENDERECO_NAO_ENCONTRADO: [404, 'ENDERECO_NAO_ENCONTRADO', 'O endereço não existe ou não pertence ao morador.'],
+      PONTO_COLETA_NAO_ENCONTRADO: [404, 'PONTO_COLETA_NAO_ENCONTRADO', 'Escolha um ponto de coleta ativo cadastrado pelo operador.'],
       SOLICITACAO_DUPLICADA: [409, 'SOLICITACAO_DUPLICADA', 'Já existe uma solicitação aberta para este endereço na mesma data.'],
       COLETOR_INDISPONIVEL: [409, 'COLETOR_INDISPONIVEL', 'O coletor informado não existe ou não está disponível.'],
       TRANSICAO_INVALIDA: [409, 'TRANSICAO_INVALIDA', 'A solicitação não está no estado exigido para esta operação.'],
@@ -74,6 +75,7 @@ export function serializeRequest(request: RequestDetails) {
     statusSincronizacao: request.syncStatus,
     integracao: {
       pontoColetaExternoId: request.externalPointId,
+      pontoColetaId: request.collectionPointId,
       solicitacaoEcoRotaId: request.ecoRotaRequestId,
       coletorEcoRotaId: request.externalCollectorId,
     },
@@ -82,7 +84,7 @@ export function serializeRequest(request: RequestDetails) {
     fotoConclusaoUrl: request.completionPhotoUrl,
     concluidaEm: request.completedAt?.toISOString() ?? null,
     criadoEm: request.createdAt.toISOString(),
-    endereco: {
+    endereco: request.address ? {
       id: request.address.id,
       rotulo: request.address.label,
       logradouro: request.address.street,
@@ -93,7 +95,14 @@ export function serializeRequest(request: RequestDetails) {
       cep: request.address.zipCode,
       latitude: Number(request.address.latitude),
       longitude: Number(request.address.longitude),
-    },
+    } : null,
+    pontoColeta: request.collectionPoint ? {
+      id: request.collectionPoint.id,
+      nome: request.collectionPoint.name,
+      tipo: request.collectionPoint.kind === 'ADDITIONAL' ? 'ADICIONAL' : 'HABITUAL',
+      circuito: request.collectionPoint.circuit,
+      coordenadas: { latitude: Number(request.collectionPoint.latitude), longitude: Number(request.collectionPoint.longitude) },
+    } : null,
     materiais: request.materials.map((material) => ({
       id: material.id,
       tipo: MATERIAL_TO_API[material.materialType],
@@ -125,6 +134,12 @@ export class RequestService {
     if (actor.role !== 'MORADOR') {
       throw new AppError({ statusCode: 403, code: 'PAPEL_NAO_AUTORIZADO', message: 'Apenas moradores podem solicitar coletas.' });
     }
+    if (!input.pontoColetaId && !(input.enderecoId && input.pontoColetaExternoId)) {
+      throw new AppError({ statusCode: 400, code: 'PONTO_COLETA_OBRIGATORIO', message: 'Escolha um ponto de coleta antes de solicitar.' });
+    }
+    if (input.pontoColetaId && (input.enderecoId || input.pontoColetaExternoId)) {
+      throw new AppError({ statusCode: 400, code: 'LOCAL_COLETA_AMBIGUO', message: 'Informe somente o ponto de coleta selecionado.' });
+    }
     const desiredAt = new Date(input.dataDesejada);
     // Data precisa ser válida e futura antes da verificação transacional de duplicidade.
     if (Number.isNaN(desiredAt.getTime()) || desiredAt.getTime() <= Date.now()) {
@@ -135,7 +150,7 @@ export class RequestService {
     try {
       let request = await this.repository.create(actor.id, input);
       // Só chama EcoRota quando URL e credencial produziram um cliente real/fake.
-      if (this.ecoRotaClient) {
+      if (this.ecoRotaClient && input.pontoColetaExternoId && !input.pontoColetaId) {
         // Marca o vínculo externo após resposta bem-sucedida.
         try {
           const external = await this.ecoRotaClient.createRequest({

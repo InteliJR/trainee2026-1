@@ -11,6 +11,7 @@ import { usePoints } from '../api/hooks';
 import { checkCollectorSession, logoutCollector } from '../lib/collectorAuth';
 import { MESSAGES, friendlyError } from '../lib/messages';
 import { levelFor } from '../lib/pointsCopy';
+import { getOwnProfile, type BasicProfile } from '../../profiles/profileApi';
 
 // Perfil do coletor: quem está logado, os pontos acumulados e a saída da conta.
 // "Sair" pede confirmação para não ser tocado sem querer.
@@ -21,12 +22,18 @@ export default function PerfilPage() {
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState<string>();
   const points = usePoints();
+  const [profile, setProfile] = useState<BasicProfile | null>(null);
 
   // RequireCollector já garantiu a sessão; aqui só busca os dados pra mostrar.
   useEffect(() => {
     void checkCollectorSession().then((result) => {
       if (result.kind === 'autorizado') setCollector(result.user);
     });
+  }, []);
+  useEffect(() => {
+    let active = true;
+    void getOwnProfile().then((result) => { if (active) setProfile(result); }).catch(() => undefined);
+    return () => { active = false; };
   }, []);
 
   async function confirmLogout() {
@@ -59,6 +66,12 @@ export default function PerfilPage() {
           <dd className="text-lg font-bold text-neutral-900">{collector?.email}</dd>
         </div>
       </dl>
+
+      {profile && <section className="rounded-lg border border-neutral-200 bg-neutral-0 p-4 shadow-card">
+        <p className="text-3xl font-bold text-brand-700">{profile.coletasConcluidas}</p>
+        <p className="text-neutral-700">coletas concluídas</p>
+        <p className="mt-2 text-sm text-neutral-600">Coletor desde {new Date(profile.cadastradoEm).toLocaleDateString('pt-BR')}</p>
+      </section>}
 
       <section aria-labelledby="points-title" className="space-y-3">
         <h2 id="points-title" className="text-lg font-bold text-neutral-900">

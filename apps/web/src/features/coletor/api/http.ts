@@ -58,7 +58,8 @@ interface RequestDTO {
   motivoCancelamento: string | null;
   concluidaEm: string | null;
   criadoEm: string;
-  endereco: { logradouro: string; numero: string; bairro: string; cidade: string };
+  endereco: { logradouro: string; numero: string; bairro: string; cidade: string } | null;
+  pontoColeta?: { nome: string; circuito: number } | null;
 }
 
 interface RequestListDTO {
@@ -73,10 +74,10 @@ function fromDTO(dto: RequestDTO): CollectorTask {
     status: STATUS_FROM_API[dto.status] ?? 'pending',
     materials: dto.materiais.map((m) => MATERIAL_FROM_API[m.tipo] ?? 'other'),
     address: {
-      street: dto.endereco.logradouro,
-      number: dto.endereco.numero,
-      district: dto.endereco.bairro,
-      city: dto.endereco.cidade,
+      street: dto.pontoColeta?.nome ?? dto.endereco?.logradouro ?? 'Ponto de coleta',
+      number: dto.endereco?.numero ?? '',
+      district: dto.pontoColeta ? `Circuito ${dto.pontoColeta.circuito}` : dto.endereco?.bairro ?? '',
+      city: dto.endereco?.cidade ?? '',
     },
     scheduledDate: dto.dataDesejada.slice(0, 10),
     notes: dto.motivoCancelamento ?? undefined,

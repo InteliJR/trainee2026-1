@@ -37,8 +37,9 @@ export const STATUS_TO_API: Record<RequestStatus, string> = Object.fromEntries(
 
 // Contrato tipado do corpo necessário para solicitar uma coleta.
 export interface CreateCollectionRequestInput {
-  enderecoId: string;
-  pontoColetaExternoId: string;
+  enderecoId?: string;
+  pontoColetaExternoId?: string;
+  pontoColetaId?: string;
   dataDesejada: string;
   materiais: Array<{
     tipo: keyof typeof API_TO_MATERIAL;
@@ -60,10 +61,11 @@ export interface ListCollectionRequestsQuery {
 export const createCollectionRequestBodySchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['enderecoId', 'pontoColetaExternoId', 'dataDesejada', 'materiais'],
+  required: ['dataDesejada', 'materiais'],
   properties: {
     enderecoId: { type: 'string', format: 'uuid' },
     pontoColetaExternoId: { type: 'string', format: 'uuid' },
+    pontoColetaId: { type: 'string', format: 'uuid' },
     dataDesejada: { type: 'string', format: 'date-time' },
     materiais: {
       type: 'array',

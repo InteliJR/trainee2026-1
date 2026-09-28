@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model RequestMaterial
- * 
+ * Item de material informado dentro de uma solicitação.
  */
 export type RequestMaterialModel = runtime.Types.Result.DefaultSelection<Prisma.$RequestMaterialPayload>
 

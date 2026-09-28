@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { InlineNotice } from '../../../components/InlineNotice';
+import { Link } from 'react-router-dom';
 import { EcoPageHeader } from '../components/EcoPageHeader';
 import { MaterialStep } from '../components/MaterialStep';
 import { Icon } from '../components/Icon';
@@ -9,12 +8,10 @@ import { ResidentBottomNav } from '../components/ResidentBottomNav';
 import { ScheduleStep } from '../components/ScheduleStep';
 import { StepIndicator } from '../components/StepIndicator';
 import {
-  collectionPoints,
   materialOptions,
-  neighborhoodFilters,
   shiftOptions,
 } from '../data/mockSolicitacao';
-import { fetchCollectionPoints, fetchDefaultAddress, type AddressDTO } from '../lib/residentApi';
+import { fetchCollectionPoints } from '../lib/residentApi';
 import { createResidentRequest, type CreateRequestResult } from '../lib/residentRequests';
 import type { CollectionPoint, MaterialCategory, ResidentRequestDraft, Shift } from '../types';
 
@@ -35,21 +32,18 @@ export function SolicitarColetaPage() {
   const [submission, setSubmission] = useState<CreateRequestResult | null>(null);
   const [submitError, setSubmitError] = useState('');
   // Começa com os pontos de exemplo e troca pelos pontos reais da EcoRota assim que a API responder.
-  const [points, setPoints] = useState<CollectionPoint[]>(collectionPoints);
-  // Endereço padrão do morador: undefined enquanto não se sabe (ou API fora do ar), null quando não há nenhum.
-  const [address, setAddress] = useState<AddressDTO | null | undefined>(undefined);
-  // Mostra a confirmação quando a pessoa volta da tela de cadastro de endereço.
-  const justSavedAddress = Boolean((useLocation().state as { enderecoCadastrado?: boolean } | null)?.enderecoCadastrado);
+  const [points, setPoints] = useState<CollectionPoint[]>([]);
+  const [pointsError, setPointsError] = useState('');
 
   useEffect(() => {
     let active = true;
     const load = async () => {
-      // O endereço padrão permite que a API calcule a distância até cada ponto.
-      const found = await fetchDefaultAddress().catch(() => undefined);
-      if (active) setAddress(found);
-      const near = found ? { latitude: found.latitude, longitude: found.longitude } : undefined;
-      const apiPoints = await fetchCollectionPoints(near).catch(() => null);
-      if (active && apiPoints && apiPoints.length > 0) setPoints(apiPoints);
+      try {
+        const apiPoints = await fetchCollectionPoints();
+        if (active) setPoints(apiPoints);
+      } catch (error) {
+        if (active) setPointsError(error instanceof Error ? error.message : 'Não foi possível consultar os pontos de coleta.');
+      }
     };
     void load();
     return () => {
@@ -57,11 +51,8 @@ export function SolicitarColetaPage() {
     };
   }, []);
 
-  // Com pontos reais, os filtros viram os circuitos presentes; com exemplos, mantém os bairros fixos.
   const neighborhoods = useMemo(
-    () => (points === collectionPoints
-      ? neighborhoodFilters
-      : ['Todos', ...Array.from(new Set(points.map((point) => point.neighborhood))).sort()]),
+    () => ['Todos', ...Array.from(new Set(points.map((point) => point.neighborhood))).sort()],
     [points],
   );
 
@@ -227,25 +218,8 @@ export function SolicitarColetaPage() {
           />
           <StepIndicator currentStep={currentStep} />
 
-          {address === null ? (
-            <InlineNotice
-              tone="warning"
-              action={
-                <Link
-                  to="/morador/enderecos/novo"
-                  state={{ from: '/morador/solicitar' }}
-                  className="eco-primary-button inline-flex min-h-touch items-center rounded-md px-4 text-sm font-bold text-white"
-                >
-                  Cadastrar endereço
-                </Link>
-              }
-            >
-              Antes de solicitar, cadastre o endereço onde o coletor vai retirar o material.
-            </InlineNotice>
-          ) : null}
-          {justSavedAddress && address ? (
-            <InlineNotice tone="success">Endereço salvo. Agora é só escolher o material.</InlineNotice>
-          ) : null}
+          {pointsError && <p role="alert" className="rounded-md bg-danger-50 p-3 text-danger-800">{pointsError}</p>}
+          {!pointsError && points.length === 0 && <p role="status" className="rounded-md bg-neutral-0 p-3 text-neutral-700">Nenhum ponto de coleta disponível. A operação precisa cadastrar e ativar um ponto.</p>}
 
           <div>
             {currentStep === 1 ? (
@@ -316,11 +290,6 @@ export function SolicitarColetaPage() {
           <div className="mt-5 grid gap-3 text-sm">
             <SummaryLine icon="trash" label="Material" value={selectedMaterial?.name ?? 'Não escolhido'} />
             <SummaryLine icon="map-pin" label="Ponto" value={selectedPoint?.name ?? 'Não escolhido'} />
-            <SummaryLine
-              icon="home"
-              label="Endereço da retirada"
-              value={address ? `${address.logradouro}, ${address.numero}` : address === null ? 'Não cadastrado' : '—'}
-            />
             <SummaryLine icon="calendar" label="Data" value={draft.desiredDate || 'Não escolhida'} />
             <SummaryLine
               icon="clock"

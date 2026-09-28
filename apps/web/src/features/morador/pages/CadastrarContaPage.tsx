@@ -1,7 +1,7 @@
 /**
  * Cadastro de conta do morador: POST /autenticacao/cadastro (papel MORADOR).
  * O cadastro não inicia sessão sozinho (auth.routes.ts), então logamos em seguida com as mesmas
- * credenciais e seguimos direto para o cadastro de endereço, sem pedir login de novo.
+ * credenciais e seguimos direto para a escolha do ponto de coleta, sem pedir login de novo.
  */
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -70,7 +70,7 @@ export function CadastrarContaPage() {
         papel: 'MORADOR',
       });
       await loginResident(form.email.trim(), form.senha);
-      navigate('/morador/enderecos/novo', { state: { from: '/morador/solicitar' } });
+      navigate('/morador/solicitar');
     } catch (error) {
       setSubmitError(registerErrorMessage(error));
       setSubmitting(false);
