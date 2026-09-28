@@ -2,7 +2,8 @@
  * Hook que conecta o ciclo de vida do React ao Socket.IO e mantém uma cópia consistente do estado operacional.
  * O reducer separado permite testar ordenação, posição, solicitações e rotas sem abrir uma conexão de rede.
  */
-import { useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
+import type { Socket } from 'socket.io-client';
 import {
   createRealtimeClient,
   type RealtimeCollectorPositionEvent,
@@ -195,10 +196,24 @@ function explainConnectionError(message: string): string {
   return messages[message] ?? `Não foi possível conectar ao tempo real: ${message}`;
 }
 
+// Estado do hook mais a ação de nova tentativa usada pelo botão "Tentar novamente".
+export interface UseTempoRealResult extends RealtimeState {
+  // Refaz o handshake; útil depois de um erro de autenticação, que o Socket.IO não repete sozinho.
+  reconnect: () => void;
+}
+
 // Abre a conexão, registra listeners antes do handshake e remove tudo ao desmontar a tela.
-export function useTempoReal(options: UseTempoRealOptions): RealtimeState {
+export function useTempoReal(options: UseTempoRealOptions): UseTempoRealResult {
   // O reducer garante que snapshots e deltas atravessem a mesma regra de ordenação.
   const [state, dispatch] = useReducer(realtimeReducer, INITIAL_REALTIME_STATE);
+  // Guarda o socket atual para que a nova tentativa use a mesma conexão e os mesmos listeners.
+  const socketRef = useRef<Socket | null>(null);
+  const reconnect = useCallback(() => {
+    const socket = socketRef.current;
+    if (!socket || socket.connected) return;
+    dispatch({ type: 'conexao', status: 'conectando' });
+    socket.connect();
+  }, []);
 
   // Reconstrói a conexão somente quando URL ou habilitação mudarem; o cookie é enviado automaticamente.
   useEffect(() => {
@@ -210,6 +225,7 @@ export function useTempoReal(options: UseTempoRealOptions): RealtimeState {
 
     // Cria o socket sem conectar para que nenhum evento inicial seja perdido.
     const socket = createRealtimeClient({ apiUrl: options.apiUrl });
+    socketRef.current = socket;
     // Exibe imediatamente que o navegador iniciou o handshake.
     dispatch({ type: 'conexao', status: 'conectando' });
 
@@ -262,9 +278,10 @@ export function useTempoReal(options: UseTempoRealOptions): RealtimeState {
       socket.off('rota:atualizada', handleRoute);
       socket.io.off('reconnect_attempt', handleReconnectAttempt);
       socket.disconnect();
+      socketRef.current = null;
     };
   }, [options.apiUrl, options.enabled]);
 
   // Entrega um único objeto para que a tela leia conexão e dados de forma atômica.
-  return state;
+  return { ...state, reconnect };
 }

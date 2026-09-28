@@ -3,11 +3,13 @@
  * A tela mostra conexão, versão do estado e contagens suficientes para diagnosticar a integração do MVP.
  * Segue o guia de estilos: tokens do Tailwind, tons `operational` para separar o dashboard da experiência do morador.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MapContainer } from '../../map/MapContainer';
+import { formatAge } from '../../map/mapUtils';
 import { useTempoReal, type RealtimeConnectionStatus } from '../../realtime/useTempoReal';
 import { KpiCards } from './KpiCards';
 import { RecentRequestsTable } from './RecentRequestsTable';
+import { RegionDemand } from './RegionDemand';
 import { useIndicadores } from './useIndicadores';
 
 // Traduz os estados internos para rótulos curtos apresentados ao usuário.
@@ -45,12 +47,18 @@ export function RealtimeDashboard() {
   });
   // Ponto escolhido na tabela; o nonce faz o mapa voltar ao ponto mesmo se a mesma linha for clicada de novo.
   const [focus, setFocus] = useState<{ pointId: string; nonce: number } | null>(null);
+  // Atualiza o "Atualizado há X" mesmo sem eventos novos.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 5_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // Em telas largas ocupa a janela inteira com a tabela ao lado do mapa; em telas estreitas empilha e rola.
   return (
     <main className="flex min-h-screen w-full flex-col bg-neutral-50 text-neutral-900 lg:h-screen">
       <header className="z-[1] border-b border-neutral-200 border-t-4 border-t-operational-600 bg-neutral-0 px-screen py-3 lg:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="mx-auto flex max-w-dashboard flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase text-operational-700">Operação EcoRota</p>
             <h1 className="text-2xl font-bold text-neutral-900">Dashboard operacional</h1>
@@ -60,8 +68,12 @@ export function RealtimeDashboard() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {realtime.snapshot && (
-              <span className="text-sm text-neutral-500">
-                Geração {realtime.snapshot.generation} · revisão {realtime.snapshot.revision}
+              // Geração e revisão ficam no título, para diagnóstico, sem expor jargão ao operador.
+              <span
+                className="text-sm text-neutral-500"
+                title={`Geração ${realtime.snapshot.generation} · revisão ${realtime.snapshot.revision}`}
+              >
+                Atualizado {formatAge(realtime.snapshot.updatedAt, now)}
               </span>
             )}
             <span
@@ -75,17 +87,30 @@ export function RealtimeDashboard() {
           </div>
         </div>
         {realtime.errorMessage && (
-          <p role="alert" className="mt-3 rounded-md border border-danger-100 bg-danger-50 px-3 py-2 text-sm text-danger-800">
-            {realtime.errorMessage}
-          </p>
+          <div
+            role="alert"
+            className="mx-auto mt-3 flex max-w-dashboard flex-wrap items-center justify-between gap-3 rounded-md border border-danger-100 bg-danger-50 px-3 py-2 text-sm text-danger-800"
+          >
+            <span>{realtime.errorMessage}</span>
+            {realtime.connectionStatus !== 'conectado' && (
+              <button
+                type="button"
+                onClick={realtime.reconnect}
+                className="inline-flex min-h-touch items-center rounded-md border border-danger-500 bg-neutral-0 px-3 font-semibold text-danger-700 hover:bg-danger-50"
+              >
+                Tentar novamente
+              </button>
+            )}
+          </div>
         )}
       </header>
       <KpiCards indicators={indicators} />
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+      <div className="mx-auto flex min-h-0 w-full max-w-dashboard flex-1 flex-col lg:flex-row lg:border-x lg:border-neutral-200">
         <section className="min-h-[420px] flex-1" aria-label="Visualização da operação">
           <MapContainer points={points} collectors={collectors} routes={routes} focus={focus} minHeight="420px" showLegend />
         </section>
-        <aside className="h-[420px] border-t border-neutral-200 lg:h-auto lg:w-[380px] lg:border-l lg:border-t-0">
+        <aside className="flex h-[560px] flex-col border-t border-neutral-200 bg-neutral-0 lg:h-auto lg:w-[380px] lg:border-l lg:border-t-0">
+          <RegionDemand regions={indicators.data?.demandaPorRegiao} />
           <RecentRequestsTable
             snapshot={realtime.snapshot}
             lastRequestEvent={realtime.lastRequestEvent}

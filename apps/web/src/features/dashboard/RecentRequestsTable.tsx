@@ -63,7 +63,7 @@ export function RecentRequestsTable({ snapshot, lastRequestEvent, onSelectPoint 
   }, [lastRequestEvent]);
 
   return (
-    <section aria-labelledby="recent-requests-title" className="flex h-full min-h-0 flex-col bg-neutral-0">
+    <section aria-labelledby="recent-requests-title" className="flex min-h-0 flex-1 flex-col bg-neutral-0">
       <header className="border-b border-neutral-200 px-4 pb-3 pt-3">
         <h2 id="recent-requests-title" className="text-lg font-bold text-neutral-900">
           Solicitações recentes
@@ -132,7 +132,7 @@ function RequestRow({ row, now, highlighted, onSelect }: RequestRowProps) {
         }`}
       >
         <strong className="truncate text-sm text-neutral-900">{row.pointName}</strong>
-        <span className={`justify-self-end whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-bold ${STATUS_CLASSES[row.status]}`}>
+        <span className={`justify-self-end whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-semibold ${STATUS_CLASSES[row.status]}`}>
           {translateStatus(row.status)}
         </span>
         <span className="truncate text-sm text-neutral-600">{row.collectorName ?? 'Aguardando coletor'}</span>

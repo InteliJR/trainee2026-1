@@ -3,7 +3,7 @@
  * Os indicadores combinam histórico do banco com o estado em memória, então são consultados por HTTP
  * periodicamente e também logo após cada mudança de solicitação recebida pelo Socket.IO.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // Espelha o contrato devolvido por OperationService.getIndicators no backend.
 export interface OperationIndicators {
@@ -33,6 +33,14 @@ export interface OperationIndicators {
     indisponiveisOuEmOperacao: number;
     telemetriaDesatualizada: number;
   };
+  // Demanda ativa e coletores disponíveis por circuito; saldo negativo indica falta de capacidade.
+  demandaPorRegiao: Array<{
+    regiao: string;
+    circuito: number;
+    solicitacoesAtivas: number;
+    capacidadeOfertada: number;
+    saldoCapacidade: number;
+  }>;
 }
 
 // Agrupa os dados e o diagnóstico que os cards precisam para se desenhar.
@@ -40,6 +48,8 @@ export interface IndicatorsState {
   data: OperationIndicators | null;
   errorMessage: string | null;
   loading: boolean;
+  // Refaz a consulta na hora, para o botão "Tentar novamente".
+  reload: () => void;
 }
 
 // Define os argumentos aceitos pelo hook.
@@ -64,7 +74,10 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 // Consulta os indicadores e mantém o último valor válido mesmo quando uma nova consulta falha.
 export function useIndicadores({ refreshKey, enabled = true, intervalMs = 15_000 }: UseIndicadoresOptions): IndicatorsState {
-  const [state, setState] = useState<IndicatorsState>({ data: null, errorMessage: null, loading: enabled });
+  const [state, setState] = useState<Omit<IndicatorsState, 'reload'>>({ data: null, errorMessage: null, loading: enabled });
+  // Muda a cada pedido manual de nova tentativa, o que reinicia a consulta e o intervalo.
+  const [retryCount, setRetryCount] = useState(0);
+  const reload = useCallback(() => setRetryCount((count) => count + 1), []);
   // Guarda a requisição em andamento para cancelá-la quando outra começar ou a tela desmontar.
   const abortRef = useRef<AbortController | null>(null);
 
@@ -99,7 +112,7 @@ export function useIndicadores({ refreshKey, enabled = true, intervalMs = 15_000
       window.clearInterval(timer);
       abortRef.current?.abort();
     };
-  }, [enabled, intervalMs, refreshKey]);
+  }, [enabled, intervalMs, refreshKey, retryCount]);
 
-  return state;
+  return { ...state, reload };
 }

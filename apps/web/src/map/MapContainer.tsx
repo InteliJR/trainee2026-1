@@ -438,12 +438,41 @@ function createCollectorElement(): HTMLDivElement {
     alignItems: 'center',
     justifyContent: 'center',
     color: colors.neutral[0],
-    fontSize: '14px',
     transition: 'opacity 300ms ease',
   });
-  // Usa um ícone simples que independe de uma biblioteca adicional.
-  element.innerText = '🚚';
+  // Ícone de caminhão em SVG (mesmo desenho das telas do morador); emoji muda de cara em cada sistema.
+  element.appendChild(createTruckIcon());
+  element.setAttribute('aria-label', 'Coletor');
   return element;
+}
+
+// Traços do ícone de caminhão, no estilo de linha usado pelo Icon das telas do morador.
+const TRUCK_PATHS = [
+  'M10 17h4V5H2v12h3',
+  'M14 8h4l4 4v5h-3',
+  'M5 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0z',
+  'M15 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0z',
+];
+
+// Monta o SVG com createElementNS, sem interpretar HTML.
+function createTruckIcon(): SVGSVGElement {
+  const namespace = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(namespace, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', '16');
+  svg.setAttribute('height', '16');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  svg.setAttribute('aria-hidden', 'true');
+  for (const d of TRUCK_PATHS) {
+    const path = document.createElementNS(namespace, 'path');
+    path.setAttribute('d', d);
+    svg.appendChild(path);
+  }
+  return svg;
 }
 
 // Cor pela disponibilidade (guia: diferenciar coletor disponível e indisponível); telemetria antiga
@@ -476,7 +505,7 @@ function createPopupHandle(title: string, fields: Array<[string, string]>): Popu
     // Converte cada par de rótulo e valor em uma linha separada do popup.
     const paragraphs = nextFields.map(([label, value]) => {
       const paragraph = document.createElement('p');
-      paragraph.style.cssText = `margin:0 0 2px 0;font-size:13px;color:${colors.neutral[600]};`;
+      paragraph.style.cssText = `margin:0 0 2px 0;font-size:14px;color:${colors.neutral[600]};`;
       paragraph.append(document.createTextNode(`${label}: `));
       // Insere o valor externo via textContent para evitar execução de marcação.
       const strong = document.createElement('strong');

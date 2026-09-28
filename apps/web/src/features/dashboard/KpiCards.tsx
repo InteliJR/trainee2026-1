@@ -50,7 +50,7 @@ export function KpiCards({ indicators }: { indicators: IndicatorsState }) {
 
   return (
     <section aria-label="Indicadores operacionais" className="border-b border-neutral-200 bg-neutral-50 px-screen py-3 lg:px-6">
-      <div className="flex flex-wrap gap-3">
+      <div className="mx-auto flex max-w-dashboard flex-wrap gap-3">
         <KpiCard
           label="Ativas agora"
           value={format(activeRequests)}
@@ -79,9 +79,16 @@ export function KpiCards({ indicators }: { indicators: IndicatorsState }) {
         />
       </div>
       {indicators.errorMessage && (
-        <p role="status" className="mt-2 text-sm text-reward-800">
-          {indicators.errorMessage}
-        </p>
+        <div role="status" className="mx-auto mt-2 flex max-w-dashboard flex-wrap items-center gap-3 text-sm text-reward-800">
+          <span>{indicators.errorMessage}</span>
+          <button
+            type="button"
+            onClick={indicators.reload}
+            className="inline-flex min-h-touch items-center rounded-md border border-neutral-300 bg-neutral-0 px-3 font-semibold text-neutral-800 hover:border-operational-600 hover:text-operational-700"
+          >
+            Tentar novamente
+          </button>
+        </div>
       )}
     </section>
   );
