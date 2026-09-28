@@ -1,10 +1,18 @@
 /** Informa ao Tailwind quais arquivos devem ser analisados para gerar somente as classes CSS utilizadas. */
 import type { Config } from 'tailwindcss';
+import { boxShadow, colors, maxWidth, minHeight, minWidth, spacing } from './src/styles/design-tokens';
 
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
-    extend: {},
+    extend: {
+      colors,
+      spacing,
+      maxWidth,
+      minHeight,
+      minWidth,
+      boxShadow,
+    },
   },
   plugins: [],
 } satisfies Config;
