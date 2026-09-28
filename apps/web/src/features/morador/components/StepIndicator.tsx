@@ -8,7 +8,7 @@ const steps = ['Material', 'Ponto', 'Data'];
 
 export function StepIndicator({ currentStep }: StepIndicatorProps) {
   return (
-    <ol className="eco-card grid grid-cols-3 gap-2 rounded-lg p-3" aria-label="Etapas da solicitacao">
+    <ol className="eco-card grid grid-cols-3 gap-2 rounded-lg p-3" aria-label="Etapas da solicitação">
       {steps.map((step, index) => {
         const stepNumber = index + 1;
         const isCurrent = stepNumber === currentStep;

@@ -50,6 +50,8 @@ export interface StatusTimelineItem {
 
 export interface ResidentCollectionRequest {
   id: string;
+  // Referência usada pelo backend e pelo Socket.IO para identificar a solicitação.
+  externalReference?: string;
   protocol: string;
   materialId: MaterialCategory;
   materialName: string;

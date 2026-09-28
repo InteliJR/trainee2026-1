@@ -19,7 +19,7 @@ export function MaterialStep({ materials, selectedMaterialId, onSelect }: Materi
           Escolha o material
         </h1>
         <p className="mt-2 text-sm leading-6 text-neutral-600">
-          Separe o tipo principal da coleta para mostrarmos pontos compativeis e a pontuacao estimada.
+          Separe o tipo principal da coleta para mostrarmos pontos compatíveis e a pontuação estimada.
         </p>
       </div>
 
@@ -56,7 +56,7 @@ export function MaterialStep({ materials, selectedMaterialId, onSelect }: Materi
               <span className="mt-4 flex flex-wrap gap-2">
                 {material.acceptedExamples.slice(0, 2).map((example) => (
                   <span
-                    className="rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700"
+                    className="rounded-full border border-neutral-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700"
                     key={example}
                   >
                     {example}

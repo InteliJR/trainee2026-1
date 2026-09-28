@@ -1,9 +1,19 @@
 /**
  * Painel operacional que liga o hook Socket.IO ao mapa MapLibre.
  * A tela mostra conexão, versão do estado e contagens suficientes para diagnosticar a integração do MVP.
+ * Segue o guia de estilos: tokens do Tailwind, tons `operational` para separar o dashboard da experiência do morador.
  */
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Icon } from '../../components/Icon';
 import { MapContainer } from '../../map/MapContainer';
+import { formatAge } from '../../map/mapUtils';
 import { useTempoReal, type RealtimeConnectionStatus } from '../../realtime/useTempoReal';
+import { KpiCards } from './KpiCards';
+import { RecentRequestsTable } from './RecentRequestsTable';
+import { logoutOperator } from './operatorAuth';
+import { RegionDemand } from './RegionDemand';
+import { useIndicadores } from './useIndicadores';
 
 // Traduz os estados internos para rótulos curtos apresentados ao usuário.
 const CONNECTION_LABELS: Record<RealtimeConnectionStatus, string> = {
@@ -14,13 +24,13 @@ const CONNECTION_LABELS: Record<RealtimeConnectionStatus, string> = {
   erro: 'Falha na conexão',
 };
 
-// Associa cada estado a uma cor sem depender de classes geradas dinamicamente pelo Tailwind.
-const CONNECTION_COLORS: Record<RealtimeConnectionStatus, string> = {
-  conectando: '#D97706',
-  conectado: '#047857',
-  reconectando: '#D97706',
-  desconectado: '#6B7280',
-  erro: '#B91C1C',
+// Classes completas por estado (o Tailwind só gera classes escritas por inteiro no código).
+const CONNECTION_CLASSES: Record<RealtimeConnectionStatus, string> = {
+  conectando: 'bg-reward-100 text-reward-800',
+  conectado: 'bg-brand-600 text-neutral-0',
+  reconectando: 'bg-reward-100 text-reward-800',
+  desconectado: 'bg-neutral-200 text-neutral-700',
+  erro: 'bg-danger-600 text-neutral-0',
 };
 
 // Renderiza a visão operacional e fornece ao mapa apenas as coleções autorizadas pelo servidor.
@@ -31,49 +41,100 @@ export function RealtimeDashboard() {
   const points = realtime.snapshot?.points ?? [];
   // Usa arrays vazios antes do snapshot para manter o mapa coerente com a conexão real.
   const collectors = realtime.snapshot?.collectors ?? [];
+  // Usa arrays vazios antes do snapshot para não desenhar rotas de uma conexão anterior.
+  const routes = realtime.snapshot?.routes ?? [];
+  // Consulta os KPIs só com a sessão confirmada e reconsulta a cada mudança de solicitação recebida.
+  const indicators = useIndicadores({
+    enabled: realtime.connectionStatus === 'conectado',
+    refreshKey: realtime.lastRequestEvent,
+  });
+  // Ponto escolhido na tabela; o nonce faz o mapa voltar ao ponto mesmo se a mesma linha for clicada de novo.
+  const [focus, setFocus] = useState<{ pointId: string; nonce: number } | null>(null);
+  const navigate = useNavigate();
+  // Sai mesmo se a API não responder, para não prender o operador numa sessão que ele quer encerrar.
+  async function logout() {
+    await logoutOperator().catch(() => undefined);
+    navigate('/operador/login', { replace: true });
+  }
+  // Atualiza o "Atualizado há X" mesmo sem eventos novos.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 5_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
-  // Mantém cabeçalho, diagnóstico e mapa em uma coluna que ocupa toda a janela.
+  // Em telas largas ocupa a janela inteira com a tabela ao lado do mapa; em telas estreitas empilha e rola.
   return (
-    <main style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', fontFamily: 'sans-serif' }}>
-      <header style={{ padding: '14px 18px', background: '#FFFFFF', borderBottom: '1px solid #E5E7EB', zIndex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+    <main className="flex min-h-screen w-full flex-col bg-neutral-50 text-neutral-900 lg:h-screen">
+      <header className="z-[1] border-b border-neutral-200 border-t-4 border-t-operational-600 bg-neutral-0 px-screen py-3 lg:px-6">
+        <div className="mx-auto flex max-w-dashboard flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 style={{ margin: 0, color: '#111827', fontSize: '22px' }}>Dashboard Operacional EcoRota</h1>
-            <p style={{ margin: '4px 0 0', color: '#6B7280', fontSize: '13px' }}>
+            <p className="text-sm font-semibold uppercase text-operational-700">Operação EcoRota</p>
+            <h1 className="text-2xl font-bold text-neutral-900">Dashboard operacional</h1>
+            <p className="mt-1 text-sm text-neutral-600">
               {points.length} pontos · {collectors.length} coletores · {realtime.snapshot?.requests.length ?? 0} solicitações
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap items-center gap-3">
             {realtime.snapshot && (
-              <span style={{ color: '#4B5563', fontSize: '12px' }}>
-                Geração {realtime.snapshot.generation} · revisão {realtime.snapshot.revision}
+              // Geração e revisão ficam no título, para diagnóstico, sem expor jargão ao operador.
+              <span
+                className="text-sm text-neutral-500"
+                title={`Geração ${realtime.snapshot.generation} · revisão ${realtime.snapshot.revision}`}
+              >
+                Atualizado {formatAge(realtime.snapshot.updatedAt, now)}
               </span>
             )}
             <span
               role="status"
               aria-live="polite"
-              style={{
-                color: '#FFFFFF',
-                background: CONNECTION_COLORS[realtime.connectionStatus],
-                borderRadius: '999px',
-                padding: '6px 10px',
-                fontSize: '12px',
-                fontWeight: 700,
-              }}
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold ${CONNECTION_CLASSES[realtime.connectionStatus]}`}
             >
+              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-current" />
               {CONNECTION_LABELS[realtime.connectionStatus]}
             </span>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="inline-flex min-h-touch items-center gap-2 rounded-md border border-neutral-300 bg-neutral-0 px-3 text-sm font-semibold text-neutral-700 hover:border-operational-600 hover:text-operational-700"
+            >
+              <Icon name="logout" className="h-4 w-4" />
+              Sair
+            </button>
           </div>
         </div>
         {realtime.errorMessage && (
-          <p role="alert" style={{ margin: '10px 0 0', color: '#991B1B', background: '#FEE2E2', padding: '8px 10px', borderRadius: '6px', fontSize: '13px' }}>
-            {realtime.errorMessage}
-          </p>
+          <div
+            role="alert"
+            className="mx-auto mt-3 flex max-w-dashboard flex-wrap items-center justify-between gap-3 rounded-md border border-danger-100 bg-danger-50 px-3 py-2 text-sm text-danger-800"
+          >
+            <span>{realtime.errorMessage}</span>
+            {realtime.connectionStatus !== 'conectado' && (
+              <button
+                type="button"
+                onClick={realtime.reconnect}
+                className="inline-flex min-h-touch items-center rounded-md border border-danger-500 bg-neutral-0 px-3 font-semibold text-danger-700 hover:bg-danger-50"
+              >
+                Tentar novamente
+              </button>
+            )}
+          </div>
         )}
       </header>
-      <section style={{ flex: 1, minHeight: 0 }} aria-label="Visualização da operação">
-        <MapContainer points={points} collectors={collectors} />
-      </section>
+      <KpiCards indicators={indicators} />
+      <div className="mx-auto flex min-h-0 w-full max-w-dashboard flex-1 flex-col lg:flex-row lg:border-x lg:border-neutral-200">
+        <section className="min-h-[420px] flex-1" aria-label="Visualização da operação">
+          <MapContainer points={points} collectors={collectors} routes={routes} focus={focus} minHeight="420px" showLegend />
+        </section>
+        <aside className="flex h-[560px] flex-col border-t border-neutral-200 bg-neutral-0 lg:h-auto lg:w-[380px] lg:border-l lg:border-t-0">
+          <RegionDemand regions={indicators.data?.demandaPorRegiao} />
+          <RecentRequestsTable
+            snapshot={realtime.snapshot}
+            lastRequestEvent={realtime.lastRequestEvent}
+            onSelectPoint={(pointId) => setFocus((current) => ({ pointId, nonce: (current?.nonce ?? 0) + 1 }))}
+          />
+        </aside>
+      </div>
     </main>
   );
 }

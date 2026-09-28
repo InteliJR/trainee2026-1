@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { translateStatus } from '@ecorota/shared';
 import { EcoPageHeader } from '../components/EcoPageHeader';
 import { Icon } from '../components/Icon';
 import { ResidentBottomNav } from '../components/ResidentBottomNav';
-import { getResidentRequests } from '../lib/residentRequests';
+import { getResidentRequests, refreshResidentRequests } from '../lib/residentRequests';
 
 const kgByMaterial: Record<string, number> = {
   papel: 3.2,
@@ -16,7 +16,18 @@ const kgByMaterial: Record<string, number> = {
 };
 
 export function HistoricoImpactoPage() {
-  const requests = getResidentRequests();
+  const [requests, setRequests] = useState(getResidentRequests);
+
+  // Atualiza com as solicitações reais do morador assim que a API responder.
+  useEffect(() => {
+    let active = true;
+    void refreshResidentRequests().then((latest) => {
+      if (active && latest) setRequests(latest);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
   const completed = useMemo(() => requests.filter((request) => request.status === 'completed'), [requests]);
   const points = completed.reduce((sum, request) => sum + request.pointsPreview, 0);
   const kilograms = completed.reduce((sum, request) => sum + (kgByMaterial[request.materialId] ?? 1), 0);
@@ -76,7 +87,7 @@ export function HistoricoImpactoPage() {
                 <div><span className="text-xs font-semibold uppercase text-earth-600">{request.protocol}</span><h3 className="mt-1 font-bold">{request.materialName}</h3><p className="mt-1 text-sm text-neutral-600">{request.pointName} · {request.scheduledDate}</p></div>
                 <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand-700">{translateStatus(request.status)}</span>
               </div>
-              <div className="mt-3 flex items-center gap-2 border-t border-brand-100 pt-3 text-sm">
+              <div className="mt-3 flex items-center gap-2 border-t border-neutral-200 pt-3 text-sm">
                 <Icon name="award" className="h-4 w-4 text-reward-800" />
                 {request.status === 'completed' ? `+${request.pointsPreview} pontos creditados` : 'Pontos após a conclusão da coleta'}
               </div>

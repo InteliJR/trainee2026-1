@@ -216,6 +216,50 @@ describe('servidor Socket.IO', () => {
     expect(filtered.routes).toEqual([]);
   });
 
+  // Garante que o morador só receba a posição do coletor que atende uma solicitação dele.
+  it('oculta do morador a posição de coletores que não o atendem', () => {
+    const state = new OperationStateStore();
+    state.replaceSnapshot(createSnapshot());
+    const base = state.getSnapshot();
+    // Cria dois coletores com posição e atribui o primeiro ao pedido do morador.
+    const collector = (id: string) => ({
+      id,
+      name: id,
+      origin: 'system' as const,
+      available: false,
+      status: 'moving',
+      circuit: 1,
+      position: { type: 'Point' as const, coordinates: [-46.7, -23.55] as [number, number] },
+      observedAt: '2026-09-24T10:00:00.000Z',
+    });
+    const snapshot = {
+      ...base,
+      collectors: [collector('coletor-do-morador'), collector('outro-coletor')],
+      requests: base.requests.map((request) => (request.externalReference === 'pedido-do-morador'
+        ? { ...request, status: 'assigned' as const, collectorId: 'coletor-do-morador' }
+        : request)),
+    };
+
+    const resident = filterSnapshotForActor(
+      snapshot,
+      { id: RESIDENT_ID, role: 'MORADOR', ecoRotaCollectorId: null },
+      new Set(['pedido-do-morador']),
+    );
+    // Mantém os dois coletores, mas só o responsável conserva a posição.
+    expect(resident.collectors.map((item) => [item.id, item.position !== null])).toEqual([
+      ['coletor-do-morador', true],
+      ['outro-coletor', false],
+    ]);
+
+    // Operadores continuam recebendo todas as posições.
+    const operator = filterSnapshotForActor(
+      snapshot,
+      { id: 'operador', role: 'OPERADOR', ecoRotaCollectorId: null },
+      new Set(),
+    );
+    expect(operator.collectors.every((item) => item.position !== null)).toBe(true);
+  });
+
   // Verifica uma conexão de rede real, o estado inicial filtrado e um evento incremental traduzido.
   it('abre a conexão autenticada e envia somente o estado permitido ao morador', async () => {
     // Cria o cache exclusivo deste teste de integração.

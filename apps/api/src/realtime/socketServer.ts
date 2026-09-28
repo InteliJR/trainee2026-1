@@ -92,12 +92,25 @@ export function filterSnapshotForActor(
   // Operadores precisam do panorama completo para acompanhar a operação.
   if (actor.role === 'OPERADOR') return snapshot;
 
+  // Mantém somente solicitações cuja referência pertence ou está atribuída ao usuário.
+  const requests = snapshot.requests.filter((request) => allowedReferences.has(request.externalReference));
+  // Coletores que atendem alguma dessas solicitações; só deles o morador pode ver a posição.
+  const assignedCollectorIds = new Set(
+    requests.flatMap((request) => (request.collectorId ? [request.collectorId] : [])),
+  );
+
   // Cria um novo objeto para não alterar o cache compartilhado entre todas as conexões.
   return {
-    // Preserva metadados, pontos e coletores necessários para exibir o mapa.
+    // Preserva metadados e pontos necessários para exibir o mapa.
     ...snapshot,
-    // Mantém somente solicitações cuja referência pertence ou está atribuída ao usuário.
-    requests: snapshot.requests.filter((request) => allowedReferences.has(request.externalReference)),
+    requests,
+    // Moradores veem os coletores (nomes aparecem na tela), mas sem a posição de quem não os atende,
+    // mantendo o snapshot coerente com os eventos de posição, que já são enviados só ao morador atendido.
+    collectors: actor.role === 'MORADOR'
+      ? snapshot.collectors.map((collector) => (assignedCollectorIds.has(collector.id)
+        ? collector
+        : { ...collector, position: null }))
+      : snapshot.collectors,
     // Coletores recebem apenas a própria rota; moradores não recebem detalhes de rota operacional.
     routes: actor.role === 'COLETOR' && actor.ecoRotaCollectorId
       // Compara o vínculo externo do perfil com o coletor indicado em cada rota.

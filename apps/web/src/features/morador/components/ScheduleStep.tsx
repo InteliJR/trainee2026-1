@@ -31,7 +31,7 @@ export function ScheduleStep({
           Data e turno
         </h1>
         <p className="mt-2 text-sm leading-6 text-neutral-600">
-          Defina quando o coletor deve retirar o material. A confirmacao final aparece no resumo.
+          Defina quando o coletor deve retirar o material. A confirmação final aparece no resumo.
         </p>
       </div>
 
@@ -45,7 +45,7 @@ export function ScheduleStep({
             type="date"
             value={draft.desiredDate}
             onChange={(event) => onDateChange(event.target.value)}
-            className="min-h-touch rounded-md border border-brand-100 bg-white/90 px-3 text-base font-medium text-neutral-950 shadow-card focus:border-operational-500 focus:outline-none focus:ring-2 focus:ring-operational-100"
+            className="min-h-touch rounded-md border border-neutral-200 bg-white/90 px-3 text-base font-medium text-neutral-950 shadow-card focus:border-operational-500 focus:outline-none focus:ring-2 focus:ring-operational-100"
           />
         </label>
 
@@ -84,14 +84,14 @@ export function ScheduleStep({
         <label className="grid gap-2 text-sm font-semibold text-neutral-800">
           <span className="flex items-center gap-2">
             <Icon name="route" className="h-5 w-5 text-operational-700" />
-            Observacao para o coletor
+            Observação para o coletor
           </span>
           <textarea
             rows={3}
             value={draft.notes}
             onChange={(event) => onNotesChange(event.target.value)}
             placeholder="Ex.: material separado na portaria, garrafas em sacola azul."
-            className="rounded-md border border-brand-100 bg-white/90 px-3 py-3 text-base font-medium text-neutral-950 shadow-card placeholder:text-neutral-400 focus:border-operational-500 focus:outline-none focus:ring-2 focus:ring-operational-100"
+            className="rounded-md border border-neutral-200 bg-white/90 px-3 py-3 text-base font-medium text-neutral-950 shadow-card placeholder:text-neutral-400 focus:border-operational-500 focus:outline-none focus:ring-2 focus:ring-operational-100"
           />
         </label>
       </div>
@@ -99,7 +99,7 @@ export function ScheduleStep({
       <div className="eco-panel rounded-lg p-4">
         <h2 className="flex items-center gap-2 text-base font-bold text-neutral-950">
           <Icon name="cycle" className="h-5 w-5 text-brand-700" />
-          Resumo da solicitacao
+          Resumo da solicitação
         </h2>
         <dl className="mt-3 grid gap-2 text-sm text-neutral-700">
           <div className="flex justify-between gap-3">
@@ -111,7 +111,7 @@ export function ScheduleStep({
             <dd className="text-right font-semibold text-neutral-950">{point.name}</dd>
           </div>
           <div className="flex justify-between gap-3">
-            <dt>Endereco</dt>
+            <dt>Endereço</dt>
             <dd className="text-right font-semibold text-neutral-950">{point.address}</dd>
           </div>
           <div className="flex justify-between gap-3">

@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom';
+import { logoutResident } from '../lib/residentAuth';
 import { Icon } from './Icon';
 
 type ResidentNavItem = 'inicio' | 'solicitar' | 'status' | 'historico';
@@ -7,19 +9,27 @@ interface ResidentBottomNavProps {
 }
 
 const navItems = [
-  { id: 'inicio', label: 'Inicio', href: '/morador', icon: 'home' },
+  { id: 'inicio', label: 'Início', href: '/morador', icon: 'home' },
   { id: 'solicitar', label: 'Solicitar', href: '/morador/solicitar', icon: 'trash' },
-  { id: 'status', label: 'Status', href: '/morador/acompanhar', icon: 'route' },
-  { id: 'historico', label: 'Historico', href: '/morador/historico', icon: 'history' },
+  { id: 'status', label: 'Acompanhar', href: '/morador/acompanhar', icon: 'route' },
+  { id: 'historico', label: 'Histórico', href: '/morador/historico', icon: 'history' },
 ] as const;
 
 export function ResidentBottomNav({ activeItem }: ResidentBottomNavProps) {
+  const navigate = useNavigate();
+
+  // Sai mesmo se a API não responder, para não prender o morador numa sessão que ele quer encerrar.
+  async function logout() {
+    await logoutResident().catch(() => undefined);
+    navigate('/morador/login', { replace: true });
+  }
+
   return (
     <nav
-      aria-label="Navegacao do morador"
-      className="fixed inset-x-0 bottom-0 border-t border-brand-100 bg-white/95 px-screen py-2 shadow-card backdrop-blur"
+      aria-label="Navegação do morador"
+      className="fixed inset-x-0 bottom-0 border-t border-neutral-200 bg-white/95 px-screen py-2 shadow-card backdrop-blur"
     >
-      <div className="mx-auto grid max-w-app grid-cols-4 gap-1 text-xs font-semibold text-neutral-600">
+      <div className="mx-auto grid max-w-app grid-cols-5 gap-1 text-xs font-semibold text-neutral-600">
         {navItems.map((item) => {
           const isActive = item.id === activeItem;
           const className = [
@@ -37,6 +47,14 @@ export function ResidentBottomNav({ activeItem }: ResidentBottomNavProps) {
             </a>
           );
         })}
+        <button
+          className="flex min-h-touch flex-col items-center justify-center gap-1 rounded-md text-neutral-600 transition hover:bg-brand-50 hover:text-brand-700"
+          onClick={() => void logout()}
+          type="button"
+        >
+          <Icon name="arrow-left" className="h-5 w-5" />
+          Sair
+        </button>
       </div>
     </nav>
   );

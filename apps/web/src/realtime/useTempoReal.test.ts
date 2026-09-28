@@ -107,6 +107,34 @@ describe('realtimeReducer', () => {
     expect(result.snapshot?.requests[0]?.collectorId).toBe('coletor-1');
   });
 
+  // Garante que uma solicitação criada depois do snapshot apareça na tela a partir do próprio evento.
+  it('acrescenta uma solicitação que ainda não estava no snapshot', () => {
+    const current = realtimeReducer(INITIAL_REALTIME_STATE, { type: 'snapshot', snapshot: createSnapshot() });
+    const result = realtimeReducer(current, {
+      type: 'solicitacao',
+      event: {
+        idExterno: 'solicitacao-2',
+        referenciaExterna: 'referencia-2',
+        pontoColetaExternoId: 'ponto-1',
+        coletorExternoId: null,
+        status: 'PENDENTE',
+        ocorridoEm: '2026-09-27T12:02:00.000Z',
+        revisao: 12,
+        geracao: 2,
+      },
+    });
+    // Mantém a solicitação existente e acrescenta a nova com os dados traduzidos do evento.
+    expect(result.snapshot?.requests).toHaveLength(2);
+    expect(result.snapshot?.requests[1]).toMatchObject({
+      id: 'solicitacao-2',
+      externalReference: 'referencia-2',
+      pointId: 'ponto-1',
+      status: 'pending',
+      collectorId: null,
+      createdAt: '2026-09-27T12:02:00.000Z',
+    });
+  });
+
   // Garante que dados incrementais de outra execução não contaminem o mapa atual.
   it('ignora eventos incrementais de outra geração', () => {
     // Preenche o reducer com a geração dois.
