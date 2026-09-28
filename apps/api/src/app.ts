@@ -28,6 +28,9 @@ import { RequestService } from './modules/requests/request.service.js';
 import { operationRoutes } from './modules/operation/operation.routes.js';
 import { OperationService } from './modules/operation/operation.service.js';
 import { PrismaOperationIndicatorsRepository } from './modules/operation/operationIndicators.repository.js';
+import { PrismaCollectionPointRepository } from './modules/operation/collectionPoint.repository.js';
+import { collectionPointRoutes } from './modules/operation/collectionPoint.routes.js';
+import { CollectionPointService } from './modules/operation/collectionPoint.service.js';
 import { PrismaCollectorRepository } from './modules/collectors/collector.repository.js';
 import { collectorRoutes } from './modules/collectors/collector.routes.js';
 import { CollectorService } from './modules/collectors/collector.service.js';
@@ -127,6 +130,11 @@ export function buildApp(options: BuildAppOptions) {
         // Fornece as contagens históricas de coletas e novos moradores persistidas no Supabase.
         new PrismaOperationIndicatorsRepository(options.database),
       ),
+    });
+    app.register(collectionPointRoutes, {
+      prefix: '/api/v1',
+      identify,
+      service: new CollectionPointService(new PrismaCollectionPointRepository(options.database)),
     });
     // Expõe perfil, coletas e disponibilidade do coletor.
     app.register(collectorRoutes, {

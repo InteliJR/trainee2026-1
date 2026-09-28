@@ -58,6 +58,7 @@ export const ModelName = {
   RequestMaterial: 'RequestMaterial',
   RequestStatusHistory: 'RequestStatusHistory',
   PointsLog: 'PointsLog',
+  CollectionPoint: 'CollectionPoint',
   SystemState: 'SystemState'
 } as const
 
@@ -191,6 +192,24 @@ export const PointsLogScalarFieldEnum = {
 } as const
 
 export type PointsLogScalarFieldEnum = (typeof PointsLogScalarFieldEnum)[keyof typeof PointsLogScalarFieldEnum]
+
+
+export const CollectionPointScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  kind: 'kind',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  circuit: 'circuit',
+  description: 'description',
+  active: 'active',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type CollectionPointScalarFieldEnum = (typeof CollectionPointScalarFieldEnum)[keyof typeof CollectionPointScalarFieldEnum]
 
 
 export const SystemStateScalarFieldEnum = {

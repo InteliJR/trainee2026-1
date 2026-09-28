@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model Address
- * 
+ * Local de coleta pertencente a um morador, com coordenadas usadas no mapa.
  */
 export type AddressModel = runtime.Types.Result.DefaultSelection<Prisma.$AddressPayload>
 

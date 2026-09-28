@@ -4,7 +4,8 @@
  * Segue o guia de estilos: tokens do Tailwind, tons `operational` para separar o dashboard da experiência do morador.
  */
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { buttonClasses } from '../../components/Button';
 import { Icon } from '../../components/Icon';
 import { MapContainer } from '../../map/MapContainer';
 import { formatAge } from '../../map/mapUtils';
@@ -93,6 +94,9 @@ export function RealtimeDashboard() {
               <span aria-hidden="true" className="h-2 w-2 rounded-full bg-current" />
               {CONNECTION_LABELS[realtime.connectionStatus]}
             </span>
+            <Link to="/dashboard/pontos" className={buttonClasses('secondary')}>
+              Gerenciar pontos
+            </Link>
             <button
               type="button"
               onClick={() => void logout()}

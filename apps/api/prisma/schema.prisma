@@ -56,21 +56,27 @@ enum MaterialType {
   OTHER
 }
 
+enum CollectionPointKind {
+  HABITUAL
+  ADDITIONAL
+}
+
 /// Identidade central de moradores, coletores e operadores.
 model User {
-  id               String                 @id @default(uuid()) @db.Uuid
-  name             String
-  email            String                 @unique
-  phone            String?                @unique
-  passwordHash     String                 @map("password_hash")
-  role             UserRole
-  createdAt        DateTime               @default(now()) @map("created_at")
-  updatedAt        DateTime               @updatedAt @map("updated_at")
-  addresses        Address[]
-  collectorProfile CollectorProfile?
-  requests         CollectionRequest[]    @relation("ResidentRequests")
-  statusChanges    RequestStatusHistory[] @relation("StatusChangedBy")
-  pointsLogs       PointsLog[]
+  id                      String                 @id @default(uuid()) @db.Uuid
+  name                    String
+  email                   String                 @unique
+  phone                   String?                @unique
+  passwordHash            String                 @map("password_hash")
+  role                    UserRole
+  createdAt               DateTime               @default(now()) @map("created_at")
+  updatedAt               DateTime               @updatedAt @map("updated_at")
+  addresses               Address[]
+  collectorProfile        CollectorProfile?
+  requests                CollectionRequest[]    @relation("ResidentRequests")
+  statusChanges           RequestStatusHistory[] @relation("StatusChangedBy")
+  pointsLogs              PointsLog[]
+  createdCollectionPoints CollectionPoint[]
 
   @@map("users")
 }
@@ -203,6 +209,26 @@ model PointsLog {
   @@index([userId, createdAt])
   @@index([requestId])
   @@map("points_logs")
+}
+
+model CollectionPoint {
+  id              String              @id @default(uuid()) @db.Uuid
+  name            String
+  kind            CollectionPointKind
+  latitude        Decimal             @db.Decimal(9, 6)
+  longitude       Decimal             @db.Decimal(9, 6)
+  circuit         Int
+  description     String?
+  active          Boolean             @default(true)
+  createdByUserId String              @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  deletedAt       DateTime?           @map("deleted_at")
+  createdBy       User                @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([active, circuit])
+  @@index([createdByUserId])
+  @@map("collection_points")
 }
 
 /// Cursor técnico usado para observar geração e revisão processadas do stream EcoRota.

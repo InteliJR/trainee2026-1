@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model CollectionRequest
- * 
+ * Agregado principal da coleta, conectando morador, endereço, coletor, integração e estado atual.
  */
 export type CollectionRequestModel = runtime.Types.Result.DefaultSelection<Prisma.$CollectionRequestPayload>
 

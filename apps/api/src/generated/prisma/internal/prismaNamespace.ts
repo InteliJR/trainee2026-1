@@ -404,6 +404,7 @@ export const ModelName = {
   RequestMaterial: 'RequestMaterial',
   RequestStatusHistory: 'RequestStatusHistory',
   PointsLog: 'PointsLog',
+  CollectionPoint: 'CollectionPoint',
   SystemState: 'SystemState'
 } as const
 
@@ -420,7 +421,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "address" | "collectorProfile" | "collectionRequest" | "requestMaterial" | "requestStatusHistory" | "pointsLog" | "systemState"
+    modelProps: "user" | "address" | "collectorProfile" | "collectionRequest" | "requestMaterial" | "requestStatusHistory" | "pointsLog" | "collectionPoint" | "systemState"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -942,6 +943,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CollectionPoint: {
+      payload: Prisma.$CollectionPointPayload<ExtArgs>
+      fields: Prisma.CollectionPointFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CollectionPointFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CollectionPointPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CollectionPointFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CollectionPointPayload>
+        }
+        findFirst: {
+          args: Prisma.CollectionPointFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CollectionPointPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CollectionPointFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CollectionPointPayload>
+        }
+        findMany: {
+          args: Prisma.CollectionPointFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CollectionPointPayload>[]
+        }
+        create: {
+          args: Prisma.CollectionPointCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CollectionPointPayload>
+        }
+        createMany: {
+          args: Prisma.CollectionPointCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CollectionPointCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CollectionPointPayload>[]
+        }
+        delete: {
+          args: Prisma.CollectionPointDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CollectionPointPayload>
+        }
+        update: {
+          args: Prisma.CollectionPointUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CollectionPointPayload>
+        }
+        deleteMany: {
+          args: Prisma.CollectionPointDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CollectionPointUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CollectionPointUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CollectionPointPayload>[]
+        }
+        upsert: {
+          args: Prisma.CollectionPointUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CollectionPointPayload>
+        }
+        aggregate: {
+          args: Prisma.CollectionPointAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCollectionPoint>
+        }
+        groupBy: {
+          args: Prisma.CollectionPointGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CollectionPointGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CollectionPointCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CollectionPointCountAggregateOutputType> | number
+        }
+      }
+    }
     SystemState: {
       payload: Prisma.$SystemStatePayload<ExtArgs>
       fields: Prisma.SystemStateFieldRefs
@@ -1171,6 +1246,24 @@ export const PointsLogScalarFieldEnum = {
 export type PointsLogScalarFieldEnum = (typeof PointsLogScalarFieldEnum)[keyof typeof PointsLogScalarFieldEnum]
 
 
+export const CollectionPointScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  kind: 'kind',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  circuit: 'circuit',
+  description: 'description',
+  active: 'active',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+} as const
+
+export type CollectionPointScalarFieldEnum = (typeof CollectionPointScalarFieldEnum)[keyof typeof CollectionPointScalarFieldEnum]
+
+
 export const SystemStateScalarFieldEnum = {
   key: 'key',
   generation: 'generation',
@@ -1360,6 +1453,20 @@ export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
 
 
 /**
+ * Reference to a field of type 'CollectionPointKind'
+ */
+export type EnumCollectionPointKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CollectionPointKind'>
+    
+
+
+/**
+ * Reference to a field of type 'CollectionPointKind[]'
+ */
+export type ListEnumCollectionPointKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CollectionPointKind[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -1530,6 +1637,7 @@ export type GlobalOmitConfig = {
   requestMaterial?: Prisma.RequestMaterialOmit
   requestStatusHistory?: Prisma.RequestStatusHistoryOmit
   pointsLog?: Prisma.PointsLogOmit
+  collectionPoint?: Prisma.CollectionPointOmit
   systemState?: Prisma.SystemStateOmit
 }
 

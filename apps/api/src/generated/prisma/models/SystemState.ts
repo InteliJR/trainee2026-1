@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model SystemState
- * 
+ * Cursor técnico usado para observar geração e revisão processadas do stream EcoRota.
  */
 export type SystemStateModel = runtime.Types.Result.DefaultSelection<Prisma.$SystemStatePayload>
 

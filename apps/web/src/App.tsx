@@ -1,6 +1,7 @@
 /** Define a navegação atual e entrega o painel operacional conectado ao Socket.IO. */
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { RequireRole } from './components/RequireRole';
+import { CollectionPointsPage } from './features/dashboard/CollectionPointsPage';
 import { LoginOperadorPage } from './features/dashboard/LoginOperadorPage';
 import { checkOperatorSession } from './features/dashboard/operatorAuth';
 import { RealtimeDashboard } from './features/dashboard/RealtimeDashboard';
@@ -32,6 +33,10 @@ export default function App() {
         <Route
           path="/dashboard"
           element={<RequireRole check={checkOperatorSession} loginPath="/operador/login"><RealtimeDashboard /></RequireRole>}
+        />
+        <Route
+          path="/dashboard/pontos"
+          element={<RequireRole check={checkOperatorSession} loginPath="/operador/login"><CollectionPointsPage /></RequireRole>}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

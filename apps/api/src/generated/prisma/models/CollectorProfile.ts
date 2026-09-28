@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model CollectorProfile
- * 
+ * Extensão de User para coletores, incluindo disponibilidade e vínculo externo.
  */
 export type CollectorProfileModel = runtime.Types.Result.DefaultSelection<Prisma.$CollectorProfilePayload>
 
