@@ -1,4 +1,5 @@
 import type { MaterialCategory, MaterialOption } from '../types';
+import { Icon } from './Icon';
 
 interface MaterialStepProps {
   materials: MaterialOption[];
@@ -10,7 +11,10 @@ export function MaterialStep({ materials, selectedMaterialId, onSelect }: Materi
   return (
     <section className="space-y-4" aria-labelledby="material-title">
       <div>
-        <p className="text-sm font-semibold uppercase text-brand-700">Etapa 1 de 3</p>
+        <p className="flex items-center gap-2 text-sm font-semibold uppercase text-brand-700">
+          <Icon name="leaf" className="h-4 w-4" />
+          Etapa 1 de 3
+        </p>
         <h1 id="material-title" className="mt-1 text-2xl font-bold text-neutral-950">
           Escolha o material
         </h1>
@@ -29,14 +33,36 @@ export function MaterialStep({ materials, selectedMaterialId, onSelect }: Materi
               type="button"
               onClick={() => onSelect(material.id)}
               className={[
-                'min-h-[9rem] rounded-lg border bg-white p-4 text-left shadow-card transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-operational-500',
-                isSelected
-                  ? 'border-brand-600 ring-2 ring-brand-100'
-                  : 'border-neutral-200 hover:border-brand-300 hover:bg-brand-50',
+                'min-h-[9rem] rounded-lg p-4 text-left transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-operational-500',
+                isSelected ? 'eco-card-selected' : 'eco-card hover:border-brand-300',
               ].join(' ')}
             >
-              <span className="text-lg font-bold text-neutral-950">{material.name}</span>
-              <span className="mt-2 block text-sm leading-5 text-neutral-600">{material.helper}</span>
+              <span className="flex items-start justify-between gap-3">
+                <span>
+                  <span className="block text-lg font-bold text-neutral-950">{material.name}</span>
+                  <span className="mt-2 block text-sm leading-5 text-neutral-600">
+                    {material.helper}
+                  </span>
+                </span>
+                <span
+                  className={[
+                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
+                    isSelected ? 'bg-brand-600 text-white' : 'eco-icon-tile',
+                  ].join(' ')}
+                >
+                  <Icon name="cycle" className="h-5 w-5" />
+                </span>
+              </span>
+              <span className="mt-4 flex flex-wrap gap-2">
+                {material.acceptedExamples.slice(0, 2).map((example) => (
+                  <span
+                    className="rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700"
+                    key={example}
+                  >
+                    {example}
+                  </span>
+                ))}
+              </span>
               <span className="mt-3 inline-flex rounded-full bg-reward-100 px-3 py-1 text-sm font-semibold text-reward-800">
                 +{material.points} pontos
               </span>

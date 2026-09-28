@@ -1,4 +1,4 @@
-import type { Point } from '@ecorota/shared';
+import type { Point, RequestStatus } from '@ecorota/shared';
 
 export type MaterialCategory =
   | 'papel'
@@ -39,4 +39,30 @@ export interface ResidentRequestDraft {
   desiredDate: string;
   shift: Shift | null;
   notes: string;
+}
+
+export interface StatusTimelineItem {
+  status: RequestStatus;
+  label: string;
+  occurredAt: string | null;
+  description: string;
+}
+
+export interface ResidentCollectionRequest {
+  id: string;
+  protocol: string;
+  materialId: MaterialCategory;
+  materialName: string;
+  pointName: string;
+  pointAddress: string;
+  neighborhood: string;
+  scheduledDate: string;
+  shiftLabel: string;
+  shiftWindow: string;
+  status: RequestStatus;
+  collectorName: string | null;
+  collectorPhone: string | null;
+  estimatedArrival: string | null;
+  pointsPreview: number;
+  timeline: StatusTimelineItem[];
 }

@@ -1,4 +1,5 @@
 import type { CollectionPoint, MaterialCategory } from '../types';
+import { Icon } from './Icon';
 
 interface PointStepProps {
   points: CollectionPoint[];
@@ -27,7 +28,10 @@ export function PointStep({
   return (
     <section className="space-y-4" aria-labelledby="point-title">
       <div>
-        <p className="text-sm font-semibold uppercase text-brand-700">Etapa 2 de 3</p>
+        <p className="flex items-center gap-2 text-sm font-semibold uppercase text-brand-700">
+          <Icon name="map-pin" className="h-4 w-4" />
+          Etapa 2 de 3
+        </p>
         <h1 id="point-title" className="mt-1 text-2xl font-bold text-neutral-950">
           Selecione o ponto
         </h1>
@@ -48,8 +52,8 @@ export function PointStep({
               className={[
                 'min-h-touch shrink-0 rounded-full border px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-operational-500',
                 isSelected
-                  ? 'border-brand-600 bg-brand-600 text-white'
-                  : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-100',
+                  ? 'border-brand-600 bg-brand-600 text-white shadow-card'
+                  : 'border-brand-100 bg-white/80 text-neutral-700 hover:border-brand-300 hover:bg-brand-50',
               ].join(' ')}
             >
               {neighborhood}
@@ -69,32 +73,40 @@ export function PointStep({
               type="button"
               onClick={() => onSelect(point.id)}
               className={[
-                'rounded-lg border bg-white p-4 text-left shadow-card transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-operational-500',
-                isSelected
-                  ? 'border-brand-600 ring-2 ring-brand-100'
-                  : 'border-neutral-200 hover:border-brand-300',
+                'rounded-lg p-4 text-left transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-operational-500',
+                isSelected ? 'eco-card-selected' : 'eco-card hover:border-brand-300',
               ].join(' ')}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-bold text-neutral-950">{point.name}</h2>
-                  <p className="mt-1 text-sm text-neutral-600">{point.address}</p>
+                <div className="flex gap-3">
+                  <span
+                    className={[
+                      'mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
+                      isSelected ? 'bg-brand-600 text-white' : 'eco-icon-tile',
+                    ].join(' ')}
+                  >
+                    <Icon name="map-pin" className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h2 className="text-lg font-bold text-neutral-950">{point.name}</h2>
+                    <p className="mt-1 text-sm text-neutral-600">{point.address}</p>
+                  </div>
                 </div>
-                <span className="rounded-full bg-operational-100 px-3 py-1 text-sm font-semibold text-operational-800">
+                <span className="rounded-full border border-operational-100 bg-operational-100 px-3 py-1 text-sm font-semibold text-operational-800">
                   {point.distanceKm.toFixed(1)} km
                 </span>
               </div>
 
-              <dl className="mt-4 grid grid-cols-3 gap-2 text-sm">
-                <div className="rounded-md bg-neutral-100 p-3">
+              <dl className="mt-4 grid gap-3 border-t border-brand-100 pt-4 text-sm sm:grid-cols-3">
+                <div>
                   <dt className="text-neutral-500">Bairro</dt>
                   <dd className="mt-1 font-semibold text-neutral-900">{point.neighborhood}</dd>
                 </div>
-                <div className="rounded-md bg-neutral-100 p-3">
+                <div>
                   <dt className="text-neutral-500">Demandas</dt>
                   <dd className="mt-1 font-semibold text-neutral-900">{activeDemand}</dd>
                 </div>
-                <div className="rounded-md bg-neutral-100 p-3">
+                <div>
                   <dt className="text-neutral-500">Proximo</dt>
                   <dd className="mt-1 font-semibold text-neutral-900">{point.nextAvailability}</dd>
                 </div>
@@ -105,7 +117,7 @@ export function PointStep({
       </div>
 
       {visiblePoints.length === 0 ? (
-        <p className="rounded-lg border border-neutral-200 bg-white p-4 text-sm text-neutral-600">
+        <p className="eco-card rounded-lg p-4 text-sm text-neutral-600">
           Nenhum ponto encontrado para este filtro. Tente outro bairro para continuar.
         </p>
       ) : null}
