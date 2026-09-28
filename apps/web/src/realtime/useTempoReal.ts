@@ -108,24 +108,35 @@ export function realtimeReducer(state: RealtimeState, action: RealtimeAction): R
 
   // Atualiza a solicitação visível pelo vínculo externo e guarda o evento para feedback da interface.
   if (action.type === 'solicitacao') {
+    const { event } = action;
+    const status = REQUEST_STATUS_BY_PUBLIC_STATUS[event.status];
+    const exists = state.snapshot.requests.some((request) => request.externalReference === event.referenciaExterna);
     return {
       ...state,
-      lastRequestEvent: action.event,
+      lastRequestEvent: event,
       snapshot: {
         ...state.snapshot,
-        revision: Math.max(state.snapshot.revision, action.event.revisao),
-        observedAt: action.event.ocorridoEm,
+        revision: Math.max(state.snapshot.revision, event.revisao),
+        observedAt: event.ocorridoEm,
         updatedAt: new Date().toISOString(),
-        requests: state.snapshot.requests.map((request) => request.externalReference === action.event.referenciaExterna
-          // Aplica status, coletor e horário traduzidos pelo contrato público.
-          ? {
-            ...request,
-            status: REQUEST_STATUS_BY_PUBLIC_STATUS[action.event.status],
-            collectorId: action.event.coletorExternoId,
-            updatedAt: action.event.ocorridoEm,
-          }
-          // Preserva solicitações que não pertencem ao evento recebido.
-          : request),
+        requests: exists
+          ? state.snapshot.requests.map((request) => request.externalReference === event.referenciaExterna
+            // Aplica status, coletor e horário traduzidos pelo contrato público.
+            ? { ...request, status, collectorId: event.coletorExternoId, updatedAt: event.ocorridoEm }
+            // Preserva solicitações que não pertencem ao evento recebido.
+            : request)
+          // Uma solicitação criada depois do snapshot só chega por evento; sem este acréscimo ela sumiria da tela.
+          : [...state.snapshot.requests, {
+            id: event.idExterno,
+            pointId: event.pontoColetaExternoId,
+            externalReference: event.referenciaExterna,
+            status,
+            collectorId: event.coletorExternoId,
+            createdAt: event.ocorridoEm,
+            // O evento público não traz o relógio da simulação; o próximo snapshot integral corrige o valor.
+            createdSimulationTime: state.snapshot.simulationTime,
+            updatedAt: event.ocorridoEm,
+          }],
       },
     };
   }
