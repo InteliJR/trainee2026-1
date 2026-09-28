@@ -2,7 +2,9 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { RealtimeDashboard } from './features/dashboard/RealtimeDashboard';
 import { ColetorRoutes } from './features/coletor/routes';
+import { RequireResident } from './features/morador/components/RequireResident';
 import { AcompanharStatusPage } from './features/morador/pages/AcompanharStatusPage';
+import { LoginMoradorPage } from './features/morador/pages/LoginMoradorPage';
 import { SolicitarColetaPage } from './features/morador/pages/SolicitarColetaPage';
 import { HistoricoImpactoPage } from './features/morador/pages/HistoricoImpactoPage';
 
@@ -11,10 +13,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/morador" element={<SolicitarColetaPage />} />
-        <Route path="/morador/solicitar" element={<SolicitarColetaPage />} />
-        <Route path="/morador/acompanhar" element={<AcompanharStatusPage />} />
-        <Route path="/morador/historico" element={<HistoricoImpactoPage />} />
+        <Route path="/morador/login" element={<LoginMoradorPage />} />
+        <Route path="/morador" element={<RequireResident><SolicitarColetaPage /></RequireResident>} />
+        <Route path="/morador/solicitar" element={<RequireResident><SolicitarColetaPage /></RequireResident>} />
+        <Route path="/morador/acompanhar" element={<RequireResident><AcompanharStatusPage /></RequireResident>} />
+        <Route path="/morador/historico" element={<RequireResident><HistoricoImpactoPage /></RequireResident>} />
         <Route path="/coletor/*" element={<ColetorRoutes />} />
         <Route path="/dashboard" element={<RealtimeDashboard />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
