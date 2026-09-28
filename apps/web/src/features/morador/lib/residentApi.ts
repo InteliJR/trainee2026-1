@@ -225,3 +225,67 @@ export async function cancelRequestInApi(requestId: string): Promise<void> {
     confirmado: true,
   });
 }
+
+// ---------- Endereço ----------
+
+// Dados do formulário de endereço, como a tela os guarda (tudo texto, coordenadas à parte).
+export interface AddressForm {
+  rotulo: string;
+  cep: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+  referencia: string;
+  padrao: boolean;
+  // [longitude, latitude] marcados no mapa ou pela localização do aparelho.
+  localizacao: [number, number] | null;
+}
+
+export type AddressFormErrors = Partial<Record<keyof AddressForm, string>>;
+
+// Valida com as mesmas regras do createAddressBodySchema da API, para o erro aparecer no campo certo.
+export function validateAddress(form: AddressForm): AddressFormErrors {
+  const errors: AddressFormErrors = {};
+  const text = (value: string) => value.trim();
+  if (!text(form.rotulo)) errors.rotulo = 'Dê um nome ao endereço, como Casa ou Trabalho.';
+  if (!/^\d{5}-?\d{3}$/.test(text(form.cep))) errors.cep = 'Informe o CEP com 8 números, como 01001-000.';
+  if (text(form.logradouro).length < 2) errors.logradouro = 'Informe a rua ou avenida.';
+  if (!text(form.numero)) errors.numero = 'Informe o número. Use "s/n" se não houver.';
+  if (text(form.bairro).length < 2) errors.bairro = 'Informe o bairro.';
+  if (text(form.cidade).length < 2) errors.cidade = 'Informe a cidade.';
+  if (!/^[A-Za-z]{2}$/.test(text(form.estado))) errors.estado = 'Use a sigla do estado, como SP.';
+  if (!form.localizacao) errors.localizacao = 'Marque no mapa onde fica o endereço.';
+  return errors;
+}
+
+// Converte o formulário no corpo aceito pela API, omitindo opcionais vazios.
+export function addressToApi(form: AddressForm) {
+  if (!form.localizacao) throw new ResidentFormError('Marque no mapa onde fica o endereço.');
+  const [longitude, latitude] = form.localizacao;
+  const optional = (value: string) => (value.trim() ? value.trim() : undefined);
+  return {
+    rotulo: form.rotulo.trim(),
+    logradouro: form.logradouro.trim(),
+    numero: form.numero.trim(),
+    complemento: optional(form.complemento),
+    bairro: form.bairro.trim(),
+    cidade: form.cidade.trim(),
+    estado: form.estado.trim().toUpperCase(),
+    cep: form.cep.trim(),
+    latitude,
+    longitude,
+    referencia: optional(form.referencia),
+    padrao: form.padrao,
+  };
+}
+
+// Erro de preenchimento detectado antes de chamar a API.
+export class ResidentFormError extends Error {}
+
+// Cadastra o endereço do morador autenticado.
+export async function createAddress(form: AddressForm): Promise<AddressDTO> {
+  return apiRequest<AddressDTO>('POST', '/enderecos', addressToApi(form));
+}

@@ -2,7 +2,16 @@
  * Testes das traduções entre a API em português e os tipos das telas do morador.
  */
 import { describe, expect, it } from 'vitest';
-import { desiredDateToIso, pointFromApi, requestFromApi, type PointDTO, type RequestDTO } from './residentApi';
+import {
+  addressToApi,
+  desiredDateToIso,
+  pointFromApi,
+  requestFromApi,
+  validateAddress,
+  type AddressForm,
+  type PointDTO,
+  type RequestDTO,
+} from './residentApi';
 
 const POINT: PointDTO = {
   id: '85fc99ba-e984-46c3-94d9-e8f72fb13ac8',
@@ -100,5 +109,54 @@ describe('requestFromApi', () => {
     expect(request.status).toBe('completed');
     expect(request.pointsPreview).toBe(15);
     expect(request.timeline[3].occurredAt).toMatch(/^\d{2}:\d{2}$/);
+  });
+});
+
+// Formulário de endereço válido, que cada cenário altera.
+function createAddressForm(overrides: Partial<AddressForm> = {}): AddressForm {
+  return {
+    rotulo: 'Casa',
+    cep: '05508-010',
+    logradouro: 'Av. Prof. Luciano Gualberto',
+    numero: '380',
+    complemento: '',
+    bairro: 'Butantã',
+    cidade: 'São Paulo',
+    estado: 'sp',
+    referencia: '',
+    padrao: true,
+    localizacao: [-46.7345, -23.5545],
+    ...overrides,
+  };
+}
+
+describe('validateAddress', () => {
+  it('aceita um endereço completo, com CEP com ou sem hífen', () => {
+    expect(validateAddress(createAddressForm())).toEqual({});
+    expect(validateAddress(createAddressForm({ cep: '05508010' }))).toEqual({});
+  });
+
+  it('aponta cada campo inválido com a mesma regra da API', () => {
+    const errors = validateAddress(createAddressForm({
+      rotulo: ' ',
+      cep: '0550-801',
+      logradouro: 'A',
+      numero: '',
+      bairro: '',
+      cidade: 'X',
+      estado: 'São Paulo',
+      localizacao: null,
+    }));
+    expect(Object.keys(errors).sort()).toEqual(
+      ['bairro', 'cep', 'cidade', 'estado', 'localizacao', 'logradouro', 'numero', 'rotulo'].sort(),
+    );
+  });
+});
+
+describe('addressToApi', () => {
+  it('separa latitude e longitude, põe a UF em maiúsculas e omite opcionais vazios', () => {
+    const body = addressToApi(createAddressForm({ referencia: '  portão azul ' }));
+    expect(body).toMatchObject({ latitude: -23.5545, longitude: -46.7345, estado: 'SP', referencia: 'portão azul', padrao: true });
+    expect(body.complemento).toBeUndefined();
   });
 });

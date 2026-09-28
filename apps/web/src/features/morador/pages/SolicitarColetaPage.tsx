@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { InlineNotice } from '../../../components/InlineNotice';
 import { EcoPageHeader } from '../components/EcoPageHeader';
 import { MaterialStep } from '../components/MaterialStep';
 import { Icon } from '../components/Icon';
@@ -13,7 +14,7 @@ import {
   neighborhoodFilters,
   shiftOptions,
 } from '../data/mockSolicitacao';
-import { fetchCollectionPoints, fetchDefaultAddress } from '../lib/residentApi';
+import { fetchCollectionPoints, fetchDefaultAddress, type AddressDTO } from '../lib/residentApi';
 import { createResidentRequest, type CreateRequestResult } from '../lib/residentRequests';
 import type { CollectionPoint, MaterialCategory, ResidentRequestDraft, Shift } from '../types';
 
@@ -35,13 +36,18 @@ export function SolicitarColetaPage() {
   const [submitError, setSubmitError] = useState('');
   // Começa com os pontos de exemplo e troca pelos pontos reais da EcoRota assim que a API responder.
   const [points, setPoints] = useState<CollectionPoint[]>(collectionPoints);
+  // Endereço padrão do morador: undefined enquanto não se sabe (ou API fora do ar), null quando não há nenhum.
+  const [address, setAddress] = useState<AddressDTO | null | undefined>(undefined);
+  // Mostra a confirmação quando a pessoa volta da tela de cadastro de endereço.
+  const justSavedAddress = Boolean((useLocation().state as { enderecoCadastrado?: boolean } | null)?.enderecoCadastrado);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       // O endereço padrão permite que a API calcule a distância até cada ponto.
-      const address = await fetchDefaultAddress().catch(() => null);
-      const near = address ? { latitude: address.latitude, longitude: address.longitude } : undefined;
+      const found = await fetchDefaultAddress().catch(() => undefined);
+      if (active) setAddress(found);
+      const near = found ? { latitude: found.latitude, longitude: found.longitude } : undefined;
       const apiPoints = await fetchCollectionPoints(near).catch(() => null);
       if (active && apiPoints && apiPoints.length > 0) setPoints(apiPoints);
     };
@@ -221,6 +227,26 @@ export function SolicitarColetaPage() {
           />
           <StepIndicator currentStep={currentStep} />
 
+          {address === null ? (
+            <InlineNotice
+              tone="warning"
+              action={
+                <Link
+                  to="/morador/enderecos/novo"
+                  state={{ from: '/morador/solicitar' }}
+                  className="eco-primary-button inline-flex min-h-touch items-center rounded-md px-4 text-sm font-bold text-white"
+                >
+                  Cadastrar endereço
+                </Link>
+              }
+            >
+              Antes de solicitar, cadastre o endereço onde o coletor vai retirar o material.
+            </InlineNotice>
+          ) : null}
+          {justSavedAddress && address ? (
+            <InlineNotice tone="success">Endereço salvo. Agora é só escolher o material.</InlineNotice>
+          ) : null}
+
           <div>
             {currentStep === 1 ? (
               <MaterialStep
@@ -290,6 +316,11 @@ export function SolicitarColetaPage() {
           <div className="mt-5 grid gap-3 text-sm">
             <SummaryLine icon="trash" label="Material" value={selectedMaterial?.name ?? 'Não escolhido'} />
             <SummaryLine icon="map-pin" label="Ponto" value={selectedPoint?.name ?? 'Não escolhido'} />
+            <SummaryLine
+              icon="home"
+              label="Endereço da retirada"
+              value={address ? `${address.logradouro}, ${address.numero}` : address === null ? 'Não cadastrado' : '—'}
+            />
             <SummaryLine icon="calendar" label="Data" value={draft.desiredDate || 'Não escolhida'} />
             <SummaryLine
               icon="clock"
@@ -305,7 +336,7 @@ export function SolicitarColetaPage() {
 }
 
 interface SummaryLineProps {
-  icon: 'calendar' | 'clock' | 'map-pin' | 'trash';
+  icon: 'calendar' | 'clock' | 'home' | 'map-pin' | 'trash';
   label: string;
   value: string;
 }

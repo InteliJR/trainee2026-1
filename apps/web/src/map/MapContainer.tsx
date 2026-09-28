@@ -5,11 +5,7 @@
  */
 import type { Collector, Point } from '@ecorota/shared';
 import { useEffect, useRef, useState } from 'react';
-import * as maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
-// O MapLibre 6 procura o worker ao lado do próprio módulo, arquivo que não existe depois do empacotamento do Vite;
-// importar com ?worker&url faz o Vite gerar o worker com suas dependências e devolver a URL final.
-import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+import { CLEAN_OSM_STYLE, maplibregl } from './maplibre';
 import type { RealtimeRoute } from '../realtime/socketClient';
 import { colors } from '../styles/design-tokens';
 import {
@@ -19,33 +15,8 @@ import {
   routesToFeatureCollection,
 } from './mapUtils';
 
-// Configura a URL do worker uma única vez, antes de qualquer mapa ser criado.
-maplibregl.setWorkerUrl(maplibreWorkerUrl);
-
 // Mantém a exportação antiga para quem já importava a regra de telemetria deste módulo.
 export { isTelemetryStale } from './mapUtils';
-
-// Define um estilo mínimo baseado nos tiles públicos do OpenStreetMap.
-const CLEAN_OSM_STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  sources: {
-    'osm-tiles': {
-      type: 'raster',
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: '© OpenStreetMap contributors',
-    },
-  },
-  layers: [
-    {
-      id: 'osm-tiles-layer',
-      type: 'raster',
-      source: 'osm-tiles',
-      minzoom: 0,
-      maxzoom: 19,
-    },
-  ],
-};
 
 // Define o tempo padrão após o qual uma posição deixa de ser considerada recente.
 const DEFAULT_TELEMETRY_STALE_AFTER_MS = 15_000;
