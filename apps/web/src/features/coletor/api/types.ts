@@ -30,9 +30,25 @@ export interface CollectorAvailability {
   updatedAt: string;
 }
 
+// Um lançamento de pontos (crédito por uma coleta concluída).
+export interface PointsEntry {
+  id: string;
+  requestId: string | null;
+  points: number;
+  reason: string;
+  createdAt: string;
+}
+
+export interface CollectorPoints {
+  balance: number;
+  entries: PointsEntry[];
+}
+
 // Contrato que o front usa. `mock.ts` sempre funciona; `http.ts` fala com a API real (VITE_USE_MOCK=false).
 export interface CollectorApi {
   listTasks(): Promise<CollectorTask[]>;
+  /** Saldo e extrato de pontos (GET /pontuacao/lancamentos, real para morador e coletor). */
+  getPoints(): Promise<CollectorPoints>;
   /** Início do atendimento: assigned -> in_service. Sem isso não dá para concluir. */
   startTask(id: string): Promise<void>;
   /** A API real exige a URL de uma foto como comprovação (POST .../conclusao). */

@@ -4,7 +4,7 @@ import type { RequestStatus } from '@ecorota/shared';
 import { endpoints } from './endpoints';
 import { ApiError } from './errors';
 import type { Material } from '../config';
-import type { CollectorApi, CollectorAvailability, CollectorTask } from './types';
+import type { CollectorApi, CollectorAvailability, CollectorPoints, CollectorTask } from './types';
 
 // Usa VITE_API_URL quando definida (bypassa o proxy do Vite — no Windows ele tenta ::1 e falha contra
 // um Fastify escutando só em IPv4). A API já libera CORS com credenciais para WEB_ORIGIN.
@@ -95,10 +95,22 @@ function fromAvailabilityDTO(dto: AvailabilityDTO): CollectorAvailability {
   return { available: dto.disponivel, shift: dto.turno, syncStatus: dto.statusSincronizacao, updatedAt: dto.atualizadoEm };
 }
 
+interface PointsDTO {
+  saldo: number;
+  dados: Array<{ id: string; solicitacaoId: string | null; pontos: number; motivo: string; criadoEm: string }>;
+}
+
 export const httpApi: CollectorApi = {
   async listTasks() {
     const list = await request<RequestListDTO>('GET', endpoints.tasks);
     return list.dados.map(fromDTO);
+  },
+  async getPoints() {
+    const dto = await request<PointsDTO>('GET', endpoints.points);
+    return {
+      balance: dto.saldo,
+      entries: dto.dados.map((e) => ({ id: e.id, requestId: e.solicitacaoId, points: e.pontos, reason: e.motivo, createdAt: e.criadoEm })),
+    } satisfies CollectorPoints;
   },
   startTask: (id) => request('POST', endpoints.startTask(id)),
   completeTask: (id, photoUrl) => request('POST', endpoints.completeTask(id), { fotoUrl: photoUrl }),

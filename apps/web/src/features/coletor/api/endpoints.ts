@@ -5,4 +5,5 @@ export const endpoints = {
   completeTask: (id: string) => `/solicitacoes-coleta/${id}/conclusao`, // POST — exige { fotoUrl }
   cancelTask: (id: string) => `/solicitacoes-coleta/${id}/cancelamento`, // POST — só MORADOR/OPERADOR; coletor recebe 403
   availability: '/coletor/disponibilidade', // GET/PATCH — { disponivel, turno }
+  points: '/pontuacao/lancamentos', // GET — { saldo, dados }, mesma rota que o morador usa
 } as const;

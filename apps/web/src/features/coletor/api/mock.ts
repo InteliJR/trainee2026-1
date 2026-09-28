@@ -13,7 +13,7 @@ import type { RequestStatus } from '@ecorota/shared';
 import { CANCELABLE_STATUSES, COMPLETABLE_STATUSES, STARTABLE_STATUSES, type Material } from '../config';
 import tasksJson from '../mocks/tasks.json';
 import { ApiError } from './errors';
-import type { CollectorAddress, CollectorApi, CollectorAvailability, CollectorTask } from './types';
+import type { CollectorAddress, CollectorApi, CollectorAvailability, CollectorPoints, CollectorTask } from './types';
 
 const STORAGE_KEY = 'ecorota.mock.coletor.v2';
 const AVAILABILITY_KEY = 'ecorota.mock.coletor.availability.v2';
@@ -165,6 +165,24 @@ export const mockApi: CollectorApi = {
     task.arrivesAt = undefined;
     task.updatedAt = new Date().toISOString();
     save(tasks);
+  },
+
+  async getPoints() {
+    await delay();
+    const tasks = load();
+    advance(tasks);
+    // Deriva o extrato das coletas concluídas no mock, com 15 pontos fixos por coleta (a API real não
+    // expõe essa regra ao front; é só um valor de demonstração).
+    const entries = tasks
+      .filter((t) => t.status === 'completed')
+      .map((t) => ({
+        id: `mock-${t.id}`,
+        requestId: t.id,
+        points: 15,
+        reason: `Coleta concluída (${t.address.street}, ${t.address.number})`,
+        createdAt: t.updatedAt,
+      }));
+    return { balance: entries.reduce((sum, e) => sum + e.points, 0), entries } satisfies CollectorPoints;
   },
 
   async getAvailability() {
