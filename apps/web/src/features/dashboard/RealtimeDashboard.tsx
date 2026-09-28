@@ -2,9 +2,11 @@
  * Painel operacional que liga o hook Socket.IO ao mapa MapLibre.
  * A tela mostra conexão, versão do estado e contagens suficientes para diagnosticar a integração do MVP.
  */
+import { useState } from 'react';
 import { MapContainer } from '../../map/MapContainer';
 import { useTempoReal, type RealtimeConnectionStatus } from '../../realtime/useTempoReal';
 import { KpiCards } from './KpiCards';
+import { RecentRequestsTable } from './RecentRequestsTable';
 import { useIndicadores } from './useIndicadores';
 
 // Traduz os estados internos para rótulos curtos apresentados ao usuário.
@@ -40,10 +42,12 @@ export function RealtimeDashboard() {
     enabled: realtime.connectionStatus === 'conectado',
     refreshKey: realtime.lastRequestEvent,
   });
+  // Ponto escolhido na tabela; o nonce faz o mapa voltar ao ponto mesmo se a mesma linha for clicada de novo.
+  const [focus, setFocus] = useState<{ pointId: string; nonce: number } | null>(null);
 
-  // Mantém cabeçalho, diagnóstico e mapa em uma coluna que ocupa toda a janela.
+  // Em telas largas ocupa a janela inteira com a tabela ao lado do mapa; em telas estreitas empilha e rola.
   return (
-    <main style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', fontFamily: 'sans-serif' }}>
+    <main className="min-h-screen lg:h-screen" style={{ width: '100%', display: 'flex', flexDirection: 'column', fontFamily: 'sans-serif' }}>
       <header style={{ padding: '14px 18px', background: '#FFFFFF', borderBottom: '1px solid #E5E7EB', zIndex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div>
@@ -81,9 +85,18 @@ export function RealtimeDashboard() {
         )}
       </header>
       <KpiCards indicators={indicators} />
-      <section style={{ flex: 1, minHeight: 0 }} aria-label="Visualização da operação">
-        <MapContainer points={points} collectors={collectors} routes={routes} />
-      </section>
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <section className="min-h-[420px] flex-1" aria-label="Visualização da operação">
+          <MapContainer points={points} collectors={collectors} routes={routes} focus={focus} minHeight="420px" />
+        </section>
+        <aside className="h-[420px] border-t border-neutral-200 lg:h-auto lg:w-[360px] lg:border-l lg:border-t-0">
+          <RecentRequestsTable
+            snapshot={realtime.snapshot}
+            lastRequestEvent={realtime.lastRequestEvent}
+            onSelectPoint={(pointId) => setFocus((current) => ({ pointId, nonce: (current?.nonce ?? 0) + 1 }))}
+          />
+        </aside>
+      </div>
     </main>
   );
 }

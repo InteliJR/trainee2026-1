@@ -1,9 +1,18 @@
 import { translateStatus, type RequestStatus } from '@ecorota/shared';
 import { useEffect, useMemo, useState } from 'react';
+import { useTempoReal } from '../../../realtime/useTempoReal';
 import { EcoPageHeader } from '../components/EcoPageHeader';
 import { Icon } from '../components/Icon';
 import { ResidentBottomNav } from '../components/ResidentBottomNav';
+import { ResidentLiveMap } from '../components/ResidentLiveMap';
 import { getResidentRequests, refreshResidentRequests, updateResidentRequest } from '../lib/residentRequests';
+import {
+  applyLiveToRequest,
+  isTrackable,
+  residentRequestKey,
+  resolveResidentLive,
+  type ResidentLiveInfo,
+} from '../lib/residentLive';
 import type { ResidentCollectionRequest } from '../types';
 
 const statusOrder: RequestStatus[] = ['pending', 'assigned', 'in_service', 'completed'];
@@ -29,6 +38,8 @@ export function AcompanharStatusPage() {
   const [selectedRequestId, setSelectedRequestId] = useState(residentRequests[0]?.id ?? '');
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelledIds, setCancelledIds] = useState<string[]>([]);
+  // Recebe pelo Socket.IO o status das solicitações do morador e a posição do coletor que o atende.
+  const realtime = useTempoReal({});
 
   useEffect(() => {
     let active = true;
@@ -47,12 +58,19 @@ export function AcompanharStatusPage() {
   const requests = useMemo(
     () =>
       residentRequests.map((request) =>
-        cancelledIds.includes(request.id) ? { ...request, status: 'cancelled' as const } : request,
+        cancelledIds.includes(request.id)
+          ? { ...request, status: 'cancelled' as const }
+          // Aplica o status ao vivo; sem conexão ou sem a solicitação no snapshot, mantém o dado local.
+          : applyLiveToRequest(request, resolveResidentLive(realtime.snapshot, residentRequestKey(request))),
       ),
-    [cancelledIds, residentRequests],
+    [cancelledIds, residentRequests, realtime.snapshot],
   );
 
   const selectedRequest = requests.find((request) => request.id === selectedRequestId) ?? requests[0];
+  const selectedLive = selectedRequest
+    ? resolveResidentLive(realtime.snapshot, residentRequestKey(selectedRequest))
+    : null;
+  const isLive = realtime.connectionStatus === 'conectado';
 
   function cancelSelectedRequest() {
     if (!selectedRequest) {
@@ -80,6 +98,13 @@ export function AcompanharStatusPage() {
             title="Acompanhar status"
           />
 
+          {isLive ? (
+            <p role="status" className="flex items-center gap-2 text-sm font-semibold text-brand-700">
+              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand-600" />
+              Atualizando ao vivo
+            </p>
+          ) : null}
+
           <div className="grid gap-3">
             {requests.map((request) => (
               <RequestListButton
@@ -97,6 +122,7 @@ export function AcompanharStatusPage() {
 
         {selectedRequest ? (
           <StatusDetail
+            live={selectedRequest.status === 'cancelled' ? null : selectedLive}
             onCancel={cancelSelectedRequest}
             onCancelIntent={() => setShowCancelConfirm(true)}
             onKeepRequest={() => setShowCancelConfirm(false)}
@@ -146,6 +172,7 @@ function RequestListButton({ request, isSelected, onSelect }: RequestListButtonP
 
 interface StatusDetailProps {
   request: ResidentCollectionRequest;
+  live: ResidentLiveInfo | null;
   showCancelConfirm: boolean;
   onCancelIntent: () => void;
   onCancel: () => void;
@@ -154,6 +181,7 @@ interface StatusDetailProps {
 
 function StatusDetail({
   request,
+  live,
   showCancelConfirm,
   onCancelIntent,
   onCancel,
@@ -263,6 +291,8 @@ function StatusDetail({
           </div>
         </aside>
       </div>
+
+      {isTrackable(live) ? <ResidentLiveMap point={live.point} collector={live.collector} /> : null}
 
       {request.status === 'completed' ? (
         <div role="status" className="mt-6 rounded-lg border border-brand-100 bg-brand-50 p-4">

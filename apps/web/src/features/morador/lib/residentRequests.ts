@@ -12,6 +12,7 @@ export interface CreateRequestResult {
 interface ApiRequestResponse {
   id?: string;
   externalReference?: string;
+  referenciaExterna?: string;
   status?: ResidentCollectionRequest['status'];
   createdAt?: string;
 }
@@ -104,6 +105,7 @@ export async function createResidentRequest(draft: ResidentRequestDraft): Promis
     const apiRequest = (await response.json().catch(() => ({}))) as ApiRequestResponse;
     const request = buildResidentRequest(draft, {
       id: apiRequest.id ?? apiRequest.externalReference ?? payload.externalReference,
+      externalReference: apiRequest.referenciaExterna ?? apiRequest.externalReference ?? payload.externalReference,
       status: apiRequest.status ?? 'pending',
     });
     updateResidentRequest(request);
@@ -111,6 +113,7 @@ export async function createResidentRequest(draft: ResidentRequestDraft): Promis
   } catch {
     const request = buildResidentRequest(draft, {
       id: payload.externalReference,
+      externalReference: payload.externalReference,
       status: 'pending',
     });
     updateResidentRequest(request);
@@ -120,7 +123,7 @@ export async function createResidentRequest(draft: ResidentRequestDraft): Promis
 
 function buildResidentRequest(
   draft: ResidentRequestDraft,
-  result: { id: string; status: ResidentCollectionRequest['status'] },
+  result: { id: string; externalReference: string; status: ResidentCollectionRequest['status'] },
 ): ResidentCollectionRequest {
   const point = collectionPoints.find((item) => item.id === draft.pointId)!;
   const material = materialOptions.find((item) => item.id === draft.materialId)!;
@@ -128,6 +131,7 @@ function buildResidentRequest(
   const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   return {
     id: result.id,
+    externalReference: result.externalReference,
     protocol: `ECO-${result.id.slice(-6).toUpperCase()}`,
     materialId: material.id,
     materialName: material.name,

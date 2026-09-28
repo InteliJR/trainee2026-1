@@ -7,13 +7,19 @@ import type { Collector, Point } from '@ecorota/shared';
 import { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+// O MapLibre 6 procura o worker ao lado do próprio módulo, arquivo que não existe depois do empacotamento do Vite;
+// importar com ?worker&url faz o Vite gerar o worker com suas dependências e devolver a URL final.
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import type { RealtimeRoute } from '../realtime/socketClient';
 import {
-  formatTelemetryAge,
+  formatAge,
   interpolateLngLat,
   isTelemetryStale,
   routesToFeatureCollection,
 } from './mapUtils';
+
+// Configura a URL do worker uma única vez, antes de qualquer mapa ser criado.
+maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
 // Mantém a exportação antiga para quem já importava a regra de telemetria deste módulo.
 export { isTelemetryStale } from './mapUtils';
@@ -62,6 +68,10 @@ interface MapContainerProps {
   zoom?: number;
   // Permite alinhar o limite de telemetria com uma futura configuração do backend.
   telemetryStaleAfterMs?: number;
+  // Centraliza o mapa em um ponto e abre seu popup; o nonce permite repetir o foco no mesmo ponto.
+  focus?: { pointId: string; nonce: number } | null;
+  // Altura mínima do contêiner; mapas embutidos em cards usam um valor menor.
+  minHeight?: string;
 }
 
 // Agrupa o marcador de um ponto com os nós que precisam ser atualizados sem recriá-lo.
@@ -89,6 +99,8 @@ export function MapContainer({
   center = [-46.66, -23.57],
   zoom = 12,
   telemetryStaleAfterMs = DEFAULT_TELEMETRY_STALE_AFTER_MS,
+  focus = null,
+  minHeight = '500px',
 }: MapContainerProps) {
   // Guarda o elemento DOM em que o MapLibre montará seu canvas.
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -100,6 +112,8 @@ export function MapContainer({
   const collectorMarkersRef = useRef(new Map<string, CollectorMarkerEntry>());
   // Preserva a primeira configuração recebida, pois centro e zoom são valores de inicialização.
   const initialViewRef = useRef({ center, zoom });
+  // Garante que o enquadramento automático nos pontos aconteça só uma vez, sem brigar com o usuário depois.
+  const hasFittedRef = useRef(false);
   // Impede o desenho de marcadores antes que o estilo termine de carregar.
   const [mapLoaded, setMapLoaded] = useState(false);
   // Atualiza periodicamente a referência de tempo usada para marcar telemetria antiga.
@@ -208,6 +222,14 @@ export function MapContainer({
       entry.marker.remove();
       entries.delete(id);
     });
+
+    // Na primeira vez em que há pontos, enquadra todos, pois o centro inicial é só uma estimativa.
+    if (!hasFittedRef.current && points.length > 0) {
+      hasFittedRef.current = true;
+      const bounds = new maplibregl.LngLatBounds();
+      points.forEach((point) => bounds.extend(point.coordinates));
+      map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 0 });
+    }
   }, [mapLoaded, points]);
 
   // Sincroniza os coletores: move o mesmo marcador, atualiza aparência e popup e remove os que sumiram.
@@ -268,9 +290,20 @@ export function MapContainer({
     source?.setData(routesToFeatureCollection(routes));
   }, [mapLoaded, routes]);
 
+  // Leva a câmera até o ponto escolhido e abre seu popup, depois que o marcador já existe.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!mapLoaded || !map || !focus) return;
+    const entry = pointMarkersRef.current.get(focus.pointId);
+    if (!entry) return;
+    map.flyTo({ center: entry.marker.getLngLat(), zoom: Math.max(map.getZoom(), 14), essential: true });
+    // Abre o popup só se ainda estiver fechado; togglePopup fecharia um popup já aberto.
+    if (!entry.marker.getPopup()?.isOpen()) entry.marker.togglePopup();
+  }, [focus, mapLoaded]);
+
   // Mantém o canvas ocupando toda a área entregue pelo componente pai.
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: '500px', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', minHeight, position: 'relative' }}>
       <div
         ref={mapContainerRef}
         aria-label="Mapa operacional com pontos de coleta, coletores e rotas"
@@ -321,7 +354,7 @@ function pointFields(point: Point): Array<[string, string]> {
 
 // Lista as informações exibidas no popup de um coletor, incluindo há quanto tempo veio a última posição.
 function collectorFields(collector: Collector, stale: boolean, now: number): Array<[string, string]> {
-  const age = formatTelemetryAge(collector.observedAt, now);
+  const age = formatAge(collector.observedAt, now);
   return [
     ['Origem', collector.origin],
     ['Status', collector.status],
@@ -350,9 +383,15 @@ function createPointElement(point: Point): HTMLDivElement {
     fontSize: '11px',
     fontWeight: 'bold',
   });
-  // Usa somente um fragmento curto do ID para diferenciar visualmente os pontos próximos.
-  element.innerText = point.id.split('-')[1] || 'P';
+  // Usa o número do nome ("Ponto 01" → "01"); IDs da EcoRota são UUIDs e não servem como rótulo.
+  element.innerText = pointLabel(point);
   return element;
+}
+
+// Extrai um rótulo curto para o marcador a partir do nome do ponto.
+function pointLabel(point: Point): string {
+  const number = point.name.match(/\d+/)?.[0];
+  return number ?? 'P';
 }
 
 // Constrói o símbolo do veículo; a aparência de telemetria é aplicada separadamente.

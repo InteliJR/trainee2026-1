@@ -6,7 +6,9 @@ import { describe, expect, it } from 'vitest';
 import type { RealtimeRoute } from '../realtime/socketClient';
 import {
   ROUTE_COLORS,
-  formatTelemetryAge,
+  distanceMeters,
+  formatDistance,
+  formatAge,
   interpolateLngLat,
   isTelemetryStale,
   routeColorFor,
@@ -45,19 +47,19 @@ describe('isTelemetryStale', () => {
   });
 });
 
-describe('formatTelemetryAge', () => {
+describe('formatAge', () => {
   it('usa segundos, minutos e horas conforme a idade', () => {
-    expect(formatTelemetryAge('2026-09-27T11:59:18.000Z', NOW)).toBe('há 42 s');
-    expect(formatTelemetryAge('2026-09-27T11:55:00.000Z', NOW)).toBe('há 5 min');
-    expect(formatTelemetryAge('2026-09-27T09:00:00.000Z', NOW)).toBe('há 3 h');
+    expect(formatAge('2026-09-27T11:59:18.000Z', NOW)).toBe('há 42 s');
+    expect(formatAge('2026-09-27T11:55:00.000Z', NOW)).toBe('há 5 min');
+    expect(formatAge('2026-09-27T09:00:00.000Z', NOW)).toBe('há 3 h');
   });
 
   it('não mostra idade negativa quando o relógio do servidor está adiantado', () => {
-    expect(formatTelemetryAge('2026-09-27T12:00:05.000Z', NOW)).toBe('há 0 s');
+    expect(formatAge('2026-09-27T12:00:05.000Z', NOW)).toBe('há 0 s');
   });
 
   it('avisa quando não há data válida', () => {
-    expect(formatTelemetryAge('', NOW)).toBe('sem registro');
+    expect(formatAge('', NOW)).toBe('sem registro');
   });
 });
 
@@ -96,5 +98,21 @@ describe('routeColorFor', () => {
   it('é estável para o mesmo coletor e sempre vem da paleta', () => {
     expect(routeColorFor('coletor-7')).toBe(routeColorFor('coletor-7'));
     expect(ROUTE_COLORS).toContain(routeColorFor('qualquer-id'));
+  });
+});
+
+describe('distanceMeters', () => {
+  it('é zero para o mesmo ponto e mede cerca de 111 km por grau de latitude', () => {
+    expect(distanceMeters([-46.66, -23.57], [-46.66, -23.57])).toBe(0);
+    const oneDegree = distanceMeters([0, 0], [0, 1]);
+    expect(oneDegree).toBeGreaterThan(111_000);
+    expect(oneDegree).toBeLessThan(111_400);
+  });
+});
+
+describe('formatDistance', () => {
+  it('usa metros arredondados abaixo de 1 km e quilômetros acima', () => {
+    expect(formatDistance(234)).toBe('230 m');
+    expect(formatDistance(1_250)).toBe('1,3 km');
   });
 });

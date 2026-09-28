@@ -29,8 +29,8 @@ export function isTelemetryStale(observedAt: string, now: number, staleAfterMs: 
   return now - observedTime > staleAfterMs;
 }
 
-// Descreve há quanto tempo a última posição foi observada, em um texto curto para o popup.
-export function formatTelemetryAge(observedAt: string, now: number): string {
+// Descreve há quanto tempo algo aconteceu (posição, atualização de solicitação) em um texto curto.
+export function formatAge(observedAt: string, now: number): string {
   // Converte a data ISO; uma data inválida não permite afirmar idade alguma.
   const observedTime = Date.parse(observedAt);
   if (Number.isNaN(observedTime)) return 'sem registro';
@@ -80,4 +80,21 @@ export function routesToFeatureCollection(routes: RealtimeRoute[]): RouteFeature
         geometry: { type: 'LineString', coordinates: route.geometry.coordinates },
       })),
   };
+}
+
+// Calcula a distância em metros entre duas coordenadas [longitude, latitude] pela fórmula de haversine.
+export function distanceMeters(a: [number, number], b: [number, number]): number {
+  const earthRadius = 6_371_000;
+  const toRadians = (degrees: number): number => (degrees * Math.PI) / 180;
+  const deltaLat = toRadians(b[1] - a[1]);
+  const deltaLng = toRadians(b[0] - a[0]);
+  const h = Math.sin(deltaLat / 2) ** 2
+    + Math.cos(toRadians(a[1])) * Math.cos(toRadians(b[1])) * Math.sin(deltaLng / 2) ** 2;
+  return 2 * earthRadius * Math.asin(Math.sqrt(h));
+}
+
+// Formata uma distância para leitura rápida: metros até 1 km, depois quilômetros com uma casa.
+export function formatDistance(meters: number): string {
+  if (meters < 1_000) return `${Math.round(meters / 10) * 10} m`;
+  return `${(meters / 1_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km`;
 }
