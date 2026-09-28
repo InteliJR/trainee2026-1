@@ -30,7 +30,10 @@ export default function LoginPage() {
       await login(email, password);
       navigate(from, { replace: true });
     } catch (err) {
-      setError(statusOf(err) === 401 ? MESSAGES.wrongCredentials : friendlyError(err, MESSAGES.actionError));
+      const status = statusOf(err);
+      setError(
+        status === 401 ? MESSAGES.wrongCredentials : status === 403 ? MESSAGES.wrongRole : friendlyError(err, MESSAGES.actionError),
+      );
       setSubmitting(false);
     }
   }
