@@ -1,10 +1,11 @@
 /**
  * Testes das traduções entre a API em português e os tipos das telas do morador.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   addressToApi,
   desiredDateToIso,
+  fetchResidentRequests,
   pointFromApi,
   requestFromApi,
   validateAddress,
@@ -55,6 +56,29 @@ describe('pointFromApi', () => {
     const point = pointFromApi({ ...POINT, tipo: 'ADICIONAL', distanciaKm: null });
     expect(point.kind).toBe('additional');
     expect(point.distanceKm).toBe(0);
+  });
+});
+
+describe('fetchResidentRequests', () => {
+  it('inclui todas as páginas para o resumo contar todas as coletas', async () => {
+    const paths: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: string) => {
+      const path = String(input);
+      paths.push(path);
+      const data = path.includes('/pontos-coleta')
+        ? { dados: [] }
+        : path.includes('pagina=2')
+          ? { dados: [createRequestDto({ id: 'segunda-coleta', status: 'CONCLUIDA' })] }
+          : { dados: [createRequestDto({ id: 'primeira-coleta', status: 'CONCLUIDA' })], paginacao: { totalPaginas: 2 } };
+      return { ok: true, json: async () => data };
+    }));
+    try {
+      const requests = await fetchResidentRequests();
+      expect(requests.map((request) => request.id)).toEqual(['primeira-coleta', 'segunda-coleta']);
+      expect(paths.some((path) => path.includes('pagina=2&limite=100'))).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

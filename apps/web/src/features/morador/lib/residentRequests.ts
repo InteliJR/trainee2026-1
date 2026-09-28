@@ -48,6 +48,11 @@ export function getResidentRequests(): ResidentCollectionRequest[] {
   return [...stored, ...residentRequests.filter((mock) => !stored.some((item) => item.id === mock.id))];
 }
 
+// O resumo pessoal usa apenas solicitações retornadas pela API, nunca os exemplos da demonstração.
+export function getCachedResidentRequests(): ResidentCollectionRequest[] | null {
+  return readList(API_CACHE_KEY);
+}
+
 // Atualiza uma solicitação na lista de onde ela veio (cache da API ou demonstração).
 export function updateResidentRequest(request: ResidentCollectionRequest) {
   const fromApi = readList(API_CACHE_KEY);

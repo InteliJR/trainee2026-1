@@ -193,11 +193,16 @@ export async function fetchCollectionPoints(near?: { latitude: number; longitude
 
 // Solicitações do morador autenticado, já no formato das telas.
 export async function fetchResidentRequests(): Promise<ResidentCollectionRequest[]> {
-  const [{ dados }, points] = await Promise.all([
-    apiRequest<{ dados: RequestDTO[] }>('GET', '/solicitacoes-coleta'),
+  const [firstPage, points] = await Promise.all([
+    apiRequest<{ dados: RequestDTO[]; paginacao: { totalPaginas: number } }>('GET', '/solicitacoes-coleta?pagina=1&limite=100'),
     // Sem os pontos, as solicitações aparecem com nome genérico em vez de falhar a tela inteira.
     apiRequest<{ dados: PointDTO[] }>('GET', '/pontos-coleta').then((response) => response.dados).catch(() => [] as PointDTO[]),
   ]);
+  const dados = [...firstPage.dados];
+  for (let page = 2; page <= firstPage.paginacao.totalPaginas; page += 1) {
+    const next = await apiRequest<{ dados: RequestDTO[] }>('GET', `/solicitacoes-coleta?pagina=${page}&limite=100`);
+    dados.push(...next.dados);
+  }
   const pointNames = new Map(points.map((point) => [point.id, point.nome]));
   return dados.map((dto) => requestFromApi(dto, pointNames));
 }
