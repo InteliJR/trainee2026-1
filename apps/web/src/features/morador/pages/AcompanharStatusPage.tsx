@@ -36,7 +36,8 @@ const statusHelper: Record<RequestStatus, string> = {
 export function AcompanharStatusPage() {
   const [residentRequests, setResidentRequests] = useState(getResidentRequests);
   const [selectedRequestId, setSelectedRequestId] = useState(residentRequests[0]?.id ?? '');
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  // RN01 exige confirmação dupla: 0 = nada, 1 = primeira etapa, 2 = etapa final (cancela de fato).
+  const [cancelStep, setCancelStep] = useState<0 | 1 | 2>(0);
   const [cancelledIds, setCancelledIds] = useState<string[]>([]);
   const [cancelError, setCancelError] = useState('');
   // Recebe pelo Socket.IO o status das solicitações do morador e a posição do coletor que o atende.
@@ -90,7 +91,7 @@ export function AcompanharStatusPage() {
       previous.includes(selectedRequest.id) ? previous : [...previous, selectedRequest.id],
     );
     setResidentRequests(getResidentRequests());
-    setShowCancelConfirm(false);
+    setCancelStep(0);
   }
 
   return (
@@ -119,7 +120,7 @@ export function AcompanharStatusPage() {
                 key={request.id}
                 onSelect={() => {
                   setSelectedRequestId(request.id);
-                  setShowCancelConfirm(false);
+                  setCancelStep(0);
                   setCancelError('');
                 }}
                 request={request}
@@ -133,13 +134,14 @@ export function AcompanharStatusPage() {
             live={selectedRequest.status === 'cancelled' ? null : selectedLive}
             cancelError={cancelError}
             onCancel={() => void cancelSelectedRequest()}
-            onCancelIntent={() => setShowCancelConfirm(true)}
+            onCancelIntent={() => setCancelStep(1)}
+            onCancelConfirm={() => setCancelStep(2)}
             onKeepRequest={() => {
-              setShowCancelConfirm(false);
+              setCancelStep(0);
               setCancelError('');
             }}
             request={selectedRequest}
-            showCancelConfirm={showCancelConfirm}
+            cancelStep={cancelStep}
           />
         ) : (
           <EmptyState />
@@ -186,8 +188,10 @@ interface StatusDetailProps {
   request: ResidentCollectionRequest;
   live: ResidentLiveInfo | null;
   cancelError: string;
-  showCancelConfirm: boolean;
+  // RN01: 0 = nada, 1 = primeira confirmação, 2 = confirmação final (cancela de fato).
+  cancelStep: 0 | 1 | 2;
   onCancelIntent: () => void;
+  onCancelConfirm: () => void;
   onCancel: () => void;
   onKeepRequest: () => void;
 }
@@ -196,8 +200,9 @@ function StatusDetail({
   request,
   live,
   cancelError,
-  showCancelConfirm,
+  cancelStep,
   onCancelIntent,
+  onCancelConfirm,
   onCancel,
   onKeepRequest,
 }: StatusDetailProps) {
@@ -317,10 +322,36 @@ function StatusDetail({
 
       {canCancel && request.status !== 'cancelled' ? (
         <div className="mt-6 border-t border-neutral-200 pt-4">
-          {showCancelConfirm ? (
+          {cancelStep === 2 ? (
+            <div className="grid gap-3 rounded-lg border border-danger-200 bg-danger-50 p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+              <p className="text-sm font-semibold leading-6 text-danger-800">
+                Tem certeza? Depois de cancelada, não dá para desfazer.
+              </p>
+              <button
+                className="eco-secondary-button inline-flex min-h-touch items-center justify-center gap-2 rounded-md border border-neutral-300 px-4 text-sm font-bold text-neutral-700 transition hover:border-brand-300 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-operational-500"
+                onClick={onKeepRequest}
+                type="button"
+              >
+                Voltar
+              </button>
+              <button
+                className="inline-flex min-h-touch items-center justify-center gap-2 rounded-md bg-danger-600 px-4 text-sm font-bold text-white transition hover:bg-danger-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-600"
+                onClick={onCancel}
+                type="button"
+              >
+                <Icon name="x" className="h-4 w-4" />
+                Sim, cancelar coleta
+              </button>
+              {cancelError ? (
+                <p role="alert" className="text-sm font-semibold text-danger-800 sm:col-span-3">
+                  {cancelError}
+                </p>
+              ) : null}
+            </div>
+          ) : cancelStep === 1 ? (
             <div className="grid gap-3 rounded-lg border border-danger-200 bg-danger-50 p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
               <p className="text-sm leading-6 text-danger-800">
-                Tem certeza? Cancelar remove esta coleta da fila, mas ela continua no histórico.
+                Cancelar remove esta coleta da fila, mas ela continua no histórico.
               </p>
               <button
                 className="eco-secondary-button inline-flex min-h-touch items-center justify-center gap-2 rounded-md border border-neutral-300 px-4 text-sm font-bold text-neutral-700 transition hover:border-brand-300 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-operational-500"
@@ -331,17 +362,12 @@ function StatusDetail({
               </button>
               <button
                 className="inline-flex min-h-touch items-center justify-center gap-2 rounded-md bg-danger-600 px-4 text-sm font-bold text-white transition hover:bg-danger-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-600"
-                onClick={onCancel}
+                onClick={onCancelConfirm}
                 type="button"
               >
                 <Icon name="x" className="h-4 w-4" />
                 Cancelar
               </button>
-              {cancelError ? (
-                <p role="alert" className="text-sm font-semibold text-danger-800 sm:col-span-3">
-                  {cancelError}
-                </p>
-              ) : null}
             </div>
           ) : (
             <button
