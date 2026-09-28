@@ -122,3 +122,25 @@ Esta seção descreve os requisitos funcionais e não funcionais da aplicação 
 | RNF06 | REST | A integração com coleta deve usar obrigatoriamente a API EcoRota fornecida | RF14 |
 | RNF07 | SUP | A arquitetura deve separar claramente a lógica de negócio da integração com a API externa (EcoRota), permitindo evoluí-la sem afetar as demais camadas | RF14 |
 | RNF08 | USAB | A interface do coletor deve ser acessível a coletores autônomos, com baixo letramento digital, priorizando textos curtos, ícones claros, alto contraste e poucos passos por ação (evitando fluxos complexos ou dependentes de leitura extensa) | RF08, RF09, RF10 |
+
+# Documentação sobre pontos importantes
+1. Segmentação de perfis mais rica que a do case
+O Cataki não trabalha só com "morador/coletor". Ele separa catador autônomo, cooperativa, comprador de material (ferro-velho, indústria recicladora), ponto de reuso, reutilização artística, coleta especial etc. Isso pode virar um insight de produto: a EcoRota poderia (ou não, dependendo do escopo que vocês quiserem assumir) prever que "coletor" não é um perfil único - tem cooperativa vs autônomo, cada um com capacidade e regras diferentes. Isso conecta direto com a distinção da API entre coletores system e custom.
+
+2. Filtragem por tipo de material como filtro central de descoberta
+No Cataki, o match entre gerador e catador é feito primeiro pelo tipo de material (pilha, eletrônico, entulho, óleo, PET, papelão, vidro, etc.), não só pela localização. Isso é um insight forte pra frente "Descoberta" do case: em vez de só mostrar coletores próximos, filtrar por "o que esse coletor recolhe" evita o problema citado no PDF de "coletor vai até endereço com volume menor que o esperado" — o mismatch de expectativa.
+
+3. Disponibilidade por dia/período, não só "coleta agora"
+O cadastro do catador no Cataki pede dias da semana + turno (manhã/tarde/noite) em que ele trabalha. Isso é diretamente aplicável à frente "Operação" do case — ajuda a resolver "como dar ao coletor uma rotina organizada" combinando disponibilidade declarada com as solicitações recebidas.
+
+4. Negociação de valor é fora do app
+No Cataki, o app não processa pagamento — só aproxima as partes e o valor é combinado direto entre gerador e catador. É um insight útil de escopo: mostra que dá pra ter uma solução completa e confiável sem necessariamente resolver pagamento/monetização dentro do MVP, algo que o case de vocês também não exige explicitamente.
+
+5. Cadastro guiado por fases (onboarding em etapas)
+O fluxo de cadastro do Cataki é bem fatiado (Fase 1, 2, 3...) por tipo de usuário. É um bom padrão de UX pra "Coleta" e "Descoberta": em vez de um formulário genérico, perguntas condicionais que mudam conforme o perfil (residência vs condomínio vs comércio, tipo de material, etc.).
+
+6. Ele resolve confiança de um jeito diferente: reputação social, não gamificação
+O Cataki foca em dignificar o catador (é ligado ao movimento Pimp My Carroça) e não tem um sistema de pontos/gamificação visível — o "retorno" pro usuário é mais um discurso de impacto social do que um mecanismo de engajamento. Isso é um contraste interessante com a frente "Engajamento" do case, que pede explicitamente pontos/benefícios/reconhecimento — ou seja, aqui a EcoRota tem uma oportunidade de diferenciação real (o Cataki não faz isso bem).
+
+7. Escala e ausência de tempo real
+O Cataki não tem tracking em tempo real do catador (ao contrário da API da EcoRota, que oferece WebSocket para localização/rota/atendimento). Isso é um ponto forte a explorar: a proposta de valor da EcoRota pode ser justamente "visibilidade em tempo real" como diferencial competitivo frente a soluções existentes tipo Cataki, que dependem de contato direto por telefone.

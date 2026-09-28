@@ -86,13 +86,14 @@ trainee2026-1/
 ### 🛠️ Dev 1 — Backend Puro (START IMEDIATO)
 > **Foco:** Motor de integração EcoRota, Banco de Dados PostgreSQL (Prisma) e Autenticação.
 
-* [ ] **Task 1.1 (Dias 1–2):** Implementar o consumidor WebSocket da EcoRota em `apps/api/src/integration/ws/`.
+* [x] **Task 1.1 (Dias 1–2):** Implementar o consumidor WebSocket da EcoRota em `apps/api/src/integration/ws/`.
   * Tratar recepção do `snapshot` inicial (substituição total).
   * Deduplicar eventos por `id` e descartar atualizações com `revision` inferior.
   * Tratar desconexão com backoff exponencial + aleatoriedade (jitter).
-* [ ] **Task 1.2 (Dia 3):** Criar a estrutura `OperationState` em `apps/api/src/integration/operation-state/` para manter os 12 pontos, coletores e rotas salvos em memória.
-* [ ] **Task 1.3 (Dias 4–5):** Configurar o Prisma ORM com PostgreSQL em `apps/api/prisma/schema.prisma` e criar as tabelas `User`, `Address`, `CollectorProfile` (diferenciando `system` vs `custom` e disponibilidade por turno), `Request` e `PointsLog`.
-* [ ] **Task 1.4 (Dias 5–6):** Criar os endpoints de Autenticação (`POST /auth/register`, `POST /auth/login`) com JWT em cookies `httpOnly` e middlewares de permissão (RBAC).
+* [x] **Task 1.2 (Dia 3):** Criar a estrutura `OperationState` em `apps/api/src/integration/operation-state/` para manter pontos, coletores, rotas e solicitações em memória.
+* [x] **Task 1.3 (Dias 4–5):** Configurar o Prisma ORM com PostgreSQL em `apps/api/prisma/schema.prisma` e implementar a modelagem persistente do WAD.
+* [x] **Task 1.4:** Criar cadastro, login, sessão e logout em `/api/v1/autenticacao`, com bcrypt, JWT em cookie `httpOnly`, confirmação do papel no banco e guards RBAC.
+* [x] **Task 1.5 (Backend operacional):** Criar `GET /api/v1/operacao/indicadores`, combinando agregações históricas do PostgreSQL com KPIs do cache memorizados por geração/revisão.
 
 ---
 
@@ -121,15 +122,16 @@ trainee2026-1/
 ### 👑 Dev 4 — Misto (Backend Realtime + Front Dashboard)
 > **Foco:** Dashboard em Tempo Real (MapLibre + Socket.IO) e ponte de comunicação.
 
-* [ ] **Task 4.1 (Dias 1–3 - Front):** Criar o componente de mapa com MapLibre em `apps/web/src/map/MapContainer.tsx`.
-  * Plotar os 12 pontos de coleta com coordenadas GeoJSON.
-  * Renderizar os coletores no mapa usando posições mockadas.
-* [ ] **Task 4.2 (Dias 4–5 - Back):** Configurar o servidor Socket.IO em `apps/api/src/realtime/socketServer.ts`.
-  * Escutar as atualizações do `OperationState` (do Dev 1) e emitir os eventos `collector.position_updated` para o frontend.
-  * Criar a rota `GET /dashboard/stats` pré-computando KPIs do cache.
-* [ ] **Task 4.3 (Dias 6–7 - Front):** Conectar o Dashboard ao Socket.IO real.
+* [x] **Task 4.1 (Dias 1–3 - Front):** Criar o componente de mapa com MapLibre em `apps/web/src/map/MapContainer.tsx`.
+  * Plotar os pontos autorizados pelo snapshot com coordenadas GeoJSON.
+  * Renderizar os coletores no mapa sem dados mockados e sem fallback do Google Maps.
+* [x] **Task 4.2 (Dias 4–5 - Back):** Configurar o servidor Socket.IO em `apps/api/src/realtime/socketServer.ts`.
+  * Escutar o `OperationState`, filtrar snapshots e emitir eventos em português somente para salas autorizadas.
+  * O cliente React reutilizável foi preparado em `apps/web/src/realtime/socketClient.ts`.
+* [x] **Task 4.3 (Dias 6–7 - Front):** Conectar o Dashboard ao Socket.IO real.
   * Fazer os coletores **se moverem ao vivo no mapa** sem dar refresh na página!
   * Tratar coletores com telemetria desatualizada (deixando o marcador transparente no mapa caso o `observedAt` seja antigo).
+  * Exibir conexão/reconexão e aplicar deltas somente quando geração e revisão forem válidas.
 * [ ] **Task 4.4 (Dias 8–9 - Front/Back):** Montar a tabela de solicitações recentes e conectar os eventos de status no mapa dos moradores.
 * [ ] **Task 4.5 (Dia 10 - Integração Total):** Liderar a bateria de testes integrados e realizar o deploy único (Render/Railway).
 

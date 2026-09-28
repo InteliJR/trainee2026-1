@@ -1,3 +1,4 @@
+# Ignora diretórios temporários chamados docs produzidos por ferramentas, sem excluir documents/.
 *docs/
 
 # Secrets — nunca commitar credenciais

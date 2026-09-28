@@ -1,0 +1,3 @@
+# Não edite este arquivo manualmente.
+# Ele deve ser versionado junto com as migrations.
+provider = "postgresql"
