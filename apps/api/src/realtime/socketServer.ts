@@ -21,6 +21,7 @@ import {
 } from '../integration/operation-state/index.js';
 // Importa os contratos que consultam no banco quem pode receber cada informação.
 import type { RealtimeAccessRepository, RealtimeActor } from './realtimeAccess.repository.js';
+import type { LocalCollectorSimulation, LocalSimulationState } from '../modules/local-simulation/localCollectorSimulation.js';
 
 // Agrupa os tipos externos que carregam uma solicitação completa dentro do campo data.
 const REQUEST_EVENT_TYPES = new Set([
@@ -44,6 +45,7 @@ interface ServerToClientEvents {
   'operacao:estado-inicial': (snapshot: OperationStateSnapshot) => void;
   // Entrega um novo estado filtrado quando a EcoRota envia um snapshot integral.
   'operacao:estado-atualizado': (snapshot: OperationStateSnapshot) => void;
+  'simulacao-local:estado': (state: LocalSimulationState) => void;
 }
 
 // Especializa o Socket.IO para garantir que cada conexão autorizada possua um ator confirmado no banco.
@@ -68,6 +70,7 @@ export interface RealtimeBrokerOptions {
   accessRepository: RealtimeAccessRepository;
   // Permite substituir o cache global por um cache isolado em testes.
   state?: OperationStateStore;
+  localSimulation?: LocalCollectorSimulation;
 }
 
 // Expõe os recursos necessários para observar e encerrar a integração Socket.IO.
@@ -197,12 +200,15 @@ export function createRealtimeBroker(
       // Busca no banco as solicitações que o usuário pode visualizar neste momento.
       const allowed = await options.accessRepository.listAllowedExternalReferences(actor);
       // Envia o primeiro estado para que a tela seja preenchida sem aguardar o próximo evento externo.
-      socket.emit(
-        // Usa um nome público em português para padronizar o contrato com o frontend.
-        'operacao:estado-inicial',
-        // Filtra o cache atual antes de expor qualquer solicitação ou rota ao navegador.
-        filterSnapshotForActor(state.getSnapshot(), actor, new Set(allowed)),
-      );
+       socket.emit(
+         // Usa um nome público em português para padronizar o contrato com o frontend.
+         'operacao:estado-inicial',
+         // Filtra o cache atual antes de expor qualquer solicitação ou rota ao navegador.
+         filterSnapshotForActor(state.getSnapshot(), actor, new Set(allowed)),
+       );
+       if (actor.role === 'OPERADOR' && options.localSimulation) {
+         socket.emit('simulacao-local:estado', options.localSimulation.getSnapshot());
+       }
     } catch (error) {
       // Registra qual usuário não teve o estado inicial montado, sem enviar detalhes ao cliente.
       app.log.error({ err: error, userId: actor.id }, 'Falha ao montar estado inicial do Socket.IO.');
@@ -218,6 +224,9 @@ export function createRealtimeBroker(
   };
   // Registra o callback e guarda a função que removerá o listener no encerramento.
   const unsubscribe = state.onUpdate(forwardUpdate);
+  const unsubscribeLocal = options.localSimulation?.onUpdate((simulationState) => {
+    namespace.to(roleRoom('OPERADOR')).emit('simulacao-local:estado', simulationState);
+  });
 
   // Devolve as referências usadas pelo bootstrap, pelos testes e pelo shutdown.
   return {
@@ -229,6 +238,7 @@ export function createRealtimeBroker(
     close: async () => {
       // Remove o listener do cache para impedir emissões depois do shutdown.
       unsubscribe();
+      unsubscribeLocal?.();
       // Desconecta todos os navegadores ligados especificamente ao namespace da aplicação.
       namespace.disconnectSockets(true);
       // Encerra os transportes WebSocket e polling administrados pelo Engine.IO.

@@ -37,12 +37,15 @@ import { CollectorService } from './modules/collectors/collector.service.js';
 import { PrismaAuthRepository } from './modules/auth/auth.repository.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { AuthService } from './modules/auth/auth.service.js';
+import type { LocalCollectorSimulation } from './modules/local-simulation/localCollectorSimulation.js';
+import { localSimulationRoutes } from './modules/local-simulation/localSimulation.routes.js';
 
 // Permite injetar banco, integrações, ambiente e logger para produção ou testes isolados.
 export interface BuildAppOptions {
   healthRepository: HealthRepository;
   database?: PrismaClient;
   ecoRotaClient?: EcoRotaClient;
+  localSimulation?: LocalCollectorSimulation;
   streamStatusProvider?: () => StreamStatus;
   nodeEnv?: NodeEnvironment;
   jwtSecret?: string;
@@ -136,6 +139,13 @@ export function buildApp(options: BuildAppOptions) {
       identify,
       service: new CollectionPointService(new PrismaCollectionPointRepository(options.database)),
     });
+    if (options.localSimulation) {
+      app.register(localSimulationRoutes, {
+        prefix: '/api/v1',
+        identify,
+        simulation: options.localSimulation,
+      });
+    }
     // Expõe perfil, coletas e disponibilidade do coletor.
     app.register(collectorRoutes, {
       prefix: '/api/v1',

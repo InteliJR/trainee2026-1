@@ -12,8 +12,10 @@ import {
   archiveCollectionPoint,
   createCollectionPoint,
   listCollectionPoints,
+  listEcoRotaCollectionPoints,
   updateCollectionPoint,
   type CollectionPointInput,
+  type EcoRotaCollectionPoint,
   type LocalCollectionPoint,
 } from './collectionPointsApi';
 import { logoutOperator } from './operatorAuth';
@@ -30,6 +32,8 @@ function errorMessage(error: unknown): string {
 export function CollectionPointsPage() {
   const navigate = useNavigate();
   const [points, setPoints] = useState<LocalCollectionPoint[]>([]);
+  const [ecoRotaPoints, setEcoRotaPoints] = useState<EcoRotaCollectionPoint[]>([]);
+  const [source, setSource] = useState<'ECOROTA' | 'LOCAIS'>('ECOROTA');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [feedback, setFeedback] = useState('');
@@ -43,8 +47,12 @@ export function CollectionPointsPage() {
     setLoading(true);
     setLoadError('');
     try {
-      const response = await listCollectionPoints();
-      setPoints(response.dados);
+      const [localResponse, ecoRotaResponse] = await Promise.all([
+        listCollectionPoints(),
+        listEcoRotaCollectionPoints(),
+      ]);
+      setPoints(localResponse.dados);
+      setEcoRotaPoints(ecoRotaResponse.dados);
     } catch (error) {
       setLoadError(errorMessage(error));
     } finally {
@@ -130,15 +138,49 @@ export function CollectionPointsPage() {
 
       <div className="mx-auto w-full max-w-dashboard space-y-6 px-screen py-6 lg:px-6">
         <section className="grid gap-3 sm:grid-cols-3" aria-label="Resumo dos pontos">
-          <div className="rounded-lg border border-neutral-200 bg-neutral-0 p-4 shadow-kpi"><p className="text-sm text-neutral-600">Total cadastrado</p><p className="mt-1 text-2xl font-bold tabular-nums">{points.length}</p></div>
-          <div className="rounded-lg border border-neutral-200 bg-neutral-0 p-4 shadow-kpi"><p className="text-sm text-neutral-600">Pontos ativos</p><p className="mt-1 text-2xl font-bold tabular-nums text-brand-700">{points.filter((point) => point.ativo).length}</p></div>
-          <div className="rounded-lg border border-neutral-200 bg-neutral-0 p-4 shadow-kpi"><p className="text-sm text-neutral-600">Pontos inativos</p><p className="mt-1 text-2xl font-bold tabular-nums text-neutral-700">{points.filter((point) => !point.ativo).length}</p></div>
+          <div className="rounded-lg border border-neutral-200 bg-neutral-0 p-4 shadow-kpi"><p className="text-sm text-neutral-600">Pontos EcoRota</p><p className="mt-1 text-2xl font-bold tabular-nums text-operational-700">{ecoRotaPoints.length}</p></div>
+          <div className="rounded-lg border border-neutral-200 bg-neutral-0 p-4 shadow-kpi"><p className="text-sm text-neutral-600">Locais ativos</p><p className="mt-1 text-2xl font-bold tabular-nums text-brand-700">{points.filter((point) => point.ativo).length}</p></div>
+          <div className="rounded-lg border border-neutral-200 bg-neutral-0 p-4 shadow-kpi"><p className="text-sm text-neutral-600">Locais inativos</p><p className="mt-1 text-2xl font-bold tabular-nums text-neutral-700">{points.filter((point) => !point.ativo).length}</p></div>
         </section>
 
-        <InlineNotice tone="info">Estes pontos são mantidos no catálogo local. A integração externa EcoRota ainda fornece separadamente os pontos exibidos no mapa operacional.</InlineNotice>
+        <InlineNotice tone="info">Os pontos EcoRota são sincronizados da operação e podem receber solicitações. Pontos locais são administrados por esta plataforma e ainda não participam da simulação externa.</InlineNotice>
         {feedback ? <InlineNotice tone="success">{feedback}</InlineNotice> : null}
 
         <section className="rounded-lg border border-neutral-200 bg-neutral-0 p-4 shadow-card sm:p-5">
+          <div className="mb-5 flex flex-wrap gap-2 border-b border-neutral-200 pb-4" role="tablist" aria-label="Origem dos pontos">
+            <button type="button" role="tab" aria-selected={source === 'ECOROTA'} onClick={() => setSource('ECOROTA')} className={`min-h-touch rounded-md px-4 text-sm font-semibold ${source === 'ECOROTA' ? 'bg-operational-700 text-neutral-0' : 'border border-neutral-300 bg-neutral-0 text-neutral-700 hover:bg-neutral-100'}`}>EcoRota ({ecoRotaPoints.length})</button>
+            <button type="button" role="tab" aria-selected={source === 'LOCAIS'} onClick={() => setSource('LOCAIS')} className={`min-h-touch rounded-md px-4 text-sm font-semibold ${source === 'LOCAIS' ? 'bg-operational-700 text-neutral-0' : 'border border-neutral-300 bg-neutral-0 text-neutral-700 hover:bg-neutral-100'}`}>Locais ({points.length})</button>
+          </div>
+
+          {source === 'ECOROTA' ? (
+            <div>
+              <div><h2 className="text-lg font-semibold">Pontos EcoRota</h2><p className="text-sm text-neutral-600">Sincronizados do estado operacional e disponíveis no mapa.</p></div>
+              <div className="mt-5">
+                {loading ? <LoadingState label="Carregando pontos EcoRota…" /> : loadError ? <ErrorState message={loadError} onRetry={() => void load()} /> : ecoRotaPoints.length === 0 ? <EmptyState title="Nenhum ponto EcoRota disponível" description="Aguarde a sincronização da operação e tente novamente." /> : (
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    {ecoRotaPoints.map((point) => {
+                      const activeDemand = point.demanda.pendentes + point.demanda.atribuidas + point.demanda.emAtendimento;
+                      return (
+                        <article key={point.id} className="rounded-lg border border-operational-100 bg-neutral-0 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0"><h3 className="font-semibold text-neutral-900">{point.nome}</h3><p className="mt-1 text-sm text-neutral-600">Circuito {point.circuito} · {point.tipo === 'ADICIONAL' ? 'Adicional' : 'Habitual'}</p></div>
+                            <span className="rounded-full bg-operational-50 px-3 py-1 text-sm font-semibold text-operational-800">EcoRota</span>
+                          </div>
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                            <div className="rounded-md bg-neutral-50 p-3"><span className="block text-neutral-600">Demanda ativa</span><strong className="text-lg tabular-nums">{activeDemand}</strong></div>
+                            <div className="rounded-md bg-neutral-50 p-3"><span className="block text-neutral-600">Concluídas</span><strong className="text-lg tabular-nums">{point.demanda.concluidas}</strong></div>
+                          </div>
+                          <p className="mt-3 text-sm tabular-nums text-neutral-600">{point.coordenadas.latitude}, {point.coordenadas.longitude}</p>
+                          {point.dadosDesatualizados ? <p className="mt-2 text-sm font-medium text-reward-800">Telemetria desatualizada</p> : null}
+                          <div className="mt-4"><Link to="/dashboard" className={buttonClasses('ghost')}>Ver no mapa</Link></div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : <>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div><h2 className="text-lg font-semibold">Pontos locais</h2><p className="text-sm text-neutral-600">{visible.length} resultado(s)</p></div>
             <Button onClick={() => { setFormError(''); setFormPoint('new'); }}>Cadastrar ponto</Button>
@@ -172,6 +214,7 @@ export function CollectionPointsPage() {
               </div>
             )}
           </div>
+          </>}
         </section>
       </div>
 

@@ -34,6 +34,26 @@ export interface CollectionPointFilters {
   ativo?: boolean;
 }
 
+export interface EcoRotaCollectionPoint {
+  id: string;
+  nome: string;
+  tipo: CollectionPointKind;
+  coordenadas: {
+    latitude: number;
+    longitude: number;
+  };
+  circuito: number;
+  demanda: {
+    pendentes: number;
+    atribuidas: number;
+    emAtendimento: number;
+    concluidas: number;
+    canceladas: number;
+  };
+  distanciaKm: number | null;
+  dadosDesatualizados: boolean;
+}
+
 interface CollectionPointListResponse {
   dados: LocalCollectionPoint[];
   total: number;
@@ -52,6 +72,10 @@ export function listCollectionPoints(filters: CollectionPointFilters = {}): Prom
   return apiRequest('GET', `/operacao/pontos-coleta${queryString(filters)}`);
 }
 
+export function listEcoRotaCollectionPoints(): Promise<{ dados: EcoRotaCollectionPoint[]; total: number }> {
+  return apiRequest('GET', '/pontos-coleta');
+}
+
 export function createCollectionPoint(input: CollectionPointInput): Promise<LocalCollectionPoint> {
   return apiRequest('POST', '/operacao/pontos-coleta', input);
 }
@@ -62,4 +86,15 @@ export function updateCollectionPoint(id: string, input: Partial<CollectionPoint
 
 export function archiveCollectionPoint(id: string): Promise<void> {
   return apiRequest('DELETE', `/operacao/pontos-coleta/${encodeURIComponent(id)}`);
+}
+
+export function startLocalSimulation(originPointId: string, destinationPointId: string): Promise<void> {
+  return apiRequest('POST', '/operacao/simulacao-local/iniciar', {
+    pontoOrigemId: originPointId,
+    pontoDestinoId: destinationPointId,
+  });
+}
+
+export function stopLocalSimulation(): Promise<void> {
+  return apiRequest('POST', '/operacao/simulacao-local/parar');
 }

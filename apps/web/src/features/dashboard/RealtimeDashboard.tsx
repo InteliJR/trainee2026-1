@@ -3,7 +3,7 @@
  * A tela mostra conexão, versão do estado e contagens suficientes para diagnosticar a integração do MVP.
  * Segue o guia de estilos: tokens do Tailwind, tons `operational` para separar o dashboard da experiência do morador.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { buttonClasses } from '../../components/Button';
 import { Icon } from '../../components/Icon';
@@ -14,6 +14,7 @@ import { KpiCards } from './KpiCards';
 import { RecentRequestsTable } from './RecentRequestsTable';
 import { logoutOperator } from './operatorAuth';
 import { RegionDemand } from './RegionDemand';
+import { listCollectionPoints, startLocalSimulation, stopLocalSimulation, type LocalCollectionPoint } from './collectionPointsApi';
 import { useIndicadores } from './useIndicadores';
 
 // Traduz os estados internos para rótulos curtos apresentados ao usuário.
@@ -34,16 +35,48 @@ const CONNECTION_CLASSES: Record<RealtimeConnectionStatus, string> = {
   erro: 'bg-danger-600 text-neutral-0',
 };
 
+type CollectorOriginFilter = 'all' | 'custom' | 'system';
+
 // Renderiza a visão operacional e fornece ao mapa apenas as coleções autorizadas pelo servidor.
 export function RealtimeDashboard() {
   // Abre a conexão usando exclusivamente o cookie httpOnly criado pelo endpoint de login.
   const realtime = useTempoReal({});
   // Usa arrays vazios antes do snapshot para impedir a reaparição de dados simulados.
   const points = realtime.snapshot?.points ?? [];
+  const [localPoints, setLocalPoints] = useState<LocalCollectionPoint[]>([]);
+  const [simulationOrigin, setSimulationOrigin] = useState('');
+  const [simulationDestination, setSimulationDestination] = useState('');
+  const [simulationBusy, setSimulationBusy] = useState(false);
+  const [simulationError, setSimulationError] = useState('');
+  const activeLocalPoints = useMemo(() => localPoints.filter((point) => point.ativo).map((point) => ({
+    id: `local:${point.id}`,
+    name: `${point.nome} (local)`,
+    kind: point.tipo === 'ADICIONAL' ? 'additional' as const : 'habitual' as const,
+    coordinates: [point.coordenadas.longitude, point.coordenadas.latitude] as [number, number],
+    circuit: point.circuito,
+    demand: { pending: 0, assigned: 0, in_service: 0, completed: 0, cancelled: 0 },
+  })), [localPoints]);
   // Usa arrays vazios antes do snapshot para manter o mapa coerente com a conexão real.
   const collectors = realtime.snapshot?.collectors ?? [];
+  const [collectorOrigin, setCollectorOrigin] = useState<CollectorOriginFilter>(() => {
+    const saved = localStorage.getItem('ecorota:collector-origin');
+    return saved === 'custom' || saved === 'system' ? saved : 'all';
+  });
+  const visibleCollectors = collectorOrigin === 'all'
+    ? collectors
+    : collectors.filter((collector) => collector.origin === collectorOrigin);
+  const visibleCollectorIds = new Set(visibleCollectors.map((collector) => collector.id));
   // Usa arrays vazios antes do snapshot para não desenhar rotas de uma conexão anterior.
   const routes = realtime.snapshot?.routes ?? [];
+  const visibleRoutes = routes.filter((route) => visibleCollectorIds.has(route.collectorId));
+  const localSimulation = realtime.localSimulation;
+  const showLocalSimulation = collectorOrigin !== 'system' && localSimulation?.status === 'EM_EXECUCAO';
+  const mapCollectors = showLocalSimulation && localSimulation.collector
+    ? [...visibleCollectors, localSimulation.collector]
+    : visibleCollectors;
+  const mapRoutes = showLocalSimulation && localSimulation.route
+    ? [...visibleRoutes, localSimulation.route]
+    : visibleRoutes;
   // Consulta os KPIs só com a sessão confirmada e reconsulta a cada mudança de solicitação recebida.
   const indicators = useIndicadores({
     enabled: realtime.connectionStatus === 'conectado',
@@ -63,6 +96,43 @@ export function RealtimeDashboard() {
     const timer = window.setInterval(() => setNow(Date.now()), 5_000);
     return () => window.clearInterval(timer);
   }, []);
+  useEffect(() => {
+    let active = true;
+    void listCollectionPoints({ ativo: true }).then((response) => {
+      if (active) setLocalPoints(response.dados);
+    }).catch(() => {
+      if (active) setLocalPoints([]);
+    });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    localStorage.setItem('ecorota:collector-origin', collectorOrigin);
+    if (collectorOrigin === 'custom') setFocus(null);
+  }, [collectorOrigin]);
+
+  async function startSimulation() {
+    setSimulationBusy(true);
+    setSimulationError('');
+    try {
+      await startLocalSimulation(simulationOrigin, simulationDestination);
+      setCollectorOrigin('custom');
+    } catch (error) {
+      setSimulationError(error instanceof Error ? error.message : 'Não foi possível iniciar a simulação.');
+    } finally {
+      setSimulationBusy(false);
+    }
+  }
+  async function stopSimulation() {
+    setSimulationBusy(true);
+    setSimulationError('');
+    try {
+      await stopLocalSimulation();
+    } catch (error) {
+      setSimulationError(error instanceof Error ? error.message : 'Não foi possível parar a simulação.');
+    } finally {
+      setSimulationBusy(false);
+    }
+  }
 
   // Em telas largas ocupa a janela inteira com a tabela ao lado do mapa; em telas estreitas empilha e rola.
   return (
@@ -126,9 +196,60 @@ export function RealtimeDashboard() {
         )}
       </header>
       <KpiCards indicators={indicators} />
+      <div className="border-b border-neutral-200 bg-neutral-0 px-screen py-3 lg:px-6">
+        <div className="mx-auto mb-3 grid max-w-dashboard gap-3 rounded-lg border border-operational-100 bg-operational-50 p-3 md:grid-cols-[1fr_1fr_auto]">
+          <label className="text-sm font-semibold text-neutral-800">Origem
+            <select value={simulationOrigin} onChange={(event) => setSimulationOrigin(event.target.value)} disabled={localSimulation?.status === 'EM_EXECUCAO'} className="mt-1 block min-h-touch w-full rounded-md border border-neutral-400 bg-neutral-0 px-3 font-normal">
+              <option value="">Selecione um ponto</option>
+              {localPoints.map((point) => <option key={point.id} value={point.id}>{point.nome}</option>)}
+            </select>
+          </label>
+          <label className="text-sm font-semibold text-neutral-800">Destino
+            <select value={simulationDestination} onChange={(event) => setSimulationDestination(event.target.value)} disabled={localSimulation?.status === 'EM_EXECUCAO'} className="mt-1 block min-h-touch w-full rounded-md border border-neutral-400 bg-neutral-0 px-3 font-normal">
+              <option value="">Selecione um ponto</option>
+              {localPoints.map((point) => <option key={point.id} value={point.id}>{point.nome}</option>)}
+            </select>
+          </label>
+          <div className="flex items-end">
+            {localSimulation?.status === 'EM_EXECUCAO' ? (
+              <button type="button" onClick={() => void stopSimulation()} disabled={simulationBusy} className="min-h-touch w-full rounded-md bg-danger-600 px-4 text-sm font-semibold text-neutral-0 hover:bg-danger-700 disabled:opacity-60">Parar simulação</button>
+            ) : (
+              <button type="button" onClick={() => void startSimulation()} disabled={simulationBusy || !simulationOrigin || !simulationDestination || simulationOrigin === simulationDestination} className="min-h-touch w-full rounded-md bg-brand-600 px-4 text-sm font-semibold text-neutral-0 hover:bg-brand-700 disabled:opacity-60">Iniciar simulação</button>
+            )}
+          </div>
+          {simulationError ? <p role="alert" className="text-sm font-medium text-danger-700 md:col-span-3">{simulationError}</p> : null}
+          {localSimulation?.status === 'EM_EXECUCAO' ? <p role="status" className="text-sm font-medium text-operational-800 md:col-span-3">Coletor local em movimento · {Math.round(localSimulation.progress * 100)}% do trecho · {localSimulation.direction === 'IDA' ? 'ida' : 'volta'}</p> : null}
+        </div>
+        <div className="mx-auto flex max-w-dashboard flex-wrap items-center gap-2" role="group" aria-label="Filtrar coletores por origem">
+          <span className="mr-1 text-sm font-semibold text-neutral-700">Coletores:</span>
+          {([
+            ['all', 'Todos'],
+            ['custom', 'Nossos coletores'],
+            ['system', 'Coletores EcoRota'],
+          ] as const).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={collectorOrigin === value}
+              onClick={() => setCollectorOrigin(value)}
+              className={`min-h-touch rounded-full border px-4 text-sm font-semibold ${collectorOrigin === value ? 'border-operational-700 bg-operational-700 text-neutral-0' : 'border-neutral-300 bg-neutral-0 text-neutral-700 hover:bg-neutral-100'}`}
+            >
+              {label}
+            </button>
+          ))}
+          <span role="status" className="ml-auto text-sm text-neutral-600">{visibleCollectors.length} exibido(s)</span>
+        </div>
+      </div>
       <div className="mx-auto flex min-h-0 w-full max-w-dashboard flex-1 flex-col lg:flex-row lg:border-x lg:border-neutral-200">
         <section className="min-h-[420px] flex-1" aria-label="Visualização da operação">
-          <MapContainer points={points} collectors={collectors} routes={routes} focus={focus} minHeight="420px" showLegend />
+          <MapContainer
+            points={collectorOrigin === 'system' ? points : collectorOrigin === 'custom' ? activeLocalPoints : [...points, ...activeLocalPoints]}
+            collectors={mapCollectors}
+            routes={mapRoutes}
+            focus={focus}
+            minHeight="420px"
+            showLegend
+          />
         </section>
         <aside className="flex h-[560px] flex-col border-t border-neutral-200 bg-neutral-0 lg:h-auto lg:w-[380px] lg:border-l lg:border-t-0">
           <RegionDemand regions={indicators.data?.demandaPorRegiao} />
