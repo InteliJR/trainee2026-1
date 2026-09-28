@@ -4,6 +4,8 @@
  */
 import { MapContainer } from '../../map/MapContainer';
 import { useTempoReal, type RealtimeConnectionStatus } from '../../realtime/useTempoReal';
+import { KpiCards } from './KpiCards';
+import { useIndicadores } from './useIndicadores';
 
 // Traduz os estados internos para rótulos curtos apresentados ao usuário.
 const CONNECTION_LABELS: Record<RealtimeConnectionStatus, string> = {
@@ -31,6 +33,13 @@ export function RealtimeDashboard() {
   const points = realtime.snapshot?.points ?? [];
   // Usa arrays vazios antes do snapshot para manter o mapa coerente com a conexão real.
   const collectors = realtime.snapshot?.collectors ?? [];
+  // Usa arrays vazios antes do snapshot para não desenhar rotas de uma conexão anterior.
+  const routes = realtime.snapshot?.routes ?? [];
+  // Consulta os KPIs só com a sessão confirmada e reconsulta a cada mudança de solicitação recebida.
+  const indicators = useIndicadores({
+    enabled: realtime.connectionStatus === 'conectado',
+    refreshKey: realtime.lastRequestEvent,
+  });
 
   // Mantém cabeçalho, diagnóstico e mapa em uma coluna que ocupa toda a janela.
   return (
@@ -71,8 +80,9 @@ export function RealtimeDashboard() {
           </p>
         )}
       </header>
+      <KpiCards indicators={indicators} />
       <section style={{ flex: 1, minHeight: 0 }} aria-label="Visualização da operação">
-        <MapContainer points={points} collectors={collectors} />
+        <MapContainer points={points} collectors={collectors} routes={routes} />
       </section>
     </main>
   );

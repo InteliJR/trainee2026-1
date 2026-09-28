@@ -1,11 +1,22 @@
 /**
- * Mapa operacional MapLibre que desenha pontos e coletores recebidos pelo Socket.IO.
- * A instância do mapa é criada uma vez; efeitos independentes atualizam somente os marcadores necessários.
+ * Mapa operacional MapLibre que desenha pontos, coletores e rotas recebidos pelo Socket.IO.
+ * A instância do mapa é criada uma vez; marcadores são guardados por ID e apenas atualizados,
+ * para que caminhões deslizem entre posições e popups abertos não se fechem a cada evento.
  */
 import type { Collector, Point } from '@ecorota/shared';
 import { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import type { RealtimeRoute } from '../realtime/socketClient';
+import {
+  formatTelemetryAge,
+  interpolateLngLat,
+  isTelemetryStale,
+  routesToFeatureCollection,
+} from './mapUtils';
+
+// Mantém a exportação antiga para quem já importava a regra de telemetria deste módulo.
+export { isTelemetryStale } from './mapUtils';
 
 // Define um estilo mínimo baseado nos tiles públicos do OpenStreetMap.
 const CLEAN_OSM_STYLE: maplibregl.StyleSpecification = {
@@ -31,6 +42,11 @@ const CLEAN_OSM_STYLE: maplibregl.StyleSpecification = {
 
 // Define o tempo padrão após o qual uma posição deixa de ser considerada recente.
 const DEFAULT_TELEMETRY_STALE_AFTER_MS = 15_000;
+// Define a duração do deslizamento entre duas posições consecutivas de um coletor.
+const MARKER_ANIMATION_MS = 900;
+// Identifica a fonte e a camada GeoJSON das rotas dentro do estilo do mapa.
+const ROUTES_SOURCE_ID = 'collector-routes';
+const ROUTES_LAYER_ID = 'collector-routes-line';
 
 // Permite alimentar o mapa com o estado real e ajustar sua visualização inicial.
 interface MapContainerProps {
@@ -38,6 +54,8 @@ interface MapContainerProps {
   points?: Point[];
   // Recebe os coletores autorizados e suas posições mais recentes.
   collectors?: Collector[];
+  // Recebe as rotas calculadas pela EcoRota para desenhar o trajeto de cada coletor.
+  routes?: RealtimeRoute[];
   // Define longitude e latitude usadas somente na criação inicial do mapa.
   center?: [number, number];
   // Define a aproximação usada somente na criação inicial do mapa.
@@ -46,10 +64,28 @@ interface MapContainerProps {
   telemetryStaleAfterMs?: number;
 }
 
-// Controla o ciclo de vida do mapa, dos marcadores e da indicação de telemetria desatualizada.
+// Agrupa o marcador de um ponto com os nós que precisam ser atualizados sem recriá-lo.
+interface PointMarkerEntry {
+  marker: maplibregl.Marker;
+  popup: PopupHandle;
+}
+
+// Agrupa o marcador de um coletor com o estado necessário para animar e restilizar.
+interface CollectorMarkerEntry {
+  marker: maplibregl.Marker;
+  element: HTMLDivElement;
+  popup: PopupHandle;
+  // Guarda o destino atual para que uma nova posição parta de onde o marcador está indo.
+  target: [number, number];
+  // Guarda o quadro de animação em andamento para cancelá-lo quando outra posição chegar.
+  animationFrame: number | null;
+}
+
+// Controla o ciclo de vida do mapa, dos marcadores, das rotas e da indicação de telemetria desatualizada.
 export function MapContainer({
   points = [],
   collectors = [],
+  routes = [],
   center = [-46.66, -23.57],
   zoom = 12,
   telemetryStaleAfterMs = DEFAULT_TELEMETRY_STALE_AFTER_MS,
@@ -58,10 +94,10 @@ export function MapContainer({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   // Preserva a instância para que mudanças de dados não recriem o mapa.
   const mapRef = useRef<maplibregl.Map | null>(null);
-  // Guarda somente os marcadores fixos de pontos para atualizá-los independentemente.
-  const pointMarkersRef = useRef<maplibregl.Marker[]>([]);
-  // Guarda somente os marcadores móveis de coletores.
-  const collectorMarkersRef = useRef<maplibregl.Marker[]>([]);
+  // Indexa os marcadores de pontos pelo ID para atualizar somente o que mudou.
+  const pointMarkersRef = useRef(new Map<string, PointMarkerEntry>());
+  // Indexa os marcadores de coletores pelo ID para mover o mesmo marcador a cada evento.
+  const collectorMarkersRef = useRef(new Map<string, CollectorMarkerEntry>());
   // Preserva a primeira configuração recebida, pois centro e zoom são valores de inicialização.
   const initialViewRef = useRef({ center, zoom });
   // Impede o desenho de marcadores antes que o estilo termine de carregar.
@@ -87,10 +123,22 @@ export function MapContainer({
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
     // Disponibiliza a instância para os efeitos responsáveis pelos marcadores.
     mapRef.current = map;
+    // Copia as referências dos índices para a limpeza usar exatamente os mesmos objetos.
+    const pointMarkers = pointMarkersRef.current;
+    const collectorMarkers = collectorMarkersRef.current;
 
-    // Marca o estilo como pronto e corrige o tamanho calculado do canvas.
+    // Prepara a camada de rotas e libera o desenho dos marcadores quando o estilo termina de carregar.
     const handleLoad = (): void => {
       map.resize();
+      // Começa com uma coleção vazia; o efeito de rotas preenche os dados assim que existirem.
+      map.addSource(ROUTES_SOURCE_ID, { type: 'geojson', data: routesToFeatureCollection([]) });
+      map.addLayer({
+        id: ROUTES_LAYER_ID,
+        type: 'line',
+        source: ROUTES_SOURCE_ID,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': ['get', 'color'], 'line-width': 4, 'line-opacity': 0.75 },
+      });
       setMapLoaded(true);
     };
     // Mantém o canvas alinhado ao contêiner quando a janela muda de tamanho.
@@ -106,10 +154,13 @@ export function MapContainer({
     return () => {
       window.removeEventListener('resize', handleResize);
       map.off('load', handleLoad);
-      pointMarkersRef.current.forEach((marker) => marker.remove());
-      collectorMarkersRef.current.forEach((marker) => marker.remove());
-      pointMarkersRef.current = [];
-      collectorMarkersRef.current = [];
+      pointMarkers.forEach((entry) => entry.marker.remove());
+      collectorMarkers.forEach((entry) => {
+        if (entry.animationFrame !== null) cancelAnimationFrame(entry.animationFrame);
+        entry.marker.remove();
+      });
+      pointMarkers.clear();
+      collectorMarkers.clear();
       map.remove();
       mapRef.current = null;
       setMapLoaded(false);
@@ -124,39 +175,105 @@ export function MapContainer({
     return () => window.clearInterval(timer);
   }, []);
 
-  // Reconstrói apenas os pontos fixos quando a lista autorizada muda.
+  // Sincroniza os pontos fixos: cria os novos, atualiza os existentes e remove os que saíram do snapshot.
   useEffect(() => {
     // Aguarda a instância e o estilo MapLibre estarem disponíveis.
-    if (!mapLoaded || !mapRef.current) return;
-    // Remove os marcadores anteriores para não duplicar pontos após um novo snapshot.
-    pointMarkersRef.current.forEach((marker) => marker.remove());
-    // Converte cada ponto do snapshot em um marcador seguro e informativo.
-    pointMarkersRef.current = points.map((point) => createPointMarker(point).addTo(mapRef.current!));
+    const map = mapRef.current;
+    if (!mapLoaded || !map) return;
+    const entries = pointMarkersRef.current;
+    const seen = new Set<string>();
+
+    points.forEach((point) => {
+      seen.add(point.id);
+      const fields = pointFields(point);
+      const existing = entries.get(point.id);
+      // Reaproveita o marcador existente, trocando apenas posição e texto do popup.
+      if (existing) {
+        existing.marker.setLngLat(point.coordinates);
+        existing.popup.update(point.name, fields);
+        return;
+      }
+      // Cria o marcador somente na primeira vez em que o ponto aparece.
+      const popup = createPopupHandle(point.name, fields);
+      const marker = new maplibregl.Marker({ element: createPointElement(point) })
+        .setLngLat(point.coordinates)
+        .setPopup(new maplibregl.Popup({ offset: 25 }).setDOMContent(popup.container))
+        .addTo(map);
+      entries.set(point.id, { marker, popup });
+    });
+
+    // Remove pontos que deixaram de ser autorizados ou deixaram de existir no snapshot.
+    entries.forEach((entry, id) => {
+      if (seen.has(id)) return;
+      entry.marker.remove();
+      entries.delete(id);
+    });
   }, [mapLoaded, points]);
 
-  // Reconstrói somente os coletores quando uma posição chega pelo Socket.IO ou envelhece visualmente.
+  // Sincroniza os coletores: move o mesmo marcador, atualiza aparência e popup e remove os que sumiram.
   useEffect(() => {
     // Aguarda a instância e o estilo MapLibre estarem disponíveis.
-    if (!mapLoaded || !mapRef.current) return;
-    // Remove os marcadores móveis anteriores sem tocar nos pontos nem na instância do mapa.
-    collectorMarkersRef.current.forEach((marker) => marker.remove());
-    // Descarta coletores sem coordenadas e desenha os demais com o estado de telemetria correto.
-    collectorMarkersRef.current = collectors.flatMap((collector) => {
+    const map = mapRef.current;
+    if (!mapLoaded || !map) return;
+    const entries = collectorMarkersRef.current;
+    const seen = new Set<string>();
+
+    collectors.forEach((collector) => {
       // Não existe uma posição válida onde colocar o marcador quando position é null.
-      if (!collector.position) return [];
+      if (!collector.position) return;
+      seen.add(collector.id);
+      const target = collector.position.coordinates;
       // Calcula se a última observação ultrapassou o limite definido pelo componente.
       const stale = isTelemetryStale(collector.observedAt, currentTime, telemetryStaleAfterMs);
-      // Adiciona somente o novo marcador do coletor ao mapa já existente.
-      return [createCollectorMarker(collector, stale).addTo(mapRef.current!)];
+      const fields = collectorFields(collector, stale, currentTime);
+      const existing = entries.get(collector.id);
+
+      // Cria o marcador somente na primeira vez em que o coletor aparece com posição.
+      if (!existing) {
+        const element = createCollectorElement(collector);
+        applyCollectorStaleStyle(element, stale);
+        const popup = createPopupHandle(collector.name, fields);
+        const marker = new maplibregl.Marker({ element })
+          .setLngLat(target)
+          .setPopup(new maplibregl.Popup({ offset: 25 }).setDOMContent(popup.container))
+          .addTo(map);
+        entries.set(collector.id, { marker, element, popup, target, animationFrame: null });
+        return;
+      }
+
+      // Atualiza aparência e texto no mesmo elemento, preservando um popup que esteja aberto.
+      applyCollectorStaleStyle(existing.element, stale);
+      existing.popup.update(collector.name, fields);
+      // Só anima quando a posição realmente mudou; o relógio de telemetria não deve mover o marcador.
+      if (existing.target[0] !== target[0] || existing.target[1] !== target[1]) {
+        animateMarker(existing, target);
+      }
+    });
+
+    // Remove coletores que perderam a posição ou deixaram de aparecer no snapshot.
+    entries.forEach((entry, id) => {
+      if (seen.has(id)) return;
+      if (entry.animationFrame !== null) cancelAnimationFrame(entry.animationFrame);
+      entry.marker.remove();
+      entries.delete(id);
     });
   }, [collectors, currentTime, mapLoaded, telemetryStaleAfterMs]);
+
+  // Substitui os dados da camada de rotas sempre que o snapshot ou um evento de rota muda.
+  useEffect(() => {
+    // Aguarda a camada ter sido criada no carregamento do estilo.
+    const map = mapRef.current;
+    if (!mapLoaded || !map) return;
+    const source = map.getSource(ROUTES_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    source?.setData(routesToFeatureCollection(routes));
+  }, [mapLoaded, routes]);
 
   // Mantém o canvas ocupando toda a área entregue pelo componente pai.
   return (
     <div style={{ width: '100%', height: '100%', minHeight: '500px', position: 'relative' }}>
       <div
         ref={mapContainerRef}
-        aria-label="Mapa operacional com pontos de coleta e coletores"
+        aria-label="Mapa operacional com pontos de coleta, coletores e rotas"
         style={{
           position: 'absolute',
           inset: 0,
@@ -169,18 +286,52 @@ export function MapContainer({
   );
 }
 
-// Determina se uma data de telemetria é inválida ou antiga demais para ser tratada como atual.
-export function isTelemetryStale(observedAt: string, now: number, staleAfterMs: number): boolean {
-  // Converte a data ISO para milissegundos sem alterar o objeto recebido.
-  const observedTime = Date.parse(observedAt);
-  // Considera inválida como desatualizada para nunca transmitir uma falsa sensação de precisão.
-  if (Number.isNaN(observedTime)) return true;
-  // Compara a idade da leitura com o limite escolhido para o painel.
-  return now - observedTime > staleAfterMs;
+// Desliza o marcador da posição atual até o novo destino, ou salta direto se o usuário reduziu animações.
+function animateMarker(entry: CollectorMarkerEntry, target: [number, number]): void {
+  // Interrompe uma animação anterior para que a nova parta do ponto em que o marcador está.
+  if (entry.animationFrame !== null) cancelAnimationFrame(entry.animationFrame);
+  entry.target = target;
+  const from = entry.marker.getLngLat().toArray() as [number, number];
+
+  // Respeita a preferência de acessibilidade do sistema operacional.
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    entry.marker.setLngLat(target);
+    entry.animationFrame = null;
+    return;
+  }
+
+  const startedAt = performance.now();
+  // Avança um quadro por vez até completar a duração configurada.
+  const step = (now: number): void => {
+    const progress = (now - startedAt) / MARKER_ANIMATION_MS;
+    entry.marker.setLngLat(interpolateLngLat(from, target, progress));
+    entry.animationFrame = progress < 1 ? requestAnimationFrame(step) : null;
+  };
+  entry.animationFrame = requestAnimationFrame(step);
 }
 
-// Constrói o marcador visual e o popup de um ponto de coleta.
-function createPointMarker(point: Point): maplibregl.Marker {
+// Lista as informações exibidas no popup de um ponto de coleta.
+function pointFields(point: Point): Array<[string, string]> {
+  return [
+    ['Tipo', point.kind],
+    ['Circuito', String(point.circuit)],
+    ['Pendentes', String(point.demand.pending)],
+  ];
+}
+
+// Lista as informações exibidas no popup de um coletor, incluindo há quanto tempo veio a última posição.
+function collectorFields(collector: Collector, stale: boolean, now: number): Array<[string, string]> {
+  const age = formatTelemetryAge(collector.observedAt, now);
+  return [
+    ['Origem', collector.origin],
+    ['Status', collector.status],
+    ['Circuito', String(collector.circuit)],
+    ['Telemetria', stale ? `sem sinal ${age}` : `atualizada ${age}`],
+  ];
+}
+
+// Constrói o círculo colorido de um ponto de coleta.
+function createPointElement(point: Point): HTMLDivElement {
   // Cria o círculo colorido sem inserir HTML recebido externamente.
   const element = document.createElement('div');
   element.className = 'point-marker';
@@ -201,22 +352,11 @@ function createPointMarker(point: Point): maplibregl.Marker {
   });
   // Usa somente um fragmento curto do ID para diferenciar visualmente os pontos próximos.
   element.innerText = point.id.split('-')[1] || 'P';
-
-  // Monta o popup com textContent para impedir interpretação de nomes externos como HTML.
-  const popupContent = createPopupContent(point.name, [
-    ['Tipo', point.kind],
-    ['Circuito', String(point.circuit)],
-    ['Pendentes', String(point.demand.pending)],
-  ]);
-  // Associa posição e popup ao marcador antes de devolvê-lo ao efeito.
-  return new maplibregl.Marker({ element })
-    .setLngLat(point.coordinates)
-    .setPopup(new maplibregl.Popup({ offset: 25 }).setDOMContent(popupContent));
+  return element;
 }
 
-// Constrói o marcador visual e o popup de um coletor com posição conhecida.
-function createCollectorMarker(collector: Collector, stale: boolean): maplibregl.Marker {
-  // Cria o símbolo do veículo e reduz sua opacidade quando a posição está antiga.
+// Constrói o símbolo do veículo; a aparência de telemetria é aplicada separadamente.
+function createCollectorElement(collector: Collector): HTMLDivElement {
   const element = document.createElement('div');
   element.className = 'collector-marker';
   Object.assign(element.style, {
@@ -224,7 +364,6 @@ function createCollectorMarker(collector: Collector, stale: boolean): maplibregl
     height: '30px',
     borderRadius: '50%',
     backgroundColor: collector.origin === 'system' ? '#3B82F6' : '#8B5CF6',
-    border: stale ? '3px dashed #6B7280' : '3px solid #FFFFFF',
     boxShadow: '0 3px 6px rgba(0,0,0,0.4)',
     cursor: 'pointer',
     display: 'flex',
@@ -232,52 +371,53 @@ function createCollectorMarker(collector: Collector, stale: boolean): maplibregl
     justifyContent: 'center',
     color: '#FFFFFF',
     fontSize: '14px',
-    opacity: stale ? '0.5' : '1',
+    transition: 'opacity 300ms ease',
   });
   // Usa um ícone simples que independe de uma biblioteca adicional.
   element.innerText = '🚚';
+  return element;
+}
 
-  // Monta um popup seguro e deixa explícita a qualidade temporal da posição mostrada.
-  const popupContent = createPopupContent(collector.name, [
-    ['Origem', collector.origin],
-    ['Status', collector.status],
-    ['Circuito', String(collector.circuit)],
-    ['Telemetria', stale ? 'desatualizada' : 'atualizada'],
-  ]);
-  // position já foi verificada pelo chamador; a guarda protege também usos futuros isolados da função.
-  if (!collector.position) throw new Error('Não é possível criar marcador de coletor sem posição.');
-  // Associa as coordenadas e o popup ao novo marcador móvel.
-  return new maplibregl.Marker({ element })
-    .setLngLat(collector.position.coordinates)
-    .setPopup(new maplibregl.Popup({ offset: 25 }).setDOMContent(popupContent));
+// Reduz a opacidade e usa borda tracejada quando a posição do coletor está antiga.
+function applyCollectorStaleStyle(element: HTMLDivElement, stale: boolean): void {
+  element.style.border = stale ? '3px dashed #6B7280' : '3px solid #FFFFFF';
+  element.style.opacity = stale ? '0.5' : '1';
+}
+
+// Mantém o conteúdo de um popup e permite trocar seus textos sem recriar o nó.
+interface PopupHandle {
+  container: HTMLDivElement;
+  update: (title: string, fields: Array<[string, string]>) => void;
 }
 
 // Cria o conteúdo textual reutilizado pelos popups sem interpolar HTML não confiável.
-function createPopupContent(title: string, fields: Array<[string, string]>): HTMLDivElement {
+function createPopupHandle(title: string, fields: Array<[string, string]>): PopupHandle {
   // Cria o contêiner principal e define apenas estilos controlados pela aplicação.
   const container = document.createElement('div');
   container.style.fontFamily = 'sans-serif';
   container.style.padding = '4px';
-  // Cria o título e atribui o texto externo de maneira segura.
-  const heading = document.createElement('h4');
-  heading.style.cssText = 'margin:0 0 4px 0;color:#111827;';
-  heading.textContent = title;
-  container.appendChild(heading);
 
-  // Converte cada par de rótulo e valor em uma linha separada do popup.
-  fields.forEach(([label, value]) => {
-    // Cria uma linha de texto com formatação consistente.
-    const paragraph = document.createElement('p');
-    paragraph.style.cssText = 'margin:0 0 2px 0;font-size:12px;color:#4B5563;';
-    // Cria o rótulo fixo antes do valor destacado.
-    paragraph.append(document.createTextNode(`${label}: `));
-    // Insere o valor externo via textContent para evitar execução de marcação.
-    const strong = document.createElement('strong');
-    strong.textContent = value;
-    paragraph.appendChild(strong);
-    container.appendChild(paragraph);
-  });
+  // Reescreve título e linhas via textContent, o que também serve para atualizações posteriores.
+  const update = (nextTitle: string, nextFields: Array<[string, string]>): void => {
+    const heading = document.createElement('h4');
+    heading.style.cssText = 'margin:0 0 4px 0;color:#111827;';
+    heading.textContent = nextTitle;
 
-  // Devolve o nó pronto para setDOMContent do MapLibre.
-  return container;
+    // Converte cada par de rótulo e valor em uma linha separada do popup.
+    const paragraphs = nextFields.map(([label, value]) => {
+      const paragraph = document.createElement('p');
+      paragraph.style.cssText = 'margin:0 0 2px 0;font-size:12px;color:#4B5563;';
+      paragraph.append(document.createTextNode(`${label}: `));
+      // Insere o valor externo via textContent para evitar execução de marcação.
+      const strong = document.createElement('strong');
+      strong.textContent = value;
+      paragraph.appendChild(strong);
+      return paragraph;
+    });
+
+    container.replaceChildren(heading, ...paragraphs);
+  };
+
+  update(title, fields);
+  return { container, update };
 }
