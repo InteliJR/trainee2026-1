@@ -241,9 +241,12 @@ describe('autenticação JWT', () => {
       id: '11111111-1111-4111-8111-111111111111',
       role: 'MORADOR',
     });
-    // Troca o último caractere sem conhecer o segredo de assinatura.
-    const replacement = token.endsWith('a') ? 'b' : 'a';
-    const tampered = `${token.slice(0, -1)}${replacement}`;
+    // Troca um caractere do meio da assinatura sem conhecer o segredo. O último caractere não serve:
+    // em base64url ele carrega bits descartados, e a troca às vezes mantém a mesma assinatura.
+    const signatureStart = token.lastIndexOf('.') + 1;
+    const index = signatureStart + 10;
+    const replacement = token[index] === 'a' ? 'b' : 'a';
+    const tampered = `${token.slice(0, index)}${replacement}${token.slice(index + 1)}`;
     // Confirma que detalhes criptográficos são ocultados pelo erro público de sessão.
     await expect(tokenService.verify(tampered)).rejects.toMatchObject({
       statusCode: 401,
