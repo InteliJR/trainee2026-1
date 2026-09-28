@@ -9,6 +9,7 @@ import { StatusBadge } from '../../../components/StatusBadge';
 import { EmptyState, ErrorState, LoadingState } from '../../../components/StateView';
 import { api, USE_MOCK } from '../api';
 import { useTasks } from '../api/hooks';
+import { pendingActions } from '../api/offlineQueue';
 import { FailedPickupFlow } from '../components/FailedPickupFlow';
 import { CancelFlow } from '../components/CancelFlow';
 import { CompleteFlow } from '../components/CompleteFlow';
@@ -18,7 +19,7 @@ import { formatDateBR, formatTime } from '../lib/dates';
 import { MESSAGES, friendlyError, statusOf } from '../lib/messages';
 import { STATUS_HINT } from '../lib/statusCopy';
 
-type Notice = { tone: 'success' | 'error'; text: string };
+type Notice = { tone: 'success' | 'warning' | 'error'; text: string };
 
 // A API não tem upload de foto — não haverá tela pra isso. `fotoUrl` é obrigatória no endpoint
 // de conclusão, então manda um valor fixo (produto decidiu: sem captura de foto no app).
@@ -64,7 +65,8 @@ export default function DetalheColetaPage() {
     setStarting(true);
     try {
       await api.startTask(id!);
-      setNotice({ tone: 'success', text: 'Atendimento iniciado.' });
+      const queued = !USE_MOCK && pendingActions().some((action) => action.taskId === id && action.type === 'start');
+      setNotice({ tone: queued ? 'warning' : 'success', text: queued ? 'Início salvo neste aparelho. Será enviado quando houver conexão.' : 'Atendimento iniciado.' });
     } catch (e) {
       setNotice({ tone: 'error', text: statusOf(e) === 409 ? MESSAGES.notAssigned : friendlyError(e, MESSAGES.actionError) });
     } finally {
@@ -77,7 +79,8 @@ export default function DetalheColetaPage() {
     setCompleting(true);
     try {
       await api.completeTask(id!, PLACEHOLDER_PHOTO_URL);
-      setNotice({ tone: 'success', text: 'Coleta confirmada. Bom trabalho!' });
+      const queued = !USE_MOCK && pendingActions().some((action) => action.taskId === id && action.type === 'complete');
+      setNotice({ tone: queued ? 'warning' : 'success', text: queued ? 'Conclusão salva neste aparelho. Será enviada quando houver conexão.' : 'Coleta confirmada. Bom trabalho!' });
     } catch (e) {
       setNotice({ tone: 'error', text: statusOf(e) === 409 ? MESSAGES.notOnSite : friendlyError(e, MESSAGES.actionError) });
     } finally {

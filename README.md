@@ -61,7 +61,7 @@ Definidas em `.env.example`, sem valores reais. Nunca commitar o `.env` preenchi
 | `PORT` | Porta da API (padrão 3000). |
 | `WEB_ORIGIN` | Origem autorizada pelo CORS e pelo Socket.IO (ex.: `http://localhost:5173`). |
 | `VITE_API_URL` | URL da API usada pelo frontend. Lida em tempo de build pelo Vite — variáveis `VITE_` são públicas. |
-| `VITE_USE_MOCK` | Só a área do coletor lê esta flag; `false` liga a API real. |
+| `VITE_USE_MOCK` | Só a área do coletor lê esta flag; a API real é o padrão, `true` liga o mock. |
 | `DATABASE_URL` | Conexão PostgreSQL usada em tempo de execução (local ou pooler do Supabase). |
 | `DIRECT_URL` | Conexão direta usada pelo Prisma CLI para gerar/aplicar migrations. |
 | `JWT_SECRET` | Segredo que assina as sessões. Precisa ter **32 caracteres ou mais**; a API recusa subir sem isso. |
@@ -91,5 +91,5 @@ Senha: o valor de `DEVELOPMENT_SEED_PASSWORD`, ou a senha padrão definida no pr
 - **Só existe um endereço "ativo" por morador na prática.** A API modela vários endereços por morador (`GET/POST /enderecos`, com um marcado como padrão), mas o frontend só tem a tela de cadastrar um endereço; toda solicitação usa o endereço padrão (ou o primeiro cadastrado). Não há lista para trocar entre vários.
 - **Prazo mínimo de cancelamento: usa 1 dia, fixo no código.** `request.service.ts` tem `ONE_DAY_MS` como constante (não lê de variável de ambiente). O documento de arquitetura antigo (`documents/Luiz/arquitetura-Luiz.md`) registra 2 horas; os requisitos (`docs_mafe`, RN02) registram 1 dia. Está marcado como pendente de decisão do time nos dois documentos — o código já decidiu por 1 dia, mas isso não foi formalmente confirmado como regra de produto.
 - **Modo demonstração quando a API está fora do ar.** As telas do morador (via `checkSession`/`RequireResident`) detectam falha de conexão e seguem operando com dados salvos localmente, em vez de travar a tela.
-- **Fila offline do coletor (RNF02) não existe.** O plano original cogitava salvar ações do coletor sem sinal e sincronizar ao reconectar (`offlineQueue` via `localStorage`); isso não foi implementado. Sem rede, uma ação do coletor simplesmente falha e pede para tentar de novo.
+- **Fila offline do coletor (RNF02):** após um login e carregamento online, as ações de iniciar e concluir coleta ficam no `localStorage` por coletor quando a rede cai. A área do coletor tenta sincronizar ao abrir, reconectar e voltar à aba. Conflitos pausam a fila e podem ser descartados na interface. O PWA guarda a interface para abrir offline após uma primeira visita online; dados da API não são guardados pelo service worker.
 - **"Morador ausente" foi descartado, mas não exatamente como o plano original previa.** O plano antigo cancelava a coleta e recriava outra com nova data. O que existe hoje: a solicitação sempre tem um endereço (é para lá que o coletor vai) e a API só permite **cancelamento pelo morador ou pelo operador** — o coletor não tem uma ação de cancelar ou de registrar que não conseguiu concluir. Se o morador não estiver no endereço, hoje não existe como o coletor sinalizar isso pelo app; só resta ele não confirmar a coleta.
