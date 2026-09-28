@@ -1,0 +1,4 @@
+/* Carrega as três camadas do Tailwind que geram reset, componentes e utilitários usados pelo React. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

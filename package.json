@@ -1,0 +1,14 @@
+{
+  "name": "ecorota",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev": "corepack pnpm -r --parallel dev",
+    "build": "corepack pnpm -r build",
+    "test": "corepack pnpm -r test",
+    "typecheck": "corepack pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}

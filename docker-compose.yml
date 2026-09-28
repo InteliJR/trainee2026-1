@@ -1,0 +1,23 @@
+# Arquivo legado para PostgreSQL local. O fluxo atual do MVP usa PostgreSQL hospedado no Supabase.
+services:
+  # Define o serviço opcional de banco local; ele não é iniciado pelos scripts padrão do projeto.
+  postgres:
+    # Usa uma imagem PostgreSQL 16 compacta baseada em Alpine.
+    image: postgres:16-alpine
+    # Define um nome previsível caso o serviço legado seja iniciado manualmente.
+    container_name: ecorota-db
+    # Configura credenciais exclusivamente locais e sem uso no Supabase.
+    environment:
+      POSTGRES_USER: ecorota
+      POSTGRES_PASSWORD: ecorota
+      POSTGRES_DB: ecorota
+    # Expõe a porta padrão do PostgreSQL para ferramentas locais.
+    ports:
+      - "5432:5432"
+    # Persiste os dados locais em um volume Docker nomeado.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+# Declara o volume referenciado pelo serviço PostgreSQL opcional.
+volumes:
+  pgdata:
