@@ -134,12 +134,12 @@ export function CadastrarContaPage() {
           </Button>
         </form>
 
-        <p className="mt-4 flex min-h-touch items-center justify-center text-sm font-semibold text-neutral-700">
-          Já tem conta?
-          <Link to="/morador/login" className="ml-1 text-brand-700 hover:text-brand-800">
-            Entrar
-          </Link>
-        </p>
+        <Link
+          to="/morador/login"
+          className="mt-4 flex min-h-touch items-center justify-center text-sm font-semibold text-neutral-700 hover:text-brand-700"
+        >
+          Já tem conta? <span className="ml-1 text-brand-700">Entrar</span>
+        </Link>
       </div>
     </main>
   );

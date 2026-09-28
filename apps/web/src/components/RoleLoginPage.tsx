@@ -78,12 +78,12 @@ export function RoleLoginPage({ eyebrow, title, description, icon, defaultRedire
         </form>
 
         {registerHref ? (
-          <p className="mt-4 flex min-h-touch items-center justify-center text-sm font-semibold text-neutral-700">
-            Ainda não tem conta?
-            <Link to={registerHref} className="ml-1 text-brand-700 hover:text-brand-800">
-              Cadastre-se
-            </Link>
-          </p>
+          <Link
+            to={registerHref}
+            className="mt-4 flex min-h-touch items-center justify-center text-sm font-semibold text-neutral-700 hover:text-brand-700"
+          >
+            Ainda não tem conta? <span className="ml-1 text-brand-700">Cadastre-se</span>
+          </Link>
         ) : null}
 
         <Link

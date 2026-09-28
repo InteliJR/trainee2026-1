@@ -63,8 +63,8 @@ export default function PerfilPage() {
           <ErrorState message={friendlyError(points.error)} onRetry={points.reload} />
         ) : points.data && level ? (
           <>
-            <div className="flex items-center gap-4 rounded-lg border-2 border-brand-600 bg-brand-50 p-4 shadow-card">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white">
+            <div className="flex items-center gap-4 rounded-lg border-2 border-reward-600 bg-reward-50 p-4 shadow-card">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-reward-600 text-white">
                 <Icon name="star" className="h-7 w-7" />
               </span>
               <div>
@@ -88,7 +88,7 @@ export default function PerfilPage() {
                       <p className="text-base font-semibold text-neutral-900">{entry.reason}</p>
                       <p className="text-sm text-neutral-700">{new Date(entry.createdAt).toLocaleDateString('pt-BR')}</p>
                     </div>
-                    <span className="shrink-0 text-lg font-bold text-brand-700">+{entry.points}</span>
+                    <span className="shrink-0 text-lg font-bold text-reward-700">+{entry.points}</span>
                   </li>
                 ))}
               </ul>
