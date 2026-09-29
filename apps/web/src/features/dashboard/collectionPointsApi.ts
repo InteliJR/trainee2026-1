@@ -88,13 +88,3 @@ export function archiveCollectionPoint(id: string): Promise<void> {
   return apiRequest('DELETE', `/operacao/pontos-coleta/${encodeURIComponent(id)}`);
 }
 
-export function startLocalSimulation(originPointId: string, destinationPointId: string): Promise<void> {
-  return apiRequest('POST', '/operacao/simulacao-local/iniciar', {
-    pontoOrigemId: originPointId,
-    pontoDestinoId: destinationPointId,
-  });
-}
-
-export function stopLocalSimulation(): Promise<void> {
-  return apiRequest('POST', '/operacao/simulacao-local/parar');
-}

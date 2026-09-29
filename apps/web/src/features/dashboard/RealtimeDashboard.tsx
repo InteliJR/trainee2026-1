@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { buttonClasses } from '../../components/Button';
+import { Button, buttonClasses } from '../../components/Button';
 import { Icon } from '../../components/Icon';
 import { MapContainer } from '../../map/MapContainer';
 import { formatAge } from '../../map/mapUtils';
@@ -14,7 +14,7 @@ import { KpiCards } from './KpiCards';
 import { RecentRequestsTable } from './RecentRequestsTable';
 import { logoutOperator } from './operatorAuth';
 import { RegionDemand } from './RegionDemand';
-import { listCollectionPoints, startLocalSimulation, stopLocalSimulation, type LocalCollectionPoint } from './collectionPointsApi';
+import { listCollectionPoints, type LocalCollectionPoint } from './collectionPointsApi';
 import { useIndicadores } from './useIndicadores';
 
 // Traduz os estados internos para rótulos curtos apresentados ao usuário.
@@ -44,10 +44,6 @@ export function RealtimeDashboard() {
   // Usa arrays vazios antes do snapshot para impedir a reaparição de dados simulados.
   const points = realtime.snapshot?.points ?? [];
   const [localPoints, setLocalPoints] = useState<LocalCollectionPoint[]>([]);
-  const [simulationOrigin, setSimulationOrigin] = useState('');
-  const [simulationDestination, setSimulationDestination] = useState('');
-  const [simulationBusy, setSimulationBusy] = useState(false);
-  const [simulationError, setSimulationError] = useState('');
   const activeLocalPoints = useMemo(() => localPoints.filter((point) => point.ativo).map((point) => ({
     id: `local:${point.id}`,
     name: `${point.nome} (local)`,
@@ -69,14 +65,6 @@ export function RealtimeDashboard() {
   // Usa arrays vazios antes do snapshot para não desenhar rotas de uma conexão anterior.
   const routes = realtime.snapshot?.routes ?? [];
   const visibleRoutes = routes.filter((route) => visibleCollectorIds.has(route.collectorId));
-  const localSimulation = realtime.localSimulation;
-  const showLocalSimulation = collectorOrigin !== 'system' && localSimulation?.status === 'EM_EXECUCAO';
-  const mapCollectors = showLocalSimulation && localSimulation.collector
-    ? [...visibleCollectors, localSimulation.collector]
-    : visibleCollectors;
-  const mapRoutes = showLocalSimulation && localSimulation.route
-    ? [...visibleRoutes, localSimulation.route]
-    : visibleRoutes;
   // Consulta os KPIs só com a sessão confirmada e reconsulta a cada mudança de solicitação recebida.
   const indicators = useIndicadores({
     enabled: realtime.connectionStatus === 'conectado',
@@ -109,30 +97,6 @@ export function RealtimeDashboard() {
     localStorage.setItem('ecorota:collector-origin', collectorOrigin);
     if (collectorOrigin === 'custom') setFocus(null);
   }, [collectorOrigin]);
-
-  async function startSimulation() {
-    setSimulationBusy(true);
-    setSimulationError('');
-    try {
-      await startLocalSimulation(simulationOrigin, simulationDestination);
-      setCollectorOrigin('custom');
-    } catch (error) {
-      setSimulationError(error instanceof Error ? error.message : 'Não foi possível iniciar a simulação.');
-    } finally {
-      setSimulationBusy(false);
-    }
-  }
-  async function stopSimulation() {
-    setSimulationBusy(true);
-    setSimulationError('');
-    try {
-      await stopLocalSimulation();
-    } catch (error) {
-      setSimulationError(error instanceof Error ? error.message : 'Não foi possível parar a simulação.');
-    } finally {
-      setSimulationBusy(false);
-    }
-  }
 
   // Em telas largas ocupa a janela inteira com a tabela ao lado do mapa; em telas estreitas empilha e rola.
   return (
@@ -170,14 +134,12 @@ export function RealtimeDashboard() {
             <Link to="/dashboard/perfis" className={buttonClasses('secondary')}>
               Ver perfis
             </Link>
-            <button
-              type="button"
-              onClick={() => void logout()}
-              className="inline-flex min-h-touch items-center gap-2 rounded-md border border-neutral-300 bg-neutral-0 px-3 text-sm font-semibold text-neutral-700 hover:border-operational-600 hover:text-operational-700"
-            >
-              <Icon name="logout" className="h-4 w-4" />
+            <Link to="/dashboard/atribuicoes" className={buttonClasses('secondary')}>
+              Atribuir coletores
+            </Link>
+            <Button variant="secondary" icon={<Icon name="logout" className="h-4 w-4" />} onClick={() => void logout()}>
               Sair
-            </button>
+            </Button>
           </div>
         </div>
         {realtime.errorMessage && (
@@ -200,29 +162,6 @@ export function RealtimeDashboard() {
       </header>
       <KpiCards indicators={indicators} />
       <div className="border-b border-neutral-200 bg-neutral-0 px-screen py-3 lg:px-6">
-        <div className="mx-auto mb-3 grid max-w-dashboard gap-3 rounded-lg border border-operational-100 bg-operational-50 p-3 md:grid-cols-[1fr_1fr_auto]">
-          <label className="text-sm font-semibold text-neutral-800">Origem
-            <select value={simulationOrigin} onChange={(event) => setSimulationOrigin(event.target.value)} disabled={localSimulation?.status === 'EM_EXECUCAO'} className="mt-1 block min-h-touch w-full rounded-md border border-neutral-400 bg-neutral-0 px-3 font-normal">
-              <option value="">Selecione um ponto</option>
-              {localPoints.map((point) => <option key={point.id} value={point.id}>{point.nome}</option>)}
-            </select>
-          </label>
-          <label className="text-sm font-semibold text-neutral-800">Destino
-            <select value={simulationDestination} onChange={(event) => setSimulationDestination(event.target.value)} disabled={localSimulation?.status === 'EM_EXECUCAO'} className="mt-1 block min-h-touch w-full rounded-md border border-neutral-400 bg-neutral-0 px-3 font-normal">
-              <option value="">Selecione um ponto</option>
-              {localPoints.map((point) => <option key={point.id} value={point.id}>{point.nome}</option>)}
-            </select>
-          </label>
-          <div className="flex items-end">
-            {localSimulation?.status === 'EM_EXECUCAO' ? (
-              <button type="button" onClick={() => void stopSimulation()} disabled={simulationBusy} className="min-h-touch w-full rounded-md bg-danger-600 px-4 text-sm font-semibold text-neutral-0 hover:bg-danger-700 disabled:opacity-60">Parar simulação</button>
-            ) : (
-              <button type="button" onClick={() => void startSimulation()} disabled={simulationBusy || !simulationOrigin || !simulationDestination || simulationOrigin === simulationDestination} className="min-h-touch w-full rounded-md bg-brand-600 px-4 text-sm font-semibold text-neutral-0 hover:bg-brand-700 disabled:opacity-60">Iniciar simulação</button>
-            )}
-          </div>
-          {simulationError ? <p role="alert" className="text-sm font-medium text-danger-700 md:col-span-3">{simulationError}</p> : null}
-          {localSimulation?.status === 'EM_EXECUCAO' ? <p role="status" className="text-sm font-medium text-operational-800 md:col-span-3">Coletor local em movimento · {Math.round(localSimulation.progress * 100)}% do trecho · {localSimulation.direction === 'IDA' ? 'ida' : 'volta'}</p> : null}
-        </div>
         <div className="mx-auto flex max-w-dashboard flex-wrap items-center gap-2" role="group" aria-label="Filtrar coletores por origem">
           <span className="mr-1 text-sm font-semibold text-neutral-700">Coletores:</span>
           {([
@@ -247,14 +186,14 @@ export function RealtimeDashboard() {
         <section className="min-h-[420px] flex-1" aria-label="Visualização da operação">
           <MapContainer
             points={collectorOrigin === 'system' ? points : collectorOrigin === 'custom' ? activeLocalPoints : [...points, ...activeLocalPoints]}
-            collectors={mapCollectors}
-            routes={mapRoutes}
+            collectors={visibleCollectors}
+            routes={visibleRoutes}
             focus={focus}
             minHeight="420px"
             showLegend
           />
         </section>
-        <aside className="flex h-[560px] flex-col border-t border-neutral-200 bg-neutral-0 lg:h-auto lg:w-[380px] lg:border-l lg:border-t-0">
+        <aside className="flex h-[560px] flex-col border-t border-neutral-200 bg-neutral-0 shadow-card lg:h-auto lg:w-[380px] lg:border-l lg:border-t-0">
           <RegionDemand regions={indicators.data?.demandaPorRegiao} />
           <RecentRequestsTable
             snapshot={realtime.snapshot}

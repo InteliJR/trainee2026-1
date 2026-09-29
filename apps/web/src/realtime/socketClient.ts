@@ -64,21 +64,6 @@ export interface RealtimeRoute {
 }
 
 // Descreve o estado integral entregue após a conexão e nas substituições completas.
-export interface LocalSimulationState {
-  runId: string | null;
-  sequence: number;
-  status: 'PARADA' | 'EM_EXECUCAO';
-  collector: Collector | null;
-  route: RealtimeRoute | null;
-  originPointId: string | null;
-  destinationPointId: string | null;
-  progress: number;
-  direction: 'IDA' | 'VOLTA' | null;
-  startedAt: string | null;
-  stoppedAt: string | null;
-  updatedAt: string;
-}
-
 export interface RealtimeSnapshot {
   // Identifica a geração atual da simulação.
   generation: number;
@@ -174,7 +159,6 @@ export interface ServerToClientEvents {
   'operacao:estado-inicial': (snapshot: RealtimeSnapshot) => void;
   // Substitui o estado da tela quando a EcoRota envia um novo snapshot integral.
   'operacao:estado-atualizado': (snapshot: RealtimeSnapshot) => void;
-  'simulacao-local:estado': (state: LocalSimulationState) => void;
   // Entrega ao operador eventos administrativos de coletor ou simulação.
   'operacao:evento': (event: RealtimeOperationEvent) => void;
   // Avisa que uma solicitação recebeu um coletor.

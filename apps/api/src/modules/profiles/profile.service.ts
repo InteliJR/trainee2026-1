@@ -1,6 +1,6 @@
 import type { Actor } from '../../auth/actor.js';
 import { AppError } from '../../errors/appError.js';
-import type { ListedProfile, ProfileRepository } from './profile.repository.js';
+import type { CreateProfileData, ListedProfile, ProfileRepository, UpdateProfileData } from './profile.repository.js';
 
 export class ProfileService {
   constructor(private readonly repository: ProfileRepository) {}
@@ -16,7 +16,7 @@ export class ProfileService {
 
   private serialize(profile: ListedProfile) {
     return {
-      id: profile.id, nome: profile.name, papel: profile.role,
+      id: profile.id, nome: profile.name, email: profile.email, papel: profile.role,
       cadastradoEm: profile.createdAt.toISOString(), coletasConcluidas: profile.completedCollections,
       ...(profile.role === 'COLETOR' ? { disponivel: profile.available, turno: profile.shift } : {}),
     };
@@ -36,5 +36,22 @@ export class ProfileService {
       dados: profiles.map((profile) => this.serialize(profile)),
       paginacao: { pagina: page, limite: limit, total, totalPaginas: Math.ceil(total / limit) },
     };
+  }
+
+  async create(actor: Actor, data: CreateProfileData) {
+    if (actor.role !== 'OPERADOR') throw new AppError({ statusCode: 403, code: 'PAPEL_NAO_AUTORIZADO', message: 'Apenas operadores podem criar perfis.' });
+    return this.serialize(await this.repository.create(data));
+  }
+
+  async update(actor: Actor, userId: string, data: UpdateProfileData) {
+    if (actor.role !== 'OPERADOR') throw new AppError({ statusCode: 403, code: 'PAPEL_NAO_AUTORIZADO', message: 'Apenas operadores podem editar perfis.' });
+    const profile = await this.repository.update(userId, data);
+    if (!profile) throw new AppError({ statusCode: 404, code: 'PERFIL_NAO_ENCONTRADO', message: 'Perfil não encontrado.' });
+    return this.serialize(profile);
+  }
+
+  async remove(actor: Actor, userId: string) {
+    if (actor.role !== 'OPERADOR') throw new AppError({ statusCode: 403, code: 'PAPEL_NAO_AUTORIZADO', message: 'Apenas operadores podem excluir perfis.' });
+    if (!(await this.repository.remove(userId))) throw new AppError({ statusCode: 404, code: 'PERFIL_NAO_ENCONTRADO', message: 'Perfil não encontrado.' });
   }
 }

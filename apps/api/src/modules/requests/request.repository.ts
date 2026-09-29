@@ -239,7 +239,7 @@ export class PrismaRequestRepository implements RequestRepository {
               source: 'LOCAL',
               fromStatus: current.status,
               toStatus: 'ASSIGNED',
-              reason: 'Coletor associado pela operação de desenvolvimento.',
+              reason: 'Coletor atribuído pelo operador.',
               occurredAt: new Date(),
             },
           },

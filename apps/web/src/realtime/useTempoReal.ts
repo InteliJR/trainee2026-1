@@ -6,7 +6,6 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { Socket } from 'socket.io-client';
 import {
   createRealtimeClient,
-  type LocalSimulationState,
   type RealtimeCollectorPositionEvent,
   type RealtimeRequestEvent,
   type RealtimeRequestStatus,
@@ -27,7 +26,6 @@ export interface RealtimeState {
   errorMessage: string | null;
   // Guarda o último evento de solicitação para permitir feedback visual posterior.
   lastRequestEvent: RealtimeRequestEvent | null;
-  localSimulation: LocalSimulationState | null;
 }
 
 // Descreve os argumentos públicos aceitos pelo hook.
@@ -46,7 +44,6 @@ export type RealtimeAction =
   | { type: 'posicao-coletor'; event: RealtimeCollectorPositionEvent }
   | { type: 'solicitacao'; event: RealtimeRequestEvent }
   | { type: 'rota'; event: RealtimeRouteEvent }
-  | { type: 'simulacao-local'; state: LocalSimulationState };
 
 // Define o estado exibido antes que o primeiro handshake seja iniciado.
 export const INITIAL_REALTIME_STATE: RealtimeState = {
@@ -54,7 +51,6 @@ export const INITIAL_REALTIME_STATE: RealtimeState = {
   snapshot: null,
   errorMessage: null,
   lastRequestEvent: null,
-  localSimulation: null,
 };
 
 // Traduz o status público em português para o status técnico armazenado no snapshot.
@@ -80,10 +76,6 @@ export function realtimeReducer(state: RealtimeState, action: RealtimeAction): R
   // Registra falhas do handshake ou transporte sem apagar o último mapa válido.
   if (action.type === 'erro') {
     return { ...state, connectionStatus: 'erro', errorMessage: action.message };
-  }
-
-  if (action.type === 'simulacao-local') {
-    return { ...state, localSimulation: action.state };
   }
 
   // Aceita um estado integral somente quando ele não é mais antigo que o já exibido.
@@ -184,7 +176,7 @@ export function shouldAcceptSnapshot(current: RealtimeSnapshot | null, incoming:
 // Verifica se um delta pode ser aplicado sobre o snapshot atualmente exibido.
 function shouldAcceptIncrement(snapshot: RealtimeSnapshot, action: RealtimeAction): boolean {
   // Ações sem metadados de versão já foram tratadas antes desta função.
-  if (action.type === 'conexao' || action.type === 'erro' || action.type === 'snapshot' || action.type === 'simulacao-local') return false;
+  if (action.type === 'conexao' || action.type === 'erro' || action.type === 'snapshot') return false;
   // Um delta só é seguro quando pertence exatamente à geração usada como base.
   if (action.event.geracao !== snapshot.generation) return false;
   // Revisões menores já foram incorporadas ao estado e não devem sobrescrever dados recentes.
@@ -250,7 +242,6 @@ export function useTempoReal(options: UseTempoRealOptions): UseTempoRealResult {
     const handleReconnectAttempt = (): void => dispatch({ type: 'conexao', status: 'reconectando' });
     // Encaminha snapshots integrais para a regra de ordenação do reducer.
     const handleSnapshot = (snapshot: RealtimeSnapshot): void => dispatch({ type: 'snapshot', snapshot });
-    const handleLocalSimulation = (simulationState: LocalSimulationState): void => dispatch({ type: 'simulacao-local', state: simulationState });
     // Encaminha posições sem acoplar o transporte à camada do mapa.
     const handleCollectorPosition = (event: RealtimeCollectorPositionEvent): void => dispatch({ type: 'posicao-coletor', event });
     // Encaminha qualquer mudança pública de solicitação para a mesma transição do reducer.
@@ -264,7 +255,6 @@ export function useTempoReal(options: UseTempoRealOptions): UseTempoRealResult {
     socket.on('connect_error', handleConnectError);
     socket.on('operacao:estado-inicial', handleSnapshot);
     socket.on('operacao:estado-atualizado', handleSnapshot);
-    socket.on('simulacao-local:estado', handleLocalSimulation);
     socket.on('coletor:posicao-atualizada', handleCollectorPosition);
     socket.on('solicitacao:atribuida', handleRequest);
     socket.on('solicitacao:status-atualizado', handleRequest);
@@ -281,7 +271,6 @@ export function useTempoReal(options: UseTempoRealOptions): UseTempoRealResult {
       socket.off('connect_error', handleConnectError);
       socket.off('operacao:estado-inicial', handleSnapshot);
       socket.off('operacao:estado-atualizado', handleSnapshot);
-      socket.off('simulacao-local:estado', handleLocalSimulation);
       socket.off('coletor:posicao-atualizada', handleCollectorPosition);
       socket.off('solicitacao:atribuida', handleRequest);
       socket.off('solicitacao:status-atualizado', handleRequest);

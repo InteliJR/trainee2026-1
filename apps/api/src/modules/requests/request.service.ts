@@ -290,13 +290,16 @@ export class RequestService {
     }
   }
 
-  // Permite ao operador atribuir coletor enquanto o fluxo definitivo do painel ainda é desenvolvido.
-  async assignDevelopment(actor: Actor, id: string, collectorId: string) {
-    // Atribuição temporária continua restrita ao operador.
+  // O operador atribui um coletor cadastrado às solicitações feitas nos pontos da plataforma.
+  async assign(actor: Actor, id: string, collectorId: string) {
     if (actor.role !== 'OPERADOR') {
-      throw new AppError({ statusCode: 403, code: 'PAPEL_NAO_AUTORIZADO', message: 'Apenas o operador pode usar a atribuição temporária.' });
+      throw new AppError({ statusCode: 403, code: 'PAPEL_NAO_AUTORIZADO', message: 'Apenas o operador pode atribuir coletores.' });
     }
     const request = await this.get(actor, id);
+    // A EcoRota escolhe o coletor das solicitações que ela gerencia; atribuir aqui criaria divergência.
+    if (request.ecoRotaRequestId) {
+      throw new AppError({ statusCode: 409, code: 'ATRIBUICAO_PELA_ECOROTA', message: 'Esta solicitação é atribuída pela EcoRota.' });
+    }
     // Apenas solicitações aguardando atendimento podem receber coletor.
     if (!['SCHEDULED', 'PENDING'].includes(request.status)) {
       throw new AppError({ statusCode: 409, code: 'ATRIBUICAO_NAO_PERMITIDA', message: 'A solicitação não está aguardando atribuição.' });

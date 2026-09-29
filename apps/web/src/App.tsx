@@ -6,6 +6,7 @@ import { LoginOperadorPage } from './features/dashboard/LoginOperadorPage';
 import { checkOperatorSession } from './features/dashboard/operatorAuth';
 import { RealtimeDashboard } from './features/dashboard/RealtimeDashboard';
 import { ProfilesPage } from './features/dashboard/ProfilesPage';
+import { AtribuicoesPage } from './features/dashboard/AtribuicoesPage';
 import { EscolhaPerfilPage } from './features/inicio/EscolhaPerfilPage';
 import { ColetorRoutes } from './features/coletor/routes';
 import { RequireResident } from './features/morador/components/RequireResident';
@@ -41,6 +42,7 @@ export default function App() {
           element={<RequireRole check={checkOperatorSession} loginPath="/operador/login"><CollectionPointsPage /></RequireRole>}
         />
         <Route path="/dashboard/perfis" element={<RequireRole check={checkOperatorSession} loginPath="/operador/login"><ProfilesPage /></RequireRole>} />
+        <Route path="/dashboard/atribuicoes" element={<RequireRole check={checkOperatorSession} loginPath="/operador/login"><AtribuicoesPage /></RequireRole>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
