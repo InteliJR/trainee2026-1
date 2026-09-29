@@ -95,6 +95,8 @@ export function buildApp(options: BuildAppOptions) {
     const requestService = new RequestService(
       new PrismaRequestRepository(options.database),
       options.ecoRotaClient,
+      // Rotas da EcoRota em memória, usadas para estimar a chegada do coletor.
+      operationState,
     );
 
     // Registra os quatro endpoints de autenticação antes das demais rotas protegidas.

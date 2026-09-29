@@ -7,8 +7,8 @@ import { PointStep } from '../components/PointStep';
 import { ResidentBottomNav } from '../components/ResidentBottomNav';
 import { ScheduleStep } from '../components/ScheduleStep';
 import { StepIndicator } from '../components/StepIndicator';
-import { POINTS_PER_COMPLETED_COLLECTION, materialOptions, shiftOptions } from '../data/catalogo';
-import { QUANTITY_ERROR, fetchCollectionPoints, parseQuantityKg } from '../lib/residentApi';
+import { materialOptions, shiftOptions } from '../data/catalogo';
+import { QUANTITY_ERROR, fetchCollectionPoints, fetchPointsPerCollection, parseQuantityKg } from '../lib/residentApi';
 import { createResidentRequest, type CreateRequestResult } from '../lib/residentRequests';
 import type { CollectionPoint, MaterialCategory, ResidentRequestDraft, Shift } from '../types';
 
@@ -31,6 +31,18 @@ export function SolicitarColetaPage() {
   // Começa com os pontos de exemplo e troca pelos pontos reais da EcoRota assim que a API responder.
   const [points, setPoints] = useState<CollectionPoint[]>([]);
   const [pointsError, setPointsError] = useState('');
+
+  // Regra de pontos da API, mostrada no resumo antes de enviar.
+  const [pointsPerCollection, setPointsPerCollection] = useState<number | null>(null);
+  useEffect(() => {
+    let active = true;
+    fetchPointsPerCollection()
+      .then((value) => active && setPointsPerCollection(value))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -171,7 +183,7 @@ export function SolicitarColetaPage() {
               <div className="flex gap-3">
                 <Icon name="leaf" className="mt-0.5 h-5 w-5 shrink-0 text-brand-700" />
                 <p>
-                  <strong>Impacto previsto:</strong> +{POINTS_PER_COMPLETED_COLLECTION} pontos ao confirmar a
+                  <strong>Impacto previsto:</strong> +{submission?.request.pointsPreview} pontos ao confirmar a
                   coleta concluída.
                 </p>
               </div>
@@ -247,6 +259,7 @@ export function SolicitarColetaPage() {
                 shifts={shiftOptions}
                 onDateChange={setDesiredDate}
                 onShiftChange={setShift}
+                pointsPerCollection={pointsPerCollection}
               />
             ) : null}
           </div>

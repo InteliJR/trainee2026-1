@@ -4,7 +4,7 @@
  */
 import type { RequestStatus } from '@ecorota/shared';
 import { ApiError, apiRequest } from '../../../lib/api';
-import { POINTS_PER_COMPLETED_COLLECTION, materialOptions, shiftOptions } from '../data/catalogo';
+import { materialOptions, shiftOptions } from '../data/catalogo';
 import type {
   CollectionPoint,
   MaterialCategory,
@@ -47,8 +47,12 @@ export interface RequestDTO {
   concluidaEm: string | null;
   endereco: { logradouro: string; numero: string; bairro: string } | null;
   materiais: Array<{ tipo: string; quantidadeEstimada?: number | null; unidade?: string | null }>;
-  coletor: { nome: string } | null;
+  coletor: { nome: string; telefone?: string | null } | null;
   pontosConcedidos: Array<{ pontos: number }>;
+  // Pontos que cada participante recebe ao concluir; vem da regra da API.
+  pontosPrevistos?: number;
+  // Chegada estimada pela rota da EcoRota; null quando não dá para calcular.
+  previsaoChegada?: string | null;
 }
 
 // ---------- Traduções ----------
@@ -173,7 +177,6 @@ export function requestFromApi(dto: RequestDTO, pointNames: ReadonlyMap<string, 
   const material = materialOptions.find((option) => option.id === materialId)!;
   const desired = new Date(dto.dataDesejada);
   const shift = shiftOptions.find((option) => option.id === shiftFromDate(desired))!;
-  const grantedPoints = dto.pontosConcedidos.reduce((sum, entry) => sum + entry.pontos, 0);
   return {
     id: dto.id,
     externalReference: dto.referenciaExterna,
@@ -188,9 +191,10 @@ export function requestFromApi(dto: RequestDTO, pointNames: ReadonlyMap<string, 
     shiftWindow: shift.window,
     status: STATUS_FROM_API[dto.status] ?? 'pending',
     collectorName: dto.coletor?.nome ?? null,
-    collectorPhone: null,
-    estimatedArrival: null,
-    pointsPreview: grantedPoints > 0 ? grantedPoints : POINTS_PER_COMPLETED_COLLECTION,
+    collectorPhone: dto.coletor?.telefone ?? null,
+    estimatedArrival: clock(dto.previsaoChegada ?? null),
+    // pontosConcedidos traz os lançamentos do morador e do coletor; o morador vê só a sua parte.
+    pointsPreview: dto.pontosPrevistos ?? 0,
     estimatedKg: estimatedKg(dto.materiais),
     timeline: buildTimeline(dto.criadoEm, dto.concluidaEm),
   };
@@ -215,6 +219,12 @@ export async function fetchCollectionPoints(near?: { latitude: number; longitude
     address: point.descricao ?? `Circuito ${point.circuito}`, neighborhood: `Circuito ${point.circuito}`,
     distanceKm: 0, accepts: materialOptions.map((material) => material.id), nextAvailability: 'Conforme a rota do coletor',
   }));
+}
+
+// Quantos pontos cada coleta concluída rende, pela regra da própria API.
+export async function fetchPointsPerCollection(): Promise<number> {
+  const { pontosPorColetaConcluida } = await apiRequest<{ pontosPorColetaConcluida: number }>('GET', '/pontuacao/regras');
+  return pontosPorColetaConcluida;
 }
 
 // Solicitações do morador autenticado, já no formato das telas.

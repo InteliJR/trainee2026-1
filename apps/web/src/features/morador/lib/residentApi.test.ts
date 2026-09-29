@@ -158,17 +158,18 @@ describe('requestFromApi', () => {
     expect(request.collectorName).toBeNull();
   });
 
-  it('usa os pontos concedidos quando existem e registra o horário da conclusão', () => {
+  it('usa os pontos previstos da API (não soma os lançamentos do coletor) e registra a conclusão', () => {
     const request = requestFromApi(
       createRequestDto({
         status: 'CONCLUIDA',
         concluidaEm: new Date(2026, 8, 30, 14, 10).toISOString(),
-        pontosConcedidos: [{ pontos: 10 }, { pontos: 5 }],
+        pontosConcedidos: [{ pontos: 100 }, { pontos: 100 }],
+        pontosPrevistos: 100,
       }),
       new Map(),
     );
     expect(request.status).toBe('completed');
-    expect(request.pointsPreview).toBe(15);
+    expect(request.pointsPreview).toBe(100);
     expect(request.timeline[3].occurredAt).toMatch(/^\d{2}:\d{2}$/);
   });
 });
@@ -268,5 +269,23 @@ describe('createRequestInApi com quantidade', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe('requestFromApi com dados do coletor', () => {
+  it('mostra o telefone do coletor e a chegada prevista calculada pela API', () => {
+    const arrival = new Date(2026, 8, 30, 13, 42);
+    const request = requestFromApi(createRequestDto({
+      coletor: { nome: 'Coletor base 1', telefone: '(11) 98888-7777' },
+      previsaoChegada: arrival.toISOString(),
+    }), new Map());
+    expect(request.collectorPhone).toBe('(11) 98888-7777');
+    expect(request.estimatedArrival).toBe('13:42');
+  });
+
+  it('deixa telefone e previsão vazios quando a API não os informa', () => {
+    const request = requestFromApi(createRequestDto({ coletor: { nome: 'Coletor base 1' }, previsaoChegada: null }), new Map());
+    expect(request.collectorPhone).toBeNull();
+    expect(request.estimatedArrival).toBeNull();
   });
 });

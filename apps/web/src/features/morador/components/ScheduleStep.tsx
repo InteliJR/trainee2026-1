@@ -1,5 +1,4 @@
 import type { CollectionPoint, MaterialOption, ResidentRequestDraft, ShiftOption } from '../types';
-import { POINTS_PER_COMPLETED_COLLECTION } from '../data/catalogo';
 import { Icon } from './Icon';
 
 interface ScheduleStepProps {
@@ -9,6 +8,8 @@ interface ScheduleStepProps {
   shifts: ShiftOption[];
   onDateChange: (date: string) => void;
   onShiftChange: (shiftId: ShiftOption['id']) => void;
+  // Regra de pontos da API; null enquanto não carregou.
+  pointsPerCollection: number | null;
 }
 
 export function ScheduleStep({
@@ -18,6 +19,7 @@ export function ScheduleStep({
   shifts,
   onDateChange,
   onShiftChange,
+  pointsPerCollection,
 }: ScheduleStepProps) {
   return (
     <section className="space-y-4" aria-labelledby="schedule-title">
@@ -104,7 +106,7 @@ export function ScheduleStep({
           </div>
           <div className="flex justify-between gap-3">
             <dt>Pontos previstos</dt>
-            <dd className="text-right font-semibold text-reward-800">+{POINTS_PER_COMPLETED_COLLECTION}</dd>
+            <dd className="text-right font-semibold text-reward-800">{pointsPerCollection === null ? '—' : `+${pointsPerCollection}`}</dd>
           </div>
         </dl>
       </div>

@@ -4,10 +4,6 @@
  */
 import type { MaterialOption, ShiftOption } from '../types';
 
-// Pontos creditados por coleta concluída. Espelha a regra da API (request.repository.ts: 100 pontos
-// para morador e coletor ao concluir); se a API passar a expor a regra, esta constante deve sair.
-export const POINTS_PER_COMPLETED_COLLECTION = 100;
-
 export const materialOptions: MaterialOption[] = [
   {
     id: 'papel',

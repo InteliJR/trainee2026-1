@@ -5,7 +5,8 @@
 import type { Actor } from '../../auth/actor.js';
 import { AppError } from '../../errors/appError.js';
 import type { RequestStatus } from '../../generated/prisma/enums.js';
-import { EcoRotaIntegrationError, type EcoRotaClient } from '../../integration/ecorotaClient.js';
+import { EcoRotaIntegrationError, type EcoRotaClient, type EcoRotaRoute } from '../../integration/ecorotaClient.js';
+import { POINTS_PER_COMPLETED_COLLECTION } from '../gamification/gamification.rules.js';
 import { MATERIAL_TO_API, STATUS_TO_API, API_TO_STATUS } from './request.schemas.js';
 import type { CreateCollectionRequestInput, ListCollectionRequestsQuery } from './request.schemas.js';
 import { RepositoryRuleError, type RequestDetails, type RequestRepository } from './request.repository.js';
@@ -110,8 +111,14 @@ export function serializeRequest(request: RequestDetails) {
       unidade: material.unit,
     })),
     coletor: request.collectorProfile
-      ? { id: request.collectorProfile.user.id, nome: request.collectorProfile.user.name }
+      ? {
+        id: request.collectorProfile.user.id,
+        nome: request.collectorProfile.user.name,
+        telefone: request.collectorProfile.user.phone,
+      }
       : null,
+    // Pontos que cada participante (morador e coletor) recebe quando a coleta é concluída.
+    pontosPrevistos: POINTS_PER_COMPLETED_COLLECTION,
     pontosConcedidos: request.pointsLogs.map((entry) => ({
       usuarioId: entry.userId,
       pontos: entry.points,
@@ -120,13 +127,36 @@ export function serializeRequest(request: RequestDetails) {
   };
 }
 
+// Parte do estado operacional usada para estimar a chegada do coletor.
+export interface ArrivalSource {
+  getSnapshot(): { routes: EcoRotaRoute[]; observedAt: string };
+}
+
+// Estima a chegada pela rota que a EcoRota calculou para o coletor atribuído. Só vale para solicitações
+// sincronizadas com a EcoRota, ainda atribuídas, cuja rota vai para o ponto delas; senão devolve null.
+export function estimateArrival(request: RequestDetails, snapshot: ReturnType<ArrivalSource['getSnapshot']>): string | null {
+  if (request.status !== 'ASSIGNED' || !request.externalCollectorId || !request.externalPointId) return null;
+  const route = snapshot.routes.find((item) => item.collectorId === request.externalCollectorId);
+  if (!route || route.destinationId !== request.externalPointId) return null;
+  const observedAt = Date.parse(snapshot.observedAt);
+  if (Number.isNaN(observedAt) || route.remainingMs < 0) return null;
+  return new Date(observedAt + route.remainingMs).toISOString();
+}
+
 // Orquestra regras, autorização, persistência e comandos HTTP enviados à EcoRota.
 export class RequestService {
   // Recebe persistência e integração externa separadamente para permitir testes e execução sem credencial.
   constructor(
     private readonly repository: RequestRepository,
     private readonly ecoRotaClient?: EcoRotaClient,
+    private readonly arrivalSource?: ArrivalSource,
   ) {}
+
+  // Contrato público da solicitação mais a previsão de chegada, quando a EcoRota permite calcular.
+  private serialize(request: RequestDetails) {
+    const snapshot = this.arrivalSource?.getSnapshot();
+    return { ...serializeRequest(request), previsaoChegada: snapshot ? estimateArrival(request, snapshot) : null };
+  }
 
   // Valida morador/antecedência, persiste localmente e tenta criar a contraparte EcoRota.
   async create(actor: Actor, input: CreateCollectionRequestInput) {
@@ -168,7 +198,7 @@ export class RequestService {
       if (!(error instanceof EcoRotaIntegrationError)) throw error;
         }
       }
-      return serializeRequest(request);
+      return this.serialize(request);
     } catch (error) {
       return mapRepositoryError(error);
     }
@@ -196,7 +226,7 @@ export class RequestService {
 
     const result = await this.repository.list(actor, { status, start, end, page, limit });
     return {
-      dados: result.items.map(serializeRequest),
+      dados: result.items.map((item) => this.serialize(item)),
       paginacao: { pagina: page, limite: limit, total: result.total, totalPaginas: Math.ceil(result.total / limit) },
     };
   }
@@ -214,7 +244,7 @@ export class RequestService {
 
   // Retorna a solicitação completa já serializada para a API.
   async detail(actor: Actor, id: string) {
-    return serializeRequest(await this.get(actor, id));
+    return this.serialize(await this.get(actor, id));
   }
 
   // Expõe somente as transições da solicitação que o ator pode consultar.
@@ -244,7 +274,7 @@ export class RequestService {
       if (this.ecoRotaClient && request.ecoRotaRequestId) {
         await this.ecoRotaClient.cancelRequest(request.ecoRotaRequestId);
       }
-      return serializeRequest(await this.repository.cancel(id, actor.id, reason.trim()));
+      return this.serialize(await this.repository.cancel(id, actor.id, reason.trim()));
     } catch (error) {
       // Falha externa vira 502 e impede divergência intencional entre os sistemas.
       if (error instanceof EcoRotaIntegrationError) {
@@ -273,7 +303,7 @@ export class RequestService {
     }
     // Traduz eventual violação transacional detectada durante a atribuição.
     try {
-      return serializeRequest(await this.repository.assign(id, actor.id, collectorId));
+      return this.serialize(await this.repository.assign(id, actor.id, collectorId));
     } catch (error) {
       return mapRepositoryError(error);
     }
@@ -288,7 +318,7 @@ export class RequestService {
     await this.get(actor, id);
     // Repositório confirma vínculo e estado dentro da transação.
     try {
-      return serializeRequest(await this.repository.start(id, actor.id));
+      return this.serialize(await this.repository.start(id, actor.id));
     } catch (error) {
       return mapRepositoryError(error);
     }
@@ -307,7 +337,7 @@ export class RequestService {
       if (this.ecoRotaClient && request.ecoRotaRequestId && request.status !== 'COMPLETED') {
         await this.ecoRotaClient.completeRequest(request.ecoRotaRequestId);
       }
-      return serializeRequest(await this.repository.complete(id, actor.id, photoUrl));
+      return this.serialize(await this.repository.complete(id, actor.id, photoUrl));
     } catch (error) {
       // Normaliza falha externa para o contrato HTTP da aplicação.
       if (error instanceof EcoRotaIntegrationError) {

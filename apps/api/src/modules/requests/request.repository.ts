@@ -8,6 +8,7 @@ import type { Actor } from '../../auth/actor.js';
 import type { RequestStatus } from '../../generated/prisma/enums.js';
 import type { CreateCollectionRequestInput } from './request.schemas.js';
 import { API_TO_MATERIAL } from './request.schemas.js';
+import { POINTS_PER_COMPLETED_COLLECTION } from '../gamification/gamification.rules.js';
 
 // Centraliza todas as relações necessárias para devolver uma solicitação completa.
 export const requestInclude = {
@@ -15,7 +16,7 @@ export const requestInclude = {
   collectionPoint: true,
   materials: true,
   statusHistory: { orderBy: { occurredAt: 'asc' as const } },
-  collectorProfile: { include: { user: { select: { id: true, name: true } } } },
+  collectorProfile: { include: { user: { select: { id: true, name: true, phone: true } } } },
   pointsLogs: true,
 } as const;
 
@@ -290,7 +291,7 @@ export class PrismaRequestRepository implements RequestRepository {
         data: recipientIds.map((userId) => ({
           userId,
           requestId: id,
-          points: 100,
+          points: POINTS_PER_COMPLETED_COLLECTION,
           reason: 'Coleta concluída',
         })),
         skipDuplicates: true,
