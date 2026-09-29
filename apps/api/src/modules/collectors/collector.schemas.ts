@@ -25,3 +25,21 @@ export const updateCollectorAvailabilityBodySchema = {
     },
   },
 } as const;
+
+// Posição enviada pelo app do coletor durante uma coleta; a precisão (em metros) é opcional.
+export interface ShareCollectorPositionInput {
+  latitude: number;
+  longitude: number;
+  precisao?: number;
+}
+
+export const shareCollectorPositionBodySchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['latitude', 'longitude'],
+  properties: {
+    latitude: { type: 'number', minimum: -90, maximum: 90 },
+    longitude: { type: 'number', minimum: -180, maximum: 180 },
+    precisao: { type: 'number', minimum: 0 },
+  },
+} as const;

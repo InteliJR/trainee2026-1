@@ -22,6 +22,7 @@ import { PrismaHealthRepository } from './modules/health/health.repository.js';
 import { PrismaRealtimeAccessRepository } from './realtime/realtimeAccess.repository.js';
 // Importa a fábrica que anexa o Socket.IO ao servidor HTTP do Fastify.
 import { createRealtimeBroker } from './realtime/socketServer.js';
+import { collectorPositions } from './realtime/collectorPositions.js';
 // Importa o mesmo verificador JWT usado para proteger o handshake Socket.IO.
 import { AuthTokenService } from './auth/authToken.js';
 import { PrismaCollectionPointRepository } from './modules/operation/collectionPoint.repository.js';
@@ -87,6 +88,8 @@ const realtimeBroker = createRealtimeBroker(app, {
   // Compartilha exatamente o mesmo cache atualizado pelo WebSocket da EcoRota.
   state: operationState,
   localSimulation,
+  // Repassa as posições enviadas pelo app dos coletores da plataforma.
+  collectorPositions,
 });
 // Cria o consumidor WebSocket somente quando a integração externa possui configuração completa.
 streamConsumer = env.ecorotaUrl && env.ecorotaKey

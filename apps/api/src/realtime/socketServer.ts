@@ -6,6 +6,7 @@ import { Server as SocketIOServer, type Namespace, type Socket } from 'socket.io
 import { parse as parseCookie } from 'cookie';
 // Importa o verificador JWT e o nome único do cookie de sessão.
 import { AuthTokenService, parseSessionRole, pickSessionToken } from '../auth/authToken.js';
+import type { CollectorPositionEntry, CollectorPositionStore } from './collectorPositions.js';
 // Importa os contratos dos eventos, solicitações e rotas recebidos da plataforma EcoRota.
 import type { EcoRotaEventMessage, EcoRotaRequest, EcoRotaRoute } from '../integration/ecorotaClient.js';
 // Importa o cache operacional compartilhado e os tipos emitidos quando esse cache muda.
@@ -46,6 +47,8 @@ interface ServerToClientEvents {
   // Entrega um novo estado filtrado quando a EcoRota envia um snapshot integral.
   'operacao:estado-atualizado': (snapshot: OperationStateSnapshot) => void;
   'simulacao-local:estado': (state: LocalSimulationState) => void;
+  // Entrega a posição de um coletor da plataforma a quem pode acompanhá-lo.
+  'coletor-local:posicao': (event: ReturnType<typeof toPositionEvent>) => void;
 }
 
 // Especializa o Socket.IO para garantir que cada conexão autorizada possua um ator confirmado no banco.
@@ -71,6 +74,8 @@ export interface RealtimeBrokerOptions {
   // Permite substituir o cache global por um cache isolado em testes.
   state?: OperationStateStore;
   localSimulation?: LocalCollectorSimulation;
+  // Posições dos coletores cadastrados na plataforma, enviadas pelo app do coletor.
+  collectorPositions?: CollectorPositionStore;
 }
 
 // Expõe os recursos necessários para observar e encerrar a integração Socket.IO.
@@ -210,6 +215,10 @@ export function createRealtimeBroker(
        if (actor.role === 'OPERADOR' && options.localSimulation) {
          socket.emit('simulacao-local:estado', options.localSimulation.getSnapshot());
        }
+       // Posições atuais dos coletores da plataforma: todas para o operador, só a de quem o atende para o morador.
+       if (options.collectorPositions) {
+         await sendCurrentCollectorPositions(socket, actor, options.collectorPositions, options.accessRepository);
+       }
     } catch (error) {
       // Registra qual usuário não teve o estado inicial montado, sem enviar detalhes ao cliente.
       app.log.error({ err: error, userId: actor.id }, 'Falha ao montar estado inicial do Socket.IO.');
@@ -228,6 +237,10 @@ export function createRealtimeBroker(
   const unsubscribeLocal = options.localSimulation?.onUpdate((simulationState) => {
     namespace.to(roleRoom('OPERADOR')).emit('simulacao-local:estado', simulationState);
   });
+  // Repassa cada posição de coletor da plataforma ao operador e aos moradores atendidos por ele.
+  const unsubscribePositions = options.collectorPositions?.onUpdate((entry) => {
+    void forwardCollectorPosition(namespace, entry, options.accessRepository, app);
+  });
 
   // Devolve as referências usadas pelo bootstrap, pelos testes e pelo shutdown.
   return {
@@ -240,6 +253,7 @@ export function createRealtimeBroker(
       // Remove o listener do cache para impedir emissões depois do shutdown.
       unsubscribe();
       unsubscribeLocal?.();
+      unsubscribePositions?.();
       // Desconecta todos os navegadores ligados especificamente ao namespace da aplicação.
       namespace.disconnectSockets(true);
       // Encerra os transportes WebSocket e polling administrados pelo Engine.IO.
@@ -498,4 +512,50 @@ function roleRoom(role: RealtimeActor['role']): string {
 function userRoom(userId: string): string {
   // Prefixa o UUID para separar claramente identidade de outras salas do namespace.
   return `usuario:${userId}`;
+}
+
+// Contrato público da posição de um coletor da plataforma (os da EcoRota usam coletor:posicao-atualizada).
+function toPositionEvent(entry: CollectorPositionEntry) {
+  return {
+    coletorId: entry.collectorUserId,
+    nome: entry.name,
+    posicao: { type: 'Point' as const, coordinates: entry.coordinates },
+    precisaoMetros: entry.accuracyMeters,
+    observadoEm: entry.observedAt,
+  };
+}
+
+// Envia ao operador e aos moradores com coleta ativa desse coletor; ninguém mais recebe a posição.
+async function forwardCollectorPosition(
+  namespace: Namespace,
+  entry: CollectorPositionEntry,
+  accessRepository: RealtimeAccessRepository,
+  app: FastifyInstance,
+): Promise<void> {
+  try {
+    const rooms = new Set([roleRoom('OPERADOR'), userRoom(entry.collectorUserId)]);
+    const residents = await accessRepository.listResidentUserIdsForCollectorUser?.(entry.collectorUserId) ?? [];
+    for (const residentId of residents) rooms.add(userRoom(residentId));
+    namespace.to([...rooms]).emit('coletor-local:posicao', toPositionEvent(entry));
+  } catch (error) {
+    app.log.error({ err: error }, 'Falha ao distribuir a posição de um coletor da plataforma.');
+  }
+}
+
+// Entrega na conexão as posições recentes que o ator pode ver.
+async function sendCurrentCollectorPositions(
+  socket: RealtimeSocket,
+  actor: RealtimeActor,
+  store: CollectorPositionStore,
+  accessRepository: RealtimeAccessRepository,
+): Promise<void> {
+  for (const entry of store.list()) {
+    if (actor.role === 'OPERADOR' || actor.id === entry.collectorUserId) {
+      socket.emit('coletor-local:posicao', toPositionEvent(entry));
+      continue;
+    }
+    if (actor.role !== 'MORADOR') continue;
+    const residents = await accessRepository.listResidentUserIdsForCollectorUser?.(entry.collectorUserId) ?? [];
+    if (residents.includes(actor.id)) socket.emit('coletor-local:posicao', toPositionEvent(entry));
+  }
 }

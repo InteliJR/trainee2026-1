@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { fromDTO, type RequestDTO } from '../api/http';
-import { directionsUrl } from './route';
+import { directionsUrl, shouldSendPosition } from './route';
 
 function dto(overrides: Partial<RequestDTO> = {}): RequestDTO {
   return {
@@ -50,5 +50,25 @@ describe('destino da coleta', () => {
 
   it('fica sem destino quando a API não manda coordenadas', () => {
     expect(fromDTO(dto({ pontoColeta: { nome: 'INTELI', circuito: 1 } })).destination).toBeNull();
+  });
+});
+
+describe('shouldSendPosition', () => {
+  const origin: [number, number] = [-46.7336, -23.5557];
+
+  it('envia a primeira posição', () => {
+    expect(shouldSendPosition(null, origin, 1_000)).toBe(true);
+  });
+
+  it('espera 15 s parado, mas envia antes se o coletor andar 25 m', () => {
+    const last = { coordinates: origin, at: 0 };
+    expect(shouldSendPosition(last, origin, 10_000)).toBe(false);
+    expect(shouldSendPosition(last, origin, 15_000)).toBe(true);
+    // Cerca de 33 m ao norte.
+    expect(shouldSendPosition(last, [-46.7336, -23.5554], 5_000)).toBe(true);
+  });
+
+  it('nunca envia duas vezes em menos de 3 s', () => {
+    expect(shouldSendPosition({ coordinates: origin, at: 0 }, [-46.72, -23.55], 2_000)).toBe(false);
   });
 });

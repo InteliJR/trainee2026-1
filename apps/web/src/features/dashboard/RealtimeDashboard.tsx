@@ -9,6 +9,7 @@ import { Button, buttonClasses } from '../../components/Button';
 import { Icon } from '../../components/Icon';
 import { MapContainer } from '../../map/MapContainer';
 import { formatAge } from '../../map/mapUtils';
+import { localCollectorsForMap } from '../../realtime/socketClient';
 import { useTempoReal, type RealtimeConnectionStatus } from '../../realtime/useTempoReal';
 import { KpiCards } from './KpiCards';
 import { RecentRequestsTable } from './RecentRequestsTable';
@@ -53,7 +54,11 @@ export function RealtimeDashboard() {
     demand: { pending: 0, assigned: 0, in_service: 0, completed: 0, cancelled: 0 },
   })), [localPoints]);
   // Usa arrays vazios antes do snapshot para manter o mapa coerente com a conexão real.
-  const collectors = realtime.snapshot?.collectors ?? [];
+  // Junta os coletores da EcoRota e os da plataforma que estão compartilhando posição pelo app.
+  const collectors = useMemo(
+    () => [...(realtime.snapshot?.collectors ?? []), ...localCollectorsForMap(realtime.localCollectorPositions)],
+    [realtime.snapshot, realtime.localCollectorPositions],
+  );
   const [collectorOrigin, setCollectorOrigin] = useState<CollectorOriginFilter>(() => {
     const saved = localStorage.getItem('ecorota:collector-origin');
     return saved === 'custom' || saved === 'system' ? saved : 'all';

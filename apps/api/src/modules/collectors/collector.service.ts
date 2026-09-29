@@ -7,7 +7,12 @@ import { AppError } from '../../errors/appError.js';
 import { EcoRotaIntegrationError, type EcoRotaClient } from '../../integration/ecorotaClient.js';
 import type { RequestService } from '../requests/request.service.js';
 import type { CollectorProfileDetails, CollectorRepository } from './collector.repository.js';
-import type { ListCollectorRequestsQuery, UpdateCollectorAvailabilityInput } from './collector.schemas.js';
+import type { CollectorPositionEntry } from '../../realtime/collectorPositions.js';
+import type {
+  ListCollectorRequestsQuery,
+  ShareCollectorPositionInput,
+  UpdateCollectorAvailabilityInput,
+} from './collector.schemas.js';
 
 // Converte campos Prisma do perfil no contrato em português entregue ao frontend.
 function serializeProfile(profile: CollectorProfileDetails) {
@@ -37,7 +42,24 @@ export class CollectorService {
     private readonly repository: CollectorRepository,
     private readonly requestService: CollectorRequestReader,
     private readonly ecoRotaClient?: EcoRotaClient,
+    // Destino das posições enviadas pelo app; repassadas ao painel e ao morador atendido.
+    private readonly positions?: { update(entry: CollectorPositionEntry): void },
   ) {}
+
+  // Recebe a posição do coletor (GPS do celular) e a publica para quem acompanha a coleta.
+  async sharePosition(actor: Actor, input: ShareCollectorPositionInput) {
+    this.ensureCollector(actor);
+    const profile = await this.getProfile(actor.id);
+    const observedAt = new Date().toISOString();
+    this.positions?.update({
+      collectorUserId: actor.id,
+      name: profile.user.name,
+      coordinates: [input.longitude, input.latitude],
+      accuracyMeters: input.precisao ?? null,
+      observedAt,
+    });
+    return { recebidoEm: observedAt };
+  }
 
   // Reutiliza a listagem geral, cuja camada de repositório restringe ao coletor identificado.
   async listRequests(actor: Actor, query: ListCollectorRequestsQuery) {

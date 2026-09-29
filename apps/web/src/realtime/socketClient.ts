@@ -111,6 +111,16 @@ export interface RealtimeRequestEvent {
   geracao: number;
 }
 
+// Posição de um coletor cadastrado na plataforma, enviada pelo app dele (não vem da EcoRota).
+export interface LocalCollectorPositionEvent {
+  // UUID do usuário coletor.
+  coletorId: string;
+  nome: string;
+  posicao: CollectorPosition;
+  precisaoMetros: number | null;
+  observadoEm: string;
+}
+
 // Descreve os dados usados para mover um coletor no mapa.
 export interface RealtimeCollectorPositionEvent {
   // Indica qual marcador do coletor deve ser atualizado.
@@ -169,6 +179,8 @@ export interface ServerToClientEvents {
   'solicitacao:concluida': (event: RealtimeRequestEvent) => void;
   // Entrega a posição mais recente de um coletor autorizado.
   'coletor:posicao-atualizada': (event: RealtimeCollectorPositionEvent) => void;
+  // Entrega a posição de um coletor da plataforma ao operador e ao morador atendido por ele.
+  'coletor-local:posicao': (event: LocalCollectorPositionEvent) => void;
   // Entrega ao coletor ou operador uma rota recalculada pela EcoRota.
   'rota:atualizada': (event: RealtimeRouteEvent) => void;
 }
@@ -199,4 +211,19 @@ export function createRealtimeClient(
     // Limita a espera máxima a trinta segundos para que a recuperação não fique lenta indefinidamente.
     reconnectionDelayMax: 30_000,
   });
+}
+
+// Converte as posições dos coletores da plataforma no formato de coletor usado pelo mapa.
+export function localCollectorsForMap(positions: Record<string, LocalCollectorPositionEvent>): Collector[] {
+  return Object.values(positions).map((event) => ({
+    id: `local:${event.coletorId}`,
+    name: event.nome,
+    origin: 'custom',
+    // Só coletores em coleta compartilham posição; disponibilidade real fica no perfil.
+    available: false,
+    status: 'EM_COLETA',
+    circuit: 0,
+    position: event.posicao,
+    observedAt: event.observadoEm,
+  }));
 }

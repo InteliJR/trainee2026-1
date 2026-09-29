@@ -33,6 +33,8 @@ export interface RealtimeAccessRepository {
   findCollectorUserId(externalCollectorId: string): Promise<string | null>;
   // Lista moradores com coletas ativas vinculadas a um coletor externo.
   listResidentUserIds(externalCollectorId: string): Promise<string[]>;
+  // Lista moradores com coletas ativas atendidas por um coletor cadastrado na plataforma (UUID do usuário).
+  listResidentUserIdsForCollectorUser?(collectorUserId: string): Promise<string[]>;
 }
 
 // Implementa o contrato de autorização usando as tabelas PostgreSQL acessadas pelo Prisma.
@@ -141,6 +143,16 @@ export class PrismaRealtimeAccessRepository implements RealtimeAccessRepository 
       distinct: ['residentId'],
     });
     // Converte o resultado em UUIDs usados diretamente para montar as salas particulares.
+    return requests.map((request) => request.residentId);
+  }
+
+  // Mesma regra para os coletores da plataforma: só o morador atendido agora pode ver a posição.
+  async listResidentUserIdsForCollectorUser(collectorUserId: string): Promise<string[]> {
+    const requests = await this.database.collectionRequest.findMany({
+      where: { collectorProfile: { userId: collectorUserId }, status: { in: ['ASSIGNED', 'IN_SERVICE'] } },
+      select: { residentId: true },
+      distinct: ['residentId'],
+    });
     return requests.map((request) => request.residentId);
   }
 }

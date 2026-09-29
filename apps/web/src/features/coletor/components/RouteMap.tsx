@@ -4,8 +4,9 @@ import { Icon } from '../../../components/Icon';
 import { CLEAN_OSM_STYLE, maplibregl } from '../../../map/maplibre';
 import { distanceMeters, formatDistance } from '../../../map/mapUtils';
 import { colors } from '../../../styles/design-tokens';
+import { sharePosition } from '../api/http';
 import type { CollectorDestination } from '../api/types';
-import { directionsUrl } from '../lib/route';
+import { directionsUrl, shouldSendPosition, type SentPosition } from '../lib/route';
 
 const LINE_SOURCE = 'rota-coletor';
 const EMPTY_LINE = { type: 'FeatureCollection' as const, features: [] };
@@ -21,6 +22,9 @@ export function RouteMap({ destination }: { destination: CollectorDestination })
   const fittedRef = useRef(false);
   const [position, setPosition] = useState<Position | null>(null);
   const [gpsError, setGpsError] = useState('');
+  // Última posição enviada, para não mandar a cada leitura do GPS.
+  const lastSentRef = useRef<SentPosition | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   // Cria o mapa com o destino marcado e uma camada vazia para a linha até o coletor.
   useEffect(() => {
@@ -60,7 +64,16 @@ export function RouteMap({ destination }: { destination: CollectorDestination })
     const watch = navigator.geolocation.watchPosition(
       (event) => {
         setGpsError('');
-        setPosition([event.coords.longitude, event.coords.latitude]);
+        const next: Position = [event.coords.longitude, event.coords.latitude];
+        setPosition(next);
+        // Compartilha com o painel e com o morador desta coleta; falhas de rede só adiam o próximo envio.
+        const now = Date.now();
+        if (shouldSendPosition(lastSentRef.current, next, now)) {
+          lastSentRef.current = { coordinates: next, at: now };
+          sharePosition(next, Number.isFinite(event.coords.accuracy) ? Math.round(event.coords.accuracy) : null)
+            .then(() => setSharing(true))
+            .catch(() => setSharing(false));
+        }
       },
       () => setGpsError('Sem acesso à sua localização. Permita o acesso para ver onde você está.'),
       { enableHighAccuracy: true, maximumAge: 10_000, timeout: 20_000 },
@@ -118,6 +131,11 @@ export function RouteMap({ destination }: { destination: CollectorDestination })
         Ponto verde: destino. Ponto azul: você. A linha é reta; para ir pelas ruas, use o botão.
       </p>
       {gpsError ? <p role="status" className="text-base font-semibold text-reward-800">{gpsError}</p> : null}
+      {sharing ? (
+        <p className="text-base text-neutral-700">
+          Sua localização está sendo enviada à operação e ao morador desta coleta enquanto esta tela estiver aberta.
+        </p>
+      ) : null}
       <a
         href={directionsUrl(destination.coordinates, position)}
         target="_blank"

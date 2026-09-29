@@ -12,6 +12,7 @@ import { errorHandler, notFoundHandler } from './errors/errorHandler.js';
 import type { PrismaClient } from './generated/prisma/client.js';
 import type { EcoRotaClient } from './integration/ecorotaClient.js';
 import { operationState } from './integration/operation-state/index.js';
+import { collectorPositions } from './realtime/collectorPositions.js';
 import type { StreamStatus } from './integration/ws/ecoRotaWsConsumer.js';
 import { PrismaAddressRepository } from './modules/addresses/address.repository.js';
 import { addressRoutes } from './modules/addresses/address.routes.js';
@@ -164,6 +165,7 @@ export function buildApp(options: BuildAppOptions) {
         new PrismaCollectorRepository(options.database),
         requestService,
         options.ecoRotaClient,
+        collectorPositions,
       ),
     });
   }
