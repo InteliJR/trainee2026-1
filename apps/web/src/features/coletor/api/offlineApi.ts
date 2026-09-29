@@ -1,12 +1,33 @@
 import { httpApi } from './http';
 import { ApiError } from './errors';
 import { cachedTasks, collectorOwner, enqueueAction, pendingActions, projectPending, saveTasks, syncPending, type PendingAction } from './offlineQueue';
-import type { CollectorApi } from './types';
+import type { CollectorApi, CollectorTask } from './types';
 import { checkCollectorSession } from '../lib/collectorAuth';
 
+// Status em que cada ação já está cumprida: iniciar vale se já está em atendimento (ou concluída).
+const REACHED_STATUSES: Record<PendingAction['type'], CollectorTask['status'][]> = {
+  start: ['in_service', 'completed'],
+  complete: ['completed'],
+};
+
+// Diz se a coleta já está no estado que a ação queria produzir.
+export function isAlreadyDone(action: Pick<PendingAction, 'type'>, task: Pick<CollectorTask, 'status'> | undefined): boolean {
+  return Boolean(task && REACHED_STATUSES[action.type].includes(task.status));
+}
+
+// Envia a ação. Um 409 quando a coleta já está no estado desejado (ex.: o início saiu pela fila offline
+// e o coletor tocou de novo) conta como sucesso, em vez de erro ou de travar a fila.
 async function send(action: PendingAction): Promise<void> {
-  if (action.type === 'start') await httpApi.startTask(action.taskId);
-  else await httpApi.completeTask(action.taskId, action.photoUrl!);
+  try {
+    if (action.type === 'start') await httpApi.startTask(action.taskId);
+    else await httpApi.completeTask(action.taskId, action.photoUrl!);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 409) {
+      const tasks = await httpApi.listTasks().catch(() => [] as CollectorTask[]);
+      if (isAlreadyDone(action, tasks.find((task) => task.id === action.taskId))) return;
+    }
+    throw error;
+  }
 }
 
 export async function synchronizeCollectorQueue(): Promise<void> {
