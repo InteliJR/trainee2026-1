@@ -8,7 +8,7 @@ import { ResidentBottomNav } from '../components/ResidentBottomNav';
 import { ScheduleStep } from '../components/ScheduleStep';
 import { StepIndicator } from '../components/StepIndicator';
 import { POINTS_PER_COMPLETED_COLLECTION, materialOptions, shiftOptions } from '../data/catalogo';
-import { fetchCollectionPoints } from '../lib/residentApi';
+import { QUANTITY_ERROR, fetchCollectionPoints, parseQuantityKg } from '../lib/residentApi';
 import { createResidentRequest, type CreateRequestResult } from '../lib/residentRequests';
 import type { CollectionPoint, MaterialCategory, ResidentRequestDraft, Shift } from '../types';
 
@@ -17,7 +17,7 @@ const initialDraft: ResidentRequestDraft = {
   pointId: null,
   desiredDate: '',
   shift: null,
-  notes: '',
+  quantityKg: '',
 };
 
 export function SolicitarColetaPage() {
@@ -63,8 +63,11 @@ export function SolicitarColetaPage() {
     [draft.pointId, points],
   );
 
+  // A quantidade é opcional, mas se foi digitada precisa ser um número positivo.
+  const quantityError = parseQuantityKg(draft.quantityKg) === 'invalida' ? QUANTITY_ERROR : undefined;
+
   const canContinue =
-    (currentStep === 1 && Boolean(draft.materialId)) ||
+    (currentStep === 1 && Boolean(draft.materialId) && !quantityError) ||
     (currentStep === 2 && Boolean(draft.pointId)) ||
     (currentStep === 3 && Boolean(draft.desiredDate && draft.shift));
 
@@ -85,8 +88,8 @@ export function SolicitarColetaPage() {
     setDraft((previous) => ({ ...previous, shift }));
   }
 
-  function setNotes(notes: string) {
-    setDraft((previous) => ({ ...previous, notes }));
+  function setQuantityKg(quantityKg: string) {
+    setDraft((previous) => ({ ...previous, quantityKg }));
   }
 
   function goBack() {
@@ -218,6 +221,9 @@ export function SolicitarColetaPage() {
                 materials={materialOptions}
                 selectedMaterialId={draft.materialId}
                 onSelect={selectMaterial}
+                quantityKg={draft.quantityKg}
+                quantityError={quantityError}
+                onQuantityChange={setQuantityKg}
               />
             ) : null}
 
@@ -241,7 +247,6 @@ export function SolicitarColetaPage() {
                 shifts={shiftOptions}
                 onDateChange={setDesiredDate}
                 onShiftChange={setShift}
-                onNotesChange={setNotes}
               />
             ) : null}
           </div>

@@ -36,7 +36,8 @@ export interface ResidentRequestDraft {
   pointId: string | null;
   desiredDate: string;
   shift: Shift | null;
-  notes: string;
+  // Quantidade aproximada em kg, como digitada (opcional); enviada à API como quantidadeEstimada.
+  quantityKg: string;
 }
 
 export interface StatusTimelineItem {

@@ -1,3 +1,4 @@
+import { Field } from '../../../components/Field';
 import type { MaterialCategory, MaterialOption } from '../types';
 import { Icon } from './Icon';
 
@@ -5,9 +6,19 @@ interface MaterialStepProps {
   materials: MaterialOption[];
   selectedMaterialId: MaterialCategory | null;
   onSelect: (materialId: MaterialCategory) => void;
+  quantityKg: string;
+  quantityError?: string;
+  onQuantityChange: (value: string) => void;
 }
 
-export function MaterialStep({ materials, selectedMaterialId, onSelect }: MaterialStepProps) {
+export function MaterialStep({
+  materials,
+  selectedMaterialId,
+  onSelect,
+  quantityKg,
+  quantityError,
+  onQuantityChange,
+}: MaterialStepProps) {
   return (
     <section className="space-y-4" aria-labelledby="material-title">
       <div>
@@ -19,7 +30,7 @@ export function MaterialStep({ materials, selectedMaterialId, onSelect }: Materi
           Escolha o material
         </h1>
         <p className="mt-2 text-sm leading-6 text-neutral-600">
-          Separe o tipo principal da coleta para mostrarmos pontos compatíveis e a pontuação estimada.
+          Separe o tipo principal da coleta. Se puder, informe o peso aproximado: ele entra no seu impacto.
         </p>
       </div>
 
@@ -67,6 +78,21 @@ export function MaterialStep({ materials, selectedMaterialId, onSelect }: Materi
           );
         })}
       </div>
+
+      {selectedMaterialId ? (
+        <div className="max-w-xs">
+          <Field
+            label="Quantidade aproximada (kg)"
+            optional
+            hint="Ajuda o coletor a se preparar e conta no seu histórico de impacto."
+            inputMode="decimal"
+            placeholder="Ex.: 2,5"
+            value={quantityKg}
+            error={quantityError}
+            onChange={(event) => onQuantityChange(event.target.value)}
+          />
+        </div>
+      ) : null}
     </section>
   );
 }

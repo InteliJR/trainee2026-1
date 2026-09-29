@@ -149,6 +149,18 @@ export function buildTimeline(createdAt: string | null, completedAt: string | nu
   ];
 }
 
+// Mensagem do campo de quantidade quando o valor não é um número positivo.
+export const QUANTITY_ERROR = 'Informe a quantidade em kg com um número maior que zero, como 2 ou 2,5.';
+
+// Lê a quantidade digitada: vazio = não informada (null); aceita vírgula ou ponto; zero, negativo ou texto = inválida.
+export function parseQuantityKg(value: string): number | null | 'invalida' {
+  const text = value.trim();
+  if (!text) return null;
+  if (!/^\d+([.,]\d+)?$/.test(text)) return 'invalida';
+  const quantity = Number(text.replace(',', '.'));
+  return quantity > 0 ? quantity : 'invalida';
+}
+
 // Soma o que foi informado em quilos; outras unidades não viram peso, e sem informação o resultado é null.
 export function estimatedKg(materials: RequestDTO['materiais']): number | null {
   const inKg = materials.filter((material) => material.quantidadeEstimada != null && /^kg$/i.test(material.unidade ?? ''));
@@ -226,10 +238,14 @@ export async function createRequestInApi(draft: ResidentRequestDraft, point: Col
   if (!draft.materialId || !draft.shift || !draft.desiredDate) {
     throw new ApiError(400, 'Complete os dados da coleta antes de continuar.');
   }
+  const quantity = parseQuantityKg(draft.quantityKg);
+  if (quantity === 'invalida') throw new ApiError(400, QUANTITY_ERROR);
   const dto = await apiRequest<RequestDTO>('POST', '/solicitacoes-coleta', {
     pontoColetaId: point.id,
     dataDesejada: desiredDateToIso(draft.desiredDate, draft.shift),
-    materiais: [{ tipo: MATERIAL_TO_API[draft.materialId] }],
+    materiais: [quantity === null
+      ? { tipo: MATERIAL_TO_API[draft.materialId] }
+      : { tipo: MATERIAL_TO_API[draft.materialId], quantidadeEstimada: quantity, unidade: 'kg' }],
   });
   return requestFromApi(dto, new Map([[point.id, point.name]]));
 }

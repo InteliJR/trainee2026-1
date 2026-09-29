@@ -9,7 +9,6 @@ interface ScheduleStepProps {
   shifts: ShiftOption[];
   onDateChange: (date: string) => void;
   onShiftChange: (shiftId: ShiftOption['id']) => void;
-  onNotesChange: (notes: string) => void;
 }
 
 export function ScheduleStep({
@@ -19,7 +18,6 @@ export function ScheduleStep({
   shifts,
   onDateChange,
   onShiftChange,
-  onNotesChange,
 }: ScheduleStepProps) {
   return (
     <section className="space-y-4" aria-labelledby="schedule-title">
@@ -78,20 +76,6 @@ export function ScheduleStep({
             })}
           </div>
         </div>
-
-        <label className="grid gap-2 text-sm font-semibold text-neutral-800">
-          <span className="flex items-center gap-2">
-            <Icon name="route" className="h-5 w-5 text-operational-700" />
-            Observação para o coletor
-          </span>
-          <textarea
-            rows={3}
-            value={draft.notes}
-            onChange={(event) => onNotesChange(event.target.value)}
-            placeholder="Ex.: material separado na portaria, garrafas em sacola azul."
-            className="rounded-md border border-neutral-200 bg-white/90 px-3 py-3 text-base font-medium text-neutral-950 shadow-card placeholder:text-neutral-400 focus:border-operational-500 focus:outline-none focus:ring-2 focus:ring-operational-100"
-          />
-        </label>
       </div>
 
       <div className="eco-panel rounded-lg p-4">
@@ -103,6 +87,12 @@ export function ScheduleStep({
           <div className="flex justify-between gap-3">
             <dt>Material</dt>
             <dd className="text-right font-semibold text-neutral-950">{material.name}</dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt>Quantidade</dt>
+            <dd className="text-right font-semibold text-neutral-950">
+              {draft.quantityKg.trim() ? `${draft.quantityKg.trim()} kg` : 'Não informada'}
+            </dd>
           </div>
           <div className="flex justify-between gap-3">
             <dt>Ponto</dt>

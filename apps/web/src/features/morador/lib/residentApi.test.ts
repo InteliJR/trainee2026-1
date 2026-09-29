@@ -9,6 +9,7 @@ import {
   estimatedKg,
   fetchResidentRequests,
   fetchCollectionPoints,
+  parseQuantityKg,
   pointFromApi,
   requestFromApi,
   validateAddress,
@@ -77,7 +78,7 @@ describe('pontos do operador', () => {
     try {
       const points = await fetchCollectionPoints();
       expect(points[0]).toMatchObject({ name: 'Ecoponto Centro', address: 'Praça central' });
-      await createRequestInApi({ materialId: 'papel', pointId: POINT.id, desiredDate: '2026-12-01', shift: 'manha', notes: '' }, points[0]!);
+      await createRequestInApi({ materialId: 'papel', pointId: POINT.id, desiredDate: '2026-12-01', shift: 'manha', quantityKg: '' }, points[0]!);
       const body = JSON.parse(calls.find((call) => call.path.includes('/solicitacoes-coleta'))!.body!);
       expect(body).toMatchObject({ pontoColetaId: POINT.id, materiais: [{ tipo: 'PAPEL' }] });
       expect(body).not.toHaveProperty('enderecoId');
@@ -233,5 +234,39 @@ describe('estimatedKg', () => {
   it('devolve null quando nada foi informado em kg, sem inventar peso', () => {
     expect(estimatedKg([{ tipo: 'PAPEL' }])).toBeNull();
     expect(estimatedKg([{ tipo: 'PAPEL', quantidadeEstimada: null, unidade: 'kg' }])).toBeNull();
+  });
+});
+
+describe('parseQuantityKg', () => {
+  it('aceita vírgula ou ponto e trata vazio como não informado', () => {
+    expect(parseQuantityKg('2,5')).toBe(2.5);
+    expect(parseQuantityKg(' 3.25 ')).toBe(3.25);
+    expect(parseQuantityKg('10')).toBe(10);
+    expect(parseQuantityKg('')).toBeNull();
+    expect(parseQuantityKg('   ')).toBeNull();
+  });
+
+  it('recusa zero, negativo e texto', () => {
+    expect(parseQuantityKg('0')).toBe('invalida');
+    expect(parseQuantityKg('-2')).toBe('invalida');
+    expect(parseQuantityKg('dois')).toBe('invalida');
+    expect(parseQuantityKg('2,5kg')).toBe('invalida');
+  });
+});
+
+describe('createRequestInApi com quantidade', () => {
+  it('envia a quantidade em kg junto com o material', async () => {
+    let body: Record<string, unknown> | undefined;
+    vi.stubGlobal('fetch', vi.fn(async (_input: string, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body));
+      return { ok: true, json: async () => createRequestDto() };
+    }));
+    try {
+      const point = pointFromApi(POINT);
+      await createRequestInApi({ materialId: 'vidro', pointId: POINT.id, desiredDate: '2026-12-01', shift: 'tarde', quantityKg: '2,5' }, point);
+      expect(body?.materiais).toEqual([{ tipo: 'VIDRO', quantidadeEstimada: 2.5, unidade: 'kg' }]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

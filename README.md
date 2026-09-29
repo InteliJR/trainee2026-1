@@ -94,7 +94,6 @@ Senha: o valor de `DEVELOPMENT_SEED_PASSWORD`, ou a senha padrão definida no pr
 
 ## Limitações e hipóteses assumidas
 
-- **"Observação para o coletor" não é enviada.** O formulário de solicitação (`SolicitarColetaPage`/`ScheduleStep`) tem um campo de observações, mas o corpo aceito por `POST /solicitacoes-coleta` não tem esse campo — a API rejeitaria a requisição com `additionalProperties: false`. O valor digitado fica só na tela.
 - **Só existe um endereço "ativo" por morador na prática.** A API modela vários endereços por morador (`GET/POST /enderecos`, com um marcado como padrão), mas o frontend só tem a tela de cadastrar um endereço; toda solicitação usa o endereço padrão (ou o primeiro cadastrado). Não há lista para trocar entre vários.
 - **Prazo mínimo de cancelamento: usa 1 dia, fixo no código.** `request.service.ts` tem `ONE_DAY_MS` como constante (não lê de variável de ambiente). O documento de arquitetura antigo (`documents/Luiz/arquitetura-Luiz.md`) registra 2 horas; os requisitos (`docs_mafe`, RN02) registram 1 dia. Está marcado como pendente de decisão do time nos dois documentos — o código já decidiu por 1 dia, mas isso não foi formalmente confirmado como regra de produto.
 - **Sem modo demonstração.** Os dados mockados foram removidos; com a API fora do ar, as telas abrem e mostram o erro de conexão. A única exceção é a fila offline do coletor, que guarda ações feitas sem rede (abaixo).
