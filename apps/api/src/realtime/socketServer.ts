@@ -215,9 +215,9 @@ export function createRealtimeBroker(
        if (actor.role === 'OPERADOR' && options.localSimulation) {
          socket.emit('simulacao-local:estado', options.localSimulation.getSnapshot());
        }
-       // Posições atuais dos coletores da plataforma: todas para o operador, só a de quem o atende para o morador.
+       // Posições atuais dos coletores da plataforma que este ator pode ver.
        if (options.collectorPositions) {
-         await sendCurrentCollectorPositions(socket, actor, options.collectorPositions, options.accessRepository);
+         sendCurrentCollectorPositions(socket, actor, options.collectorPositions);
        }
     } catch (error) {
       // Registra qual usuário não teve o estado inicial montado, sem enviar detalhes ao cliente.
@@ -237,9 +237,9 @@ export function createRealtimeBroker(
   const unsubscribeLocal = options.localSimulation?.onUpdate((simulationState) => {
     namespace.to(roleRoom('OPERADOR')).emit('simulacao-local:estado', simulationState);
   });
-  // Repassa cada posição de coletor da plataforma ao operador e aos moradores atendidos por ele.
+  // Repassa cada posição de coletor da plataforma ao operador.
   const unsubscribePositions = options.collectorPositions?.onUpdate((entry) => {
-    void forwardCollectorPosition(namespace, entry, options.accessRepository, app);
+    forwardCollectorPosition(namespace, entry);
   });
 
   // Devolve as referências usadas pelo bootstrap, pelos testes e pelo shutdown.
@@ -525,37 +525,17 @@ function toPositionEvent(entry: CollectorPositionEntry) {
   };
 }
 
-// Envia ao operador e aos moradores com coleta ativa desse coletor; ninguém mais recebe a posição.
-async function forwardCollectorPosition(
-  namespace: Namespace,
-  entry: CollectorPositionEntry,
-  accessRepository: RealtimeAccessRepository,
-  app: FastifyInstance,
-): Promise<void> {
-  try {
-    const rooms = new Set([roleRoom('OPERADOR'), userRoom(entry.collectorUserId)]);
-    const residents = await accessRepository.listResidentUserIdsForCollectorUser?.(entry.collectorUserId) ?? [];
-    for (const residentId of residents) rooms.add(userRoom(residentId));
-    namespace.to([...rooms]).emit('coletor-local:posicao', toPositionEvent(entry));
-  } catch (error) {
-    app.log.error({ err: error }, 'Falha ao distribuir a posição de um coletor da plataforma.');
-  }
+// Envia só ao operador e ao próprio coletor: a tela do morador não mostra o coletor ao vivo,
+// então a posição não é repassada a ele.
+function forwardCollectorPosition(namespace: Namespace, entry: CollectorPositionEntry): void {
+  namespace.to([roleRoom('OPERADOR'), userRoom(entry.collectorUserId)]).emit('coletor-local:posicao', toPositionEvent(entry));
 }
 
-// Entrega na conexão as posições recentes que o ator pode ver.
-async function sendCurrentCollectorPositions(
-  socket: RealtimeSocket,
-  actor: RealtimeActor,
-  store: CollectorPositionStore,
-  accessRepository: RealtimeAccessRepository,
-): Promise<void> {
+// Entrega na conexão as posições recentes que o ator pode ver (operador: todas; coletor: a própria).
+function sendCurrentCollectorPositions(socket: RealtimeSocket, actor: RealtimeActor, store: CollectorPositionStore): void {
   for (const entry of store.list()) {
     if (actor.role === 'OPERADOR' || actor.id === entry.collectorUserId) {
       socket.emit('coletor-local:posicao', toPositionEvent(entry));
-      continue;
     }
-    if (actor.role !== 'MORADOR') continue;
-    const residents = await accessRepository.listResidentUserIdsForCollectorUser?.(entry.collectorUserId) ?? [];
-    if (residents.includes(actor.id)) socket.emit('coletor-local:posicao', toPositionEvent(entry));
   }
 }

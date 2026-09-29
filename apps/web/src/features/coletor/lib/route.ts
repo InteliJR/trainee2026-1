@@ -1,7 +1,7 @@
 /**
  * Navegação até o destino da coleta. O traçado pelas ruas fica com o app de mapas do celular,
  * aberto só quando o coletor toca no botão. A posição do coletor vai só para a API da plataforma,
- * que a repassa ao painel e ao morador atendido; nenhum serviço externo a recebe.
+ * que a repassa ao painel do operador; nenhum serviço externo a recebe.
  */
 
 import { distanceMeters } from '../../../map/mapUtils';

@@ -179,7 +179,7 @@ export interface ServerToClientEvents {
   'solicitacao:concluida': (event: RealtimeRequestEvent) => void;
   // Entrega a posição mais recente de um coletor autorizado.
   'coletor:posicao-atualizada': (event: RealtimeCollectorPositionEvent) => void;
-  // Entrega a posição de um coletor da plataforma ao operador e ao morador atendido por ele.
+  // Entrega a posição de um coletor da plataforma ao operador.
   'coletor-local:posicao': (event: LocalCollectorPositionEvent) => void;
   // Entrega ao coletor ou operador uma rota recalculada pela EcoRota.
   'rota:atualizada': (event: RealtimeRouteEvent) => void;

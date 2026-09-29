@@ -42,11 +42,11 @@ export class CollectorService {
     private readonly repository: CollectorRepository,
     private readonly requestService: CollectorRequestReader,
     private readonly ecoRotaClient?: EcoRotaClient,
-    // Destino das posições enviadas pelo app; repassadas ao painel e ao morador atendido.
+    // Destino das posições enviadas pelo app; repassadas ao painel do operador.
     private readonly positions?: { update(entry: CollectorPositionEntry): void },
   ) {}
 
-  // Recebe a posição do coletor (GPS do celular) e a publica para quem acompanha a coleta.
+  // Recebe a posição do coletor (GPS do celular) e a publica para o painel do operador.
   async sharePosition(actor: Actor, input: ShareCollectorPositionInput) {
     this.ensureCollector(actor);
     const profile = await this.getProfile(actor.id);

@@ -140,7 +140,7 @@ export const httpApi: CollectorApi = {
   },
 };
 
-// Envia a posição do coletor durante a coleta; o painel e o morador atendido acompanham em tempo real.
+// Envia a posição do coletor durante a coleta; o painel do operador acompanha em tempo real.
 export function sharePosition(coordinates: [number, number], accuracyMeters: number | null): Promise<unknown> {
   const [longitude, latitude] = coordinates;
   return request('POST', '/coletor/posicao', accuracyMeters === null ? { latitude, longitude } : { latitude, longitude, precisao: accuracyMeters });

@@ -39,7 +39,7 @@ export const collectorRoutes: FastifyPluginAsync<CollectorRoutesOptions> = async
     async (request) => options.service.updateAvailability(request.actor, request.body),
   );
 
-  // Recebe a posição do coletor durante a coleta, para o painel e o morador acompanharem.
+  // Recebe a posição do coletor durante a coleta, para o painel do operador acompanhar.
   app.post<{ Body: ShareCollectorPositionInput }>(
     '/coletor/posicao',
     { preHandler: collectorOnly, schema: { body: shareCollectorPositionBodySchema } },

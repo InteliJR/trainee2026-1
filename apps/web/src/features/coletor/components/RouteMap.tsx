@@ -66,7 +66,7 @@ export function RouteMap({ destination }: { destination: CollectorDestination })
         setGpsError('');
         const next: Position = [event.coords.longitude, event.coords.latitude];
         setPosition(next);
-        // Compartilha com o painel e com o morador desta coleta; falhas de rede só adiam o próximo envio.
+        // Compartilha com o painel do operador; falhas de rede só adiam o próximo envio.
         const now = Date.now();
         if (shouldSendPosition(lastSentRef.current, next, now)) {
           lastSentRef.current = { coordinates: next, at: now };
@@ -133,7 +133,7 @@ export function RouteMap({ destination }: { destination: CollectorDestination })
       {gpsError ? <p role="status" className="text-base font-semibold text-reward-800">{gpsError}</p> : null}
       {sharing ? (
         <p className="text-base text-neutral-700">
-          Sua localização está sendo enviada à operação e ao morador desta coleta enquanto esta tela estiver aberta.
+          Sua localização está sendo enviada à operação enquanto esta tela estiver aberta.
         </p>
       ) : null}
       <a
