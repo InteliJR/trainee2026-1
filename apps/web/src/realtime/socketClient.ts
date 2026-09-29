@@ -192,7 +192,7 @@ export function createRealtimeClient(
   options: RealtimeClientOptions,
 ): Socket<ServerToClientEvents> {
   // Prioriza a URL informada pela tela, depois o .env do Vite e por fim o servidor local padrão.
-  const apiUrl = options.apiUrl ?? import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+  const apiUrl = options.apiUrl ?? (import.meta.env.DEV ? window.location.origin : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000'));
   // Cria o cliente apontando para o namespace lógico /tempo-real.
   return io(`${apiUrl.replace(/\/$/, '')}/tempo-real`, {
     // Usa o mesmo caminho técnico configurado no servidor Socket.IO.

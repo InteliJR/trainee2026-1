@@ -4,7 +4,7 @@
  */
 
 // Usa VITE_API_URL quando definida, como o restante do frontend; senão passa pelo proxy /api do Vite.
-const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api/v1`;
+const BASE = `${import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? '')}/api/v1`;
 
 // Erro com o status HTTP e a mensagem devolvida pela API; status 0 significa sem conexão.
 export class ApiError extends Error {

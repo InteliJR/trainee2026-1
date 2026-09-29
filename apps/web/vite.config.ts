@@ -11,10 +11,15 @@ export default defineConfig({
   envDir: '../../',
   // Configura o servidor utilizado somente durante o desenvolvimento local.
   server: {
+    host: '0.0.0.0',
     // Encaminha chamadas REST locais para a API sem exigir URL absoluta nos componentes.
     proxy: {
       // Envia toda requisição iniciada por /api ao Fastify executado na porta 3000.
       '/api': 'http://localhost:3000',
+      '/socket.io': {
+        target: 'http://localhost:3000',
+        ws: true,
+      },
     },
   },
 });
