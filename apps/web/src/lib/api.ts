@@ -4,8 +4,10 @@
  */
 import { ROLE_HEADER, currentAreaRole, type Role } from './area';
 
-// Usa VITE_API_URL quando definida, como o restante do frontend; senão passa pelo proxy /api do Vite.
-const BASE = `${import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? '')}/api/v1`;
+// Base de todas as chamadas à API. Em desenvolvimento usa o proxy do Vite (mesma origem da página), o que
+// funciona também pelo IP da rede (celular); em produção usa VITE_API_URL.
+export const API_BASE = `${import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? '')}/api/v1`;
+const BASE = API_BASE;
 
 // Erro com o status HTTP e a mensagem devolvida pela API; status 0 significa sem conexão.
 export class ApiError extends Error {
