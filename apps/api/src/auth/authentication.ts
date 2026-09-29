@@ -6,7 +6,7 @@ import type { preHandlerHookHandler } from 'fastify';
 import { AppError } from '../errors/appError.js';
 import type { UserRole } from '../generated/prisma/enums.js';
 import type { Actor } from './actor.js';
-import { AuthTokenService, SESSION_COOKIE_NAME } from './authToken.js';
+import { AuthTokenService, SESSION_ROLE_HEADER, parseSessionRole, pickSessionToken } from './authToken.js';
 
 // Abstrai a consulta mínima usada pelo guard REST e pelo handshake Socket.IO.
 export interface AuthenticatedActorRepository {
@@ -21,8 +21,8 @@ export function createAuthenticationMiddleware(
 ): preHandlerHookHandler {
   // Executa a validação completa antes que o handler da rota seja chamado.
   return async (request) => {
-    // Lê somente o cookie padronizado pelo módulo de autenticação.
-    const token = request.cookies[SESSION_COOKIE_NAME];
+    // Lê o cookie do papel da área que fez a requisição (ou o cookie antigo, sem papel).
+    const token = pickSessionToken(request.cookies, parseSessionRole(request.headers[SESSION_ROLE_HEADER]));
     // Ausência de cookie representa uma requisição não autenticada.
     if (!token) {
       throw new AppError({

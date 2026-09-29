@@ -4,6 +4,7 @@
  * periodicamente e também logo após cada mudança de solicitação recebida pelo Socket.IO.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ROLE_HEADER } from '../../lib/area';
 
 // Espelha o contrato devolvido por OperationService.getIndicators no backend.
 export interface OperationIndicators {
@@ -90,7 +91,12 @@ export function useIndicadores({ refreshKey, enabled = true, intervalMs = 15_000
       const controller = new AbortController();
       abortRef.current = controller;
       try {
-        const response = await fetch(INDICATORS_URL, { credentials: 'include', signal: controller.signal });
+        // Indicadores são do operador: usa o cookie de sessão desse papel.
+        const response = await fetch(INDICATORS_URL, {
+          credentials: 'include',
+          headers: { [ROLE_HEADER]: 'OPERADOR' },
+          signal: controller.signal,
+        });
         const body = await response.json().catch(() => null);
         if (!response.ok) {
           const code: string | undefined = body?.codigo;

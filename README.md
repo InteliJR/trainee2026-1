@@ -85,6 +85,14 @@ Senha: o valor de `DEVELOPMENT_SEED_PASSWORD`, ou a senha padrão definida no pr
 - **Só cabe uma sessão por navegador** (o cookie de sessão é único). Para testar dois papéis ao mesmo tempo, abra uma **janela anônima** (ou outro navegador) para o segundo perfil.
 - Sem conexão com a API, as telas do morador caem em **modo demonstração** (dados salvos só no dispositivo) em vez de travar.
 
+## Coerência entre perfis (RNF)
+
+- **Login unificado:** morador, coletor e operador usam o mesmo componente `RoleLoginPage`, diferenciados apenas por `eyebrow`, `title`, `description` e `icon`.
+- **Navegação por papel:** morador tem navegação inferior com 4 abas (Início, Solicitar, Acompanhar, Histórico); coletor tem 3 abas (Hoje, Disponível, Perfil); operador usa tabs no dashboard (Operação, Pontos).
+- **Status traduzidos:** todos os perfis usam `translateStatus` de `packages/shared` para converter códigos técnicos (`pending`, `assigned`, etc.) em rótulos amigáveis ("Aguardando coletor", "Coletor a caminho").
+- **Padrão de erros:** mensagens de API seguem o formato `{ codigo, mensagem, detalhes }` — o frontend exibe `mensagem` em português com instrução de ação quando aplicável.
+- **Tokens visuais:** `operational` para dashboard/operador, `brand` para morador, `danger` para cancelamentos/arquivamentos.
+
 ## Limitações e hipóteses assumidas
 
 - **"Observação para o coletor" não é enviada.** O formulário de solicitação (`SolicitarColetaPage`/`ScheduleStep`) tem um campo de observações, mas o corpo aceito por `POST /solicitacoes-coleta` não tem esse campo — a API rejeitaria a requisição com `additionalProperties: false`. O valor digitado fica só na tela.

@@ -5,7 +5,7 @@ import { Server as SocketIOServer, type Namespace, type Socket } from 'socket.io
 // Importa o parser de Cookie usado para extrair a sessão do handshake HTTP.
 import { parse as parseCookie } from 'cookie';
 // Importa o verificador JWT e o nome único do cookie de sessão.
-import { AuthTokenService, SESSION_COOKIE_NAME } from '../auth/authToken.js';
+import { AuthTokenService, parseSessionRole, pickSessionToken } from '../auth/authToken.js';
 // Importa os contratos dos eventos, solicitações e rotas recebidos da plataforma EcoRota.
 import type { EcoRotaEventMessage, EcoRotaRequest, EcoRotaRoute } from '../integration/ecorotaClient.js';
 // Importa o cache operacional compartilhado e os tipos emitidos quando esse cache muda.
@@ -151,10 +151,11 @@ export function createRealtimeBroker(
 
   // Executa este middleware antes de aceitar cada conexão no namespace.
   namespace.use(async (socket, next) => {
-    // Faz parse do cabeçalho sem confiar em dados enviados no objeto auth do cliente.
+    // Faz parse do cabeçalho; a identidade vem só do cookie assinado.
     const cookies = parseCookie(socket.handshake.headers.cookie ?? '');
-    // Extrai somente o cookie padronizado pelas rotas de autenticação.
-    const token = cookies[SESSION_COOKIE_NAME];
+    // O objeto auth do cliente apenas indica a área (papel) para escolher qual cookie ler; o token
+    // escolhido passa pela mesma verificação de assinatura e pela confirmação no banco.
+    const token = pickSessionToken(cookies, parseSessionRole(socket.handshake.auth?.papel));
     // Rejeita conexão anônima antes de qualquer consulta ao banco.
     if (!token) return next(new Error('SESSAO_NAO_AUTENTICADA'));
 

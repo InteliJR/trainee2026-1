@@ -21,6 +21,6 @@ export async function loginCollector(email: string, senha: string): Promise<Sess
 }
 
 export async function logoutCollector(): Promise<void> {
-  await logout();
+  await logout('COLETOR');
   setCollectorOwner(null);
 }

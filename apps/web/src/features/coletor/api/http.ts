@@ -2,6 +2,7 @@
 // esta é a única camada que traduz isso para o vocabulário em inglês usado no resto da tela (RNF07).
 import type { RequestStatus } from '@ecorota/shared';
 import { endpoints } from './endpoints';
+import { ROLE_HEADER } from '../../../lib/area';
 import { ApiError } from './errors';
 import type { Material } from '../config';
 import type { CollectorApi, CollectorAvailability, CollectorPoints, CollectorTask } from './types';
@@ -16,7 +17,10 @@ export async function request<T>(method: string, path: string, body?: unknown): 
     res = await fetch(`${BASE}${path}`, {
       method,
       credentials: 'include', // JWT em cookie httpOnly
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      // A API guarda um cookie por papel; este cliente sempre usa a sessão do coletor.
+      headers: body === undefined
+        ? { [ROLE_HEADER]: 'COLETOR' }
+        : { 'Content-Type': 'application/json', [ROLE_HEADER]: 'COLETOR' },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {

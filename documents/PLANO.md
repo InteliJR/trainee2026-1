@@ -104,22 +104,22 @@ trainee2026-1/
 ### 🎨 Dev 2 — Frontend Puro (Morador)
 > **Foco:** Experiência do cidadão/morador, solicitações e gamificação.
 
-* [ ] **Task 2.1 (Dias 1–3):** Construir a tela de solicitação de coleta em `apps/web/src/features/morador/` usando **dados mockados**.
+* [x] **Task 2.1 (Dias 1–3):** Construir a tela de solicitação de coleta em `apps/web/src/features/morador/` usando **dados mockados**.
   * Onboarding guiado em 3 etapas simples (Tipo de Material -> Seleção de Ponto/Filtragem -> Data e Turno desejado) para evitar mismatch de expectativa.
-* [ ] **Task 2.2 (Dias 4–5):** Construir a tela de acompanhamento de status com visualizador amigável (traduzindo `pending` -> "Aguardando coletor", `in_service` -> "Coletor no local").
-* [ ] **Task 2.3 (Dias 6–7):** Criar a página de Histórico + Gamificação e Impacto Social (exibindo saldo de pontos, kg de material reciclado, metas do mês e efeito visual de confete ao concluir).
-* [ ] **Task 2.4 (Dias 8–9):** Conectar os formulários às chamadas reais da API (`POST /requests`) criadas pelo Dev 1/Dev 4.
+* [x] **Task 2.2 (Dias 4–5):** Construir a tela de acompanhamento de status com visualizador amigável (traduzindo `pending` -> "Aguardando coletor", `in_service` -> "Coletor no local").
+* [x] **Task 2.3 (Dias 6–7):** Criar a página de Histórico + Gamificação e Impacto Social (exibindo saldo de pontos, kg de material reciclado, metas do mês e efeito visual de confete ao concluir).
+* [x] **Task 2.4 (Dias 8–9):** Conectar os formulários às chamadas reais da API (`POST /requests`) criadas pelo Dev 1/Dev 4.
 
 ---
 
 ### 🎨 Dev 3 — Frontend Puro (Coletor)
 > **Foco:** Interface de campo com alta acessibilidade para catadores autônomos (RNF08).
 
-* [ ] **Task 3.1 (Dias 1–3):** Criar o layout da Área do Coletor em `apps/web/src/features/coletor/` com **botões grandes, ícones claros, alto contraste e familiaridade visual estilo WhatsApp** (RNF08).
-* [ ] **Task 3.2 (Dias 4–5):** Desenvolver o **Painel do Dia**: lista de tarefas atribuídas ao coletor logado (usando dados mockados).
-* [ ] **Task 3.3 (Dias 6–7):** Implementar o fluxo de **Confirmação de Coleta** (botão de conclusão após o status virar `in_service`) e o cancelamento pelo coletor com motivo.
+* [x] **Task 3.1 (Dias 1–3):** Criar o layout da Área do Coletor em `apps/web/src/features/coletor/` com **botões grandes, ícones claros, alto contraste e familiaridade visual estilo WhatsApp** (RNF08).
+* [x] **Task 3.2 (Dias 4–5):** Desenvolver o **Painel do Dia**: lista de tarefas atribuídas ao coletor logado (usando dados mockados).
+* [x] **Task 3.3 (Dias 6–7):** Implementar o fluxo de **Confirmação de Coleta** (botão de conclusão após o status virar `in_service`) e o cancelamento pelo coletor com motivo.
   * **💡 Suporte Offline (Diferencial RNF02):** Implementar fila local (`offlineQueue` via `LocalStorage`/`IndexedDB`). Se o coletor clicar em confirmar sem sinal de celular, a ação fica salva localmente e é enviada automaticamente assim que a rede voltar (`window.addEventListener('online')`).
-* [ ] **Task 3.4 (Dias 8–9):** Conectar a interface às rotas reais de confirmação (`POST /requests/:id/complete`) e gestão de disponibilidade por dia/turno (`POST /collector/availability`).
+* [x] **Task 3.4 (Dias 8–9):** Conectar a interface às rotas reais de confirmação (`POST /requests/:id/complete`) e gestão de disponibilidade por dia/turno (`POST /collector/availability`).
 
 ---
 
@@ -136,7 +136,7 @@ trainee2026-1/
   * Fazer os coletores **se moverem ao vivo no mapa** sem dar refresh na página!
   * Tratar coletores com telemetria desatualizada (deixando o marcador transparente no mapa caso o `observedAt` seja antigo).
   * Exibir conexão/reconexão e aplicar deltas somente quando geração e revisão forem válidas.
-* [ ] **Task 4.4 (Dias 8–9 - Front/Back):** Montar a tabela de solicitações recentes e conectar os eventos de status no mapa dos moradores.
+* [x] **Task 4.4 (Dias 8–9 - Front/Back):** Montar a tabela de solicitações recentes e conectar os eventos de status no mapa dos moradores.
 * [ ] **Task 4.5 (Dia 10 - Integração Total):** Liderar a bateria de testes integrados e realizar o deploy único (Render/Railway).
 
 ---

@@ -4,11 +4,14 @@
  */
 import type { Collector, CollectorPosition, Point } from '@ecorota/shared';
 import { io, type Socket } from 'socket.io-client';
+import { currentAreaRole, type Role } from '../lib/area';
 
 // Define os valores necessários para criar uma conexão de tempo real no frontend.
 export interface RealtimeClientOptions {
   // Permite substituir a URL configurada no ambiente, principalmente em testes ou previews.
   apiUrl?: string;
+  // Papel da sessão usada no handshake; sem ele, vale o da tela aberta.
+  role?: Role;
 }
 
 // Restringe o status técnico recebido dentro dos snapshots da EcoRota.
@@ -203,6 +206,8 @@ export function createRealtimeClient(
     transports: ['websocket', 'polling'],
     // Envia o cookie httpOnly da sessão no handshake e nas tentativas de reconexão.
     withCredentials: true,
+    // Diz à API qual cookie de papel ler; é avaliado a cada conexão, inclusive nas reconexões.
+    auth: (callback) => callback({ papel: options.role ?? currentAreaRole() }),
     // Solicita novas tentativas automáticas após quedas temporárias de rede.
     reconnection: true,
     // Aguarda inicialmente um segundo entre tentativas de reconexão.
