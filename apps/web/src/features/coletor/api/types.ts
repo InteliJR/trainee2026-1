@@ -1,7 +1,7 @@
 import type { RequestStatus } from '@ecorota/shared';
 import type { Material } from '../config';
 
-// Endereço do morador — é para lá que o coletor vai (não existe "ponto de coleta" no backend real).
+// Endereço exibido na coleta: o ponto de coleta (fluxo atual) ou o endereço do morador (coletas antigas).
 export interface CollectorAddress {
   street: string;
   number: string;
@@ -9,11 +9,19 @@ export interface CollectorAddress {
   city: string;
 }
 
+// Para onde o coletor vai, com coordenadas para o mapa e a navegação. Null quando a API não informou.
+export interface CollectorDestination {
+  name: string;
+  // [longitude, latitude]
+  coordinates: [number, number];
+}
+
 export interface CollectorTask {
   id: string;
   status: RequestStatus;
   materials: Material[];
   address: CollectorAddress;
+  destination: CollectorDestination | null;
   scheduledDate: string; // 'YYYY-MM-DD'
   notes?: string;
   updatedAt: string;

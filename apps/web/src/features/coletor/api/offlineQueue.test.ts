@@ -5,6 +5,7 @@ import { discardFailedAction, enqueueAction, pendingActions, projectPending, set
 const task = (status: CollectorTask['status']): CollectorTask => ({
   id: 'coleta-1', status, materials: [],
   address: { street: 'Rua A', number: '1', district: 'Centro', city: 'São Paulo' },
+  destination: null,
   scheduledDate: '2026-09-28', updatedAt: '2026-09-28T12:00:00Z',
 });
 

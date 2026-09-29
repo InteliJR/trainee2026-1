@@ -54,7 +54,7 @@ const MATERIAL_FROM_API: Record<string, Material> = {
   OUTRO: 'other',
 };
 
-interface RequestDTO {
+export interface RequestDTO {
   id: string;
   status: string;
   materiais: { tipo: string }[];
@@ -62,8 +62,8 @@ interface RequestDTO {
   motivoCancelamento: string | null;
   concluidaEm: string | null;
   criadoEm: string;
-  endereco: { logradouro: string; numero: string; bairro: string; cidade: string } | null;
-  pontoColeta?: { nome: string; circuito: number } | null;
+  endereco: { logradouro: string; numero: string; bairro: string; cidade: string; latitude?: number; longitude?: number } | null;
+  pontoColeta?: { nome: string; circuito: number; coordenadas?: { latitude: number; longitude: number } } | null;
 }
 
 interface RequestListDTO {
@@ -71,8 +71,19 @@ interface RequestListDTO {
   paginacao: { pagina: number; limite: number; total: number; totalPaginas: number };
 }
 
+// Destino da coleta: o ponto de coleta quando existe; senão, o endereço do morador (coletas antigas).
+function destinationFromDTO(dto: RequestDTO): CollectorTask['destination'] {
+  const point = dto.pontoColeta?.coordenadas;
+  if (dto.pontoColeta && point) return { name: dto.pontoColeta.nome, coordinates: [point.longitude, point.latitude] };
+  const address = dto.endereco;
+  if (address && typeof address.latitude === 'number' && typeof address.longitude === 'number') {
+    return { name: `${address.logradouro}, ${address.numero}`, coordinates: [address.longitude, address.latitude] };
+  }
+  return null;
+}
+
 // A API não devolve um "atualizado em" genérico: aproxima pela conclusão ou pela criação.
-function fromDTO(dto: RequestDTO): CollectorTask {
+export function fromDTO(dto: RequestDTO): CollectorTask {
   return {
     id: dto.id,
     status: STATUS_FROM_API[dto.status] ?? 'pending',
@@ -83,6 +94,7 @@ function fromDTO(dto: RequestDTO): CollectorTask {
       district: dto.pontoColeta ? `Circuito ${dto.pontoColeta.circuito}` : dto.endereco?.bairro ?? '',
       city: dto.endereco?.cidade ?? '',
     },
+    destination: destinationFromDTO(dto),
     scheduledDate: dto.dataDesejada.slice(0, 10),
     notes: dto.motivoCancelamento ?? undefined,
     updatedAt: dto.concluidaEm ?? dto.criadoEm,

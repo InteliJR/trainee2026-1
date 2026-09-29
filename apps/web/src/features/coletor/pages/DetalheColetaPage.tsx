@@ -11,6 +11,7 @@ import { api } from '../api';
 import { useTasks } from '../api/hooks';
 import { pendingActions } from '../api/offlineQueue';
 import { CompleteFlow } from '../components/CompleteFlow';
+import { RouteMap } from '../components/RouteMap';
 import { ACTIVE_STATUSES, COMPLETABLE_STATUSES, STARTABLE_STATUSES, materialLabel } from '../config';
 import { formatAddress, formatDistrict } from '../lib/address';
 import { formatDateBR, formatTime } from '../lib/dates';
@@ -158,6 +159,8 @@ export default function DetalheColetaPage() {
         {task.notes && <Item label="Observações">{task.notes}</Item>}
       </dl>
       <p className="text-base text-neutral-700">Atualizado às {formatTime(task.updatedAt)}</p>
+
+      {isActionable && task.destination ? <RouteMap destination={task.destination} /> : null}
 
       {isActionable && (
         <div className="space-y-3">
