@@ -8,7 +8,8 @@ interface ScheduleStepProps {
   shifts: ShiftOption[];
   onDateChange: (date: string) => void;
   onShiftChange: (shiftId: ShiftOption['id']) => void;
-  onNotesChange: (notes: string) => void;
+  // Regra de pontos da API; null enquanto não carregou.
+  pointsPerCollection: number | null;
 }
 
 export function ScheduleStep({
@@ -18,7 +19,7 @@ export function ScheduleStep({
   shifts,
   onDateChange,
   onShiftChange,
-  onNotesChange,
+  pointsPerCollection,
 }: ScheduleStepProps) {
   return (
     <section className="space-y-4" aria-labelledby="schedule-title">
@@ -72,28 +73,11 @@ export function ScheduleStep({
                 >
                   <span className="block text-base font-bold text-neutral-950">{shift.label}</span>
                   <span className="mt-1 block text-sm text-neutral-600">{shift.window}</span>
-                  <span className="mt-3 inline-flex rounded-full bg-earth-50 px-3 py-1 text-sm font-semibold text-earth-700">
-                    {shift.slots} vagas
-                  </span>
                 </button>
               );
             })}
           </div>
         </div>
-
-        <label className="grid gap-2 text-sm font-semibold text-neutral-800">
-          <span className="flex items-center gap-2">
-            <Icon name="route" className="h-5 w-5 text-operational-700" />
-            Observação para o coletor
-          </span>
-          <textarea
-            rows={3}
-            value={draft.notes}
-            onChange={(event) => onNotesChange(event.target.value)}
-            placeholder="Ex.: material separado na portaria, garrafas em sacola azul."
-            className="rounded-md border border-neutral-200 bg-white/90 px-3 py-3 text-base font-medium text-neutral-950 shadow-card placeholder:text-neutral-400 focus:border-operational-500 focus:outline-none focus:ring-2 focus:ring-operational-100"
-          />
-        </label>
       </div>
 
       <div className="eco-panel rounded-lg p-4">
@@ -107,16 +91,22 @@ export function ScheduleStep({
             <dd className="text-right font-semibold text-neutral-950">{material.name}</dd>
           </div>
           <div className="flex justify-between gap-3">
+            <dt>Quantidade</dt>
+            <dd className="text-right font-semibold text-neutral-950">
+              {draft.quantityKg.trim() ? `${draft.quantityKg.trim()} kg` : 'Não informada'}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-3">
             <dt>Ponto</dt>
             <dd className="text-right font-semibold text-neutral-950">{point.name}</dd>
           </div>
           <div className="flex justify-between gap-3">
-            <dt>Endereço</dt>
+            <dt>Local do ponto</dt>
             <dd className="text-right font-semibold text-neutral-950">{point.address}</dd>
           </div>
           <div className="flex justify-between gap-3">
             <dt>Pontos previstos</dt>
-            <dd className="text-right font-semibold text-reward-800">+{material.points}</dd>
+            <dd className="text-right font-semibold text-reward-800">{pointsPerCollection === null ? '—' : `+${pointsPerCollection}`}</dd>
           </div>
         </dl>
       </div>

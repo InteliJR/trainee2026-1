@@ -2,6 +2,7 @@
 import type { FastifyPluginAsync, preHandlerHookHandler } from 'fastify';
 import type { GamificationService } from './gamification.service.js';
 import { authorizeRoles } from '../../auth/authentication.js';
+import { publicPointsRules } from './gamification.rules.js';
 
 // Declara as dependências obrigatórias do plugin de gamificação.
 interface GamificationRoutesOptions {
@@ -17,4 +18,7 @@ export const gamificationRoutes: FastifyPluginAsync<GamificationRoutesOptions> =
   app.get('/pontuacao/lancamentos', { preHandler: participantOnly }, async (request) => {
     return options.service.list(request.actor);
   });
+
+  // Informa quantos pontos cada coleta concluída rende, para a tela não repetir a regra no código.
+  app.get('/pontuacao/regras', { preHandler: participantOnly }, async () => publicPointsRules());
 };

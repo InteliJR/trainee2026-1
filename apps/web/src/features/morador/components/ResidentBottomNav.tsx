@@ -1,8 +1,6 @@
-import { useNavigate } from 'react-router-dom';
-import { logoutResident } from '../lib/residentAuth';
 import { Icon } from './Icon';
 
-type ResidentNavItem = 'inicio' | 'solicitar' | 'status' | 'historico';
+type ResidentNavItem = 'inicio' | 'solicitar' | 'status' | 'historico' | 'perfil';
 
 interface ResidentBottomNavProps {
   activeItem: ResidentNavItem;
@@ -13,17 +11,10 @@ const navItems = [
   { id: 'solicitar', label: 'Solicitar', href: '/morador/solicitar', icon: 'trash' },
   { id: 'status', label: 'Acompanhar', href: '/morador/acompanhar', icon: 'route' },
   { id: 'historico', label: 'Histórico', href: '/morador/historico', icon: 'history' },
+  { id: 'perfil', label: 'Perfil', href: '/morador/perfil', icon: 'person' },
 ] as const;
 
 export function ResidentBottomNav({ activeItem }: ResidentBottomNavProps) {
-  const navigate = useNavigate();
-
-  // Sai mesmo se a API não responder, para não prender o morador numa sessão que ele quer encerrar.
-  async function logout() {
-    await logoutResident().catch(() => undefined);
-    navigate('/morador/login', { replace: true });
-  }
-
   return (
     <nav
       aria-label="Navegação do morador"
@@ -47,14 +38,6 @@ export function ResidentBottomNav({ activeItem }: ResidentBottomNavProps) {
             </a>
           );
         })}
-        <button
-          className="flex min-h-touch flex-col items-center justify-center gap-1 rounded-md text-neutral-600 transition hover:bg-brand-50 hover:text-brand-700"
-          onClick={() => void logout()}
-          type="button"
-        >
-          <Icon name="arrow-left" className="h-5 w-5" />
-          Sair
-        </button>
       </div>
     </nav>
   );

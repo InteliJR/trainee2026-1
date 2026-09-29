@@ -2,9 +2,12 @@
  * Chamada à API real (prefixo /api/v1) com o cookie de sessão, compartilhada pelas áreas do app.
  * Respostas de erro viram ApiError com o status HTTP e a mensagem em português devolvida pela API.
  */
+import { ROLE_HEADER, currentAreaRole, type Role } from './area';
 
-// Usa VITE_API_URL quando definida, como o restante do frontend; senão passa pelo proxy /api do Vite.
-const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api/v1`;
+// Base de todas as chamadas à API. Em desenvolvimento usa o proxy do Vite (mesma origem da página), o que
+// funciona também pelo IP da rede (celular); em produção usa VITE_API_URL.
+export const API_BASE = `${import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? '')}/api/v1`;
+const BASE = API_BASE;
 
 // Erro com o status HTTP e a mensagem devolvida pela API; status 0 significa sem conexão.
 export class ApiError extends Error {
@@ -14,13 +17,18 @@ export class ApiError extends Error {
 }
 
 // Faz a chamada com o cookie de sessão e converte respostas de erro em ApiError.
-export async function apiRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
+// `role` indica de qual área é a sessão; sem ele, vale o papel da tela aberta.
+export async function apiRequest<T>(method: string, path: string, body?: unknown, role?: Role | null): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const areaRole = role ?? currentAreaRole();
+  if (areaRole) headers[ROLE_HEADER] = areaRole;
   let response: Response;
   try {
     response = await fetch(`${BASE}${path}`, {
       method,
       credentials: 'include',
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {

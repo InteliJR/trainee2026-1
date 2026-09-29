@@ -4,6 +4,8 @@
  * periodicamente e também logo após cada mudança de solicitação recebida pelo Socket.IO.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { API_BASE } from '../../lib/api';
+import { ROLE_HEADER } from '../../lib/area';
 
 // Espelha o contrato devolvido por OperationService.getIndicators no backend.
 export interface OperationIndicators {
@@ -62,8 +64,8 @@ export interface UseIndicadoresOptions {
   intervalMs?: number;
 }
 
-// Usa VITE_API_URL quando definida, como o restante do frontend; senão passa pelo proxy /api do Vite.
-const INDICATORS_URL = `${import.meta.env.VITE_API_URL ?? ''}/api/v1/operacao/indicadores`;
+// Mesma base das demais chamadas: proxy do Vite em desenvolvimento, VITE_API_URL em produção.
+const INDICATORS_URL = `${API_BASE}/operacao/indicadores`;
 
 // Traduz os códigos de erro esperados em mensagens curtas para o painel.
 const ERROR_MESSAGES: Record<string, string> = {
@@ -90,7 +92,12 @@ export function useIndicadores({ refreshKey, enabled = true, intervalMs = 15_000
       const controller = new AbortController();
       abortRef.current = controller;
       try {
-        const response = await fetch(INDICATORS_URL, { credentials: 'include', signal: controller.signal });
+        // Indicadores são do operador: usa o cookie de sessão desse papel.
+        const response = await fetch(INDICATORS_URL, {
+          credentials: 'include',
+          headers: { [ROLE_HEADER]: 'OPERADOR' },
+          signal: controller.signal,
+        });
         const body = await response.json().catch(() => null);
         if (!response.ok) {
           const code: string | undefined = body?.codigo;

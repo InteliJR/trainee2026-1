@@ -1,11 +1,8 @@
-import { httpApi } from './http';
-import { mockApi } from './mock';
+import { offlineApi } from './offlineApi';
 import type { CollectorApi } from './types';
 
-// Mock ligado por padrão enquanto o backend não existe. VITE_USE_MOCK=false usa a API real.
-export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
-
-export const api: CollectorApi = USE_MOCK ? mockApi : httpApi;
+// A área do coletor fala sempre com a API real, passando pela fila offline.
+export const api: CollectorApi = offlineApi;
 
 export * from './types';
 export { ApiError } from './errors';

@@ -25,6 +25,7 @@ function createResidentRequest(overrides: Partial<ResidentCollectionRequest> = {
     collectorPhone: null,
     estimatedArrival: null,
     pointsPreview: 10,
+    estimatedKg: null,
     timeline: [
       { status: 'pending', label: 'Recebida', occurredAt: '09:00', description: '' },
       { status: 'assigned', label: 'A caminho', occurredAt: null, description: '' },

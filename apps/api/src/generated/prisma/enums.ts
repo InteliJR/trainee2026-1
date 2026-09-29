@@ -65,3 +65,11 @@ export const MaterialType = {
 } as const
 
 export type MaterialType = (typeof MaterialType)[keyof typeof MaterialType]
+
+
+export const CollectionPointKind = {
+  HABITUAL: 'HABITUAL',
+  ADDITIONAL: 'ADDITIONAL'
+} as const
+
+export type CollectionPointKind = (typeof CollectionPointKind)[keyof typeof CollectionPointKind]

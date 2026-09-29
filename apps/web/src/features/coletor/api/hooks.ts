@@ -65,6 +65,8 @@ export const useTasks = (opts?: { poll?: boolean; pollWhile?: (data: CollectorTa
     pollWhile: opts?.pollWhile,
   });
 
+export const usePoints = () => useAsync(() => api.getPoints(), []);
+
 // Task 3.4 (Dia 5): disponibilidade do coletor, com atualização otimista (desfaz se a chamada falhar).
 export function useAvailability() {
   const { data, error, loading, reload } = useAsync(() => api.getAvailability(), []);

@@ -134,7 +134,7 @@ export class PrismaAuthRepository implements AuthRepository {
 }
 
 // Reconhece o formato mínimo de um erro Prisma sem acoplar o domínio à classe gerada.
-function isPrismaUniqueConstraintError(error: unknown): boolean {
+export function isPrismaUniqueConstraintError(error: unknown): boolean {
   // Exige objeto não nulo antes de tentar acessar a propriedade code.
   if (typeof error !== 'object' || error === null) return false;
   // Converte somente o campo conhecido e compara o código oficial de unicidade.

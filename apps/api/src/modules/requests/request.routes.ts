@@ -75,11 +75,18 @@ export const requestRoutes: FastifyPluginAsync<RequestRoutesOptions> = async (ap
     async (request) => options.service.cancel(request.actor, request.params.solicitacaoId, request.body.motivo),
   );
 
-  // Oferece atribuição temporária exclusiva do ambiente de desenvolvimento.
+  // Atribui um coletor cadastrado a uma solicitação feita num ponto da plataforma (painel do operador).
+  app.post<{ Params: RequestParams; Body: { coletorId: string } }>(
+    '/operacao/solicitacoes-coleta/:solicitacaoId/atribuicao',
+    { preHandler: operatorOnly, schema: { params: requestParamsSchema, body: assignmentBodySchema } },
+    async (request) => options.service.assign(request.actor, request.params.solicitacaoId, request.body.coletorId),
+  );
+
+  // Caminho antigo, mantido para scripts que ainda o chamam.
   app.post<{ Params: RequestParams; Body: { coletorId: string } }>(
     '/desenvolvimento/solicitacoes-coleta/:solicitacaoId/atribuicao',
     { preHandler: operatorOnly, schema: { params: requestParamsSchema, body: assignmentBodySchema } },
-    async (request) => options.service.assignDevelopment(request.actor, request.params.solicitacaoId, request.body.coletorId),
+    async (request) => options.service.assign(request.actor, request.params.solicitacaoId, request.body.coletorId),
   );
 
   // Permite ao coletor responsável iniciar o atendimento.
@@ -90,9 +97,9 @@ export const requestRoutes: FastifyPluginAsync<RequestRoutesOptions> = async (ap
   );
 
   // Conclui o atendimento exigindo a URL da foto comprobatória.
-  app.post<{ Params: RequestParams; Body: { fotoUrl: string } }>(
+  app.post<{ Params: RequestParams; Body: { fotoUrl?: string } | undefined }>(
     '/solicitacoes-coleta/:solicitacaoId/conclusao',
     { preHandler: collectorOnly, schema: { params: requestParamsSchema, body: conclusionBodySchema } },
-    async (request) => options.service.complete(request.actor, request.params.solicitacaoId, request.body.fotoUrl),
+    async (request) => options.service.complete(request.actor, request.params.solicitacaoId, request.body?.fotoUrl ?? null),
   );
 };

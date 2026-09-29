@@ -16,5 +16,5 @@ export function loginOperator(email: string, senha: string): Promise<SessionUser
 }
 
 export function logoutOperator(): Promise<void> {
-  return logout();
+  return logout('OPERADOR');
 }

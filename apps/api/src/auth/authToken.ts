@@ -8,8 +8,35 @@ import { UserRole } from '../generated/prisma/enums.js';
 import { AppError } from '../errors/appError.js';
 import type { Actor } from './actor.js';
 
-// Padroniza o nome lido pelo Fastify, navegador e Socket.IO.
+// Nome do cookie de sessão sem papel, mantido para sessões antigas e clientes que não informam a área.
 export const SESSION_COOKIE_NAME = 'ecorota_sessao';
+// Cabeçalho com o papel da área que faz a requisição (morador, coletor ou operador).
+export const SESSION_ROLE_HEADER = 'x-ecorota-papel';
+// Ordem usada quando o cliente não informa a área e só existe cookie por papel.
+const ROLE_COOKIE_ORDER: UserRole[] = [UserRole.MORADOR, UserRole.COLETOR, UserRole.OPERADOR];
+
+// Um cookie por papel permite manter morador, coletor e operador logados ao mesmo tempo no mesmo navegador.
+export function sessionCookieNameFor(role: UserRole): string {
+  return `${SESSION_COOKIE_NAME}_${role.toLowerCase()}`;
+}
+
+// Lê o papel informado pela área; valores desconhecidos são ignorados, nunca confiados.
+export function parseSessionRole(value: unknown): UserRole | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (typeof raw !== 'string') return null;
+  const role = raw.trim().toUpperCase();
+  return (ROLE_COOKIE_ORDER as string[]).includes(role) ? (role as UserRole) : null;
+}
+
+// Escolhe qual cookie ler. O papel só decide o cookie: o token continua passando pela verificação completa.
+export function pickSessionToken(
+  cookies: Record<string, string | undefined>,
+  requestedRole: UserRole | null,
+): string | undefined {
+  if (requestedRole) return cookies[sessionCookieNameFor(requestedRole)] ?? cookies[SESSION_COOKIE_NAME];
+  return cookies[SESSION_COOKIE_NAME]
+    ?? ROLE_COOKIE_ORDER.map((role) => cookies[sessionCookieNameFor(role)]).find(Boolean);
+}
 // Mantém a sessão curta o bastante para limitar o impacto de um token eventualmente comprometido.
 export const SESSION_DURATION_SECONDS = 8 * 60 * 60;
 // Identifica de forma estável quem emitiu os tokens aceitos por esta API.

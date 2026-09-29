@@ -12,6 +12,7 @@ import { errorHandler, notFoundHandler } from './errors/errorHandler.js';
 import type { PrismaClient } from './generated/prisma/client.js';
 import type { EcoRotaClient } from './integration/ecorotaClient.js';
 import { operationState } from './integration/operation-state/index.js';
+import { collectorPositions } from './realtime/collectorPositions.js';
 import type { StreamStatus } from './integration/ws/ecoRotaWsConsumer.js';
 import { PrismaAddressRepository } from './modules/addresses/address.repository.js';
 import { addressRoutes } from './modules/addresses/address.routes.js';
@@ -28,18 +29,27 @@ import { RequestService } from './modules/requests/request.service.js';
 import { operationRoutes } from './modules/operation/operation.routes.js';
 import { OperationService } from './modules/operation/operation.service.js';
 import { PrismaOperationIndicatorsRepository } from './modules/operation/operationIndicators.repository.js';
+import { PrismaCollectionPointRepository } from './modules/operation/collectionPoint.repository.js';
+import { collectionPointRoutes } from './modules/operation/collectionPoint.routes.js';
+import { CollectionPointService } from './modules/operation/collectionPoint.service.js';
 import { PrismaCollectorRepository } from './modules/collectors/collector.repository.js';
 import { collectorRoutes } from './modules/collectors/collector.routes.js';
 import { CollectorService } from './modules/collectors/collector.service.js';
 import { PrismaAuthRepository } from './modules/auth/auth.repository.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { AuthService } from './modules/auth/auth.service.js';
+import type { LocalCollectorSimulation } from './modules/local-simulation/localCollectorSimulation.js';
+import { localSimulationRoutes } from './modules/local-simulation/localSimulation.routes.js';
+import { PrismaProfileRepository } from './modules/profiles/profile.repository.js';
+import { profileRoutes } from './modules/profiles/profile.routes.js';
+import { ProfileService } from './modules/profiles/profile.service.js';
 
 // Permite injetar banco, integrações, ambiente e logger para produção ou testes isolados.
 export interface BuildAppOptions {
   healthRepository: HealthRepository;
   database?: PrismaClient;
   ecoRotaClient?: EcoRotaClient;
+  localSimulation?: LocalCollectorSimulation;
   streamStatusProvider?: () => StreamStatus;
   nodeEnv?: NodeEnvironment;
   jwtSecret?: string;
@@ -86,6 +96,8 @@ export function buildApp(options: BuildAppOptions) {
     const requestService = new RequestService(
       new PrismaRequestRepository(options.database),
       options.ecoRotaClient,
+      // Rotas da EcoRota em memória, usadas para estimar a chegada do coletor.
+      operationState,
     );
 
     // Registra os quatro endpoints de autenticação antes das demais rotas protegidas.
@@ -128,6 +140,23 @@ export function buildApp(options: BuildAppOptions) {
         new PrismaOperationIndicatorsRepository(options.database),
       ),
     });
+    app.register(collectionPointRoutes, {
+      prefix: '/api/v1',
+      identify,
+      service: new CollectionPointService(new PrismaCollectionPointRepository(options.database)),
+    });
+    app.register(profileRoutes, {
+      prefix: '/api/v1',
+      identify,
+      service: new ProfileService(new PrismaProfileRepository(options.database)),
+    });
+    if (options.localSimulation) {
+      app.register(localSimulationRoutes, {
+        prefix: '/api/v1',
+        identify,
+        simulation: options.localSimulation,
+      });
+    }
     // Expõe perfil, coletas e disponibilidade do coletor.
     app.register(collectorRoutes, {
       prefix: '/api/v1',
@@ -136,6 +165,7 @@ export function buildApp(options: BuildAppOptions) {
         new PrismaCollectorRepository(options.database),
         requestService,
         options.ecoRotaClient,
+        collectorPositions,
       ),
     });
   }

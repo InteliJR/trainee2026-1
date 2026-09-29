@@ -22,13 +22,17 @@ import { PrismaHealthRepository } from './modules/health/health.repository.js';
 import { PrismaRealtimeAccessRepository } from './realtime/realtimeAccess.repository.js';
 // Importa a fábrica que anexa o Socket.IO ao servidor HTTP do Fastify.
 import { createRealtimeBroker } from './realtime/socketServer.js';
+import { collectorPositions } from './realtime/collectorPositions.js';
 // Importa o mesmo verificador JWT usado para proteger o handshake Socket.IO.
 import { AuthTokenService } from './auth/authToken.js';
+import { PrismaCollectionPointRepository } from './modules/operation/collectionPoint.repository.js';
+import { LocalCollectorSimulation } from './modules/local-simulation/localCollectorSimulation.js';
 
 // Cria uma única instância Prisma reutilizada por todos os módulos durante a execução da API.
 const database = createPrismaClient(env.databaseUrl);
 // Cria uma única política criptográfica para validar sessões também fora do ciclo de rotas Fastify.
 const authTokenService = new AuthTokenService(env.jwtSecret);
+const localSimulation = new LocalCollectorSimulation(new PrismaCollectionPointRepository(database));
 // Só cria o cliente externo quando URL e chave EcoRota foram configuradas em conjunto.
 const ecoRotaClient = env.ecorotaUrl && env.ecorotaKey
   // Configura o adaptador com a URL base e a credencial que deve permanecer somente no backend.
@@ -56,6 +60,7 @@ const app = buildApp({
   webOrigin: env.webOrigin,
   // Fornece o cliente EcoRota ou undefined quando a integração está desativada.
   ecoRotaClient,
+  localSimulation,
   // Só expõe o estado do stream quando existem credenciais para tentar a conexão externa.
   streamStatusProvider: env.ecorotaUrl && env.ecorotaKey
     // Retorna o estado atual do consumidor ou um estado inicial enquanto ele ainda não foi atribuído.
@@ -82,6 +87,9 @@ const realtimeBroker = createRealtimeBroker(app, {
   accessRepository: new PrismaRealtimeAccessRepository(database),
   // Compartilha exatamente o mesmo cache atualizado pelo WebSocket da EcoRota.
   state: operationState,
+  localSimulation,
+  // Repassa as posições enviadas pelo app dos coletores da plataforma.
+  collectorPositions,
 });
 // Cria o consumidor WebSocket somente quando a integração externa possui configuração completa.
 streamConsumer = env.ecorotaUrl && env.ecorotaKey
@@ -120,6 +128,7 @@ streamConsumer = env.ecorotaUrl && env.ecorotaKey
 
 // Registra a ordem de encerramento executada quando o Fastify recebe shutdown.
 app.addHook('onClose', async () => {
+  localSimulation.close();
   // Remove listeners e encerra os clientes Socket.IO antes de fechar o servidor HTTP.
   await realtimeBroker.close();
   // Interrompe reconexões e aguarda o processamento pendente do WebSocket externo.

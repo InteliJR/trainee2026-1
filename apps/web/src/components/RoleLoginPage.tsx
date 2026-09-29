@@ -19,9 +19,11 @@ interface RoleLoginPageProps {
   defaultRedirect: string;
   // Faz o login e confere o papel; lança erro com mensagem para a tela.
   onLogin: (email: string, password: string) => Promise<unknown>;
+  // Link para cadastro, quando a área permite conta própria (hoje só o morador).
+  registerHref?: string;
 }
 
-export function RoleLoginPage({ eyebrow, title, description, icon, defaultRedirect, onLogin }: RoleLoginPageProps) {
+export function RoleLoginPage({ eyebrow, title, description, icon, defaultRedirect, onLogin, registerHref }: RoleLoginPageProps) {
   const navigate = useNavigate();
   const from = (useLocation().state as { from?: string } | null)?.from ?? defaultRedirect;
 
@@ -75,9 +77,18 @@ export function RoleLoginPage({ eyebrow, title, description, icon, defaultRedire
           </Button>
         </form>
 
+        {registerHref ? (
+          <Link
+            to={registerHref}
+            className="mt-4 flex min-h-touch items-center justify-center text-sm font-semibold text-neutral-700 hover:text-brand-700"
+          >
+            Ainda não tem conta? <span className="ml-1 text-brand-700">Cadastre-se</span>
+          </Link>
+        ) : null}
+
         <Link
           to="/"
-          className="mt-4 flex min-h-touch items-center justify-center text-sm font-semibold text-neutral-700 hover:text-brand-700"
+          className="mt-2 flex min-h-touch items-center justify-center text-sm font-semibold text-neutral-700 hover:text-brand-700"
         >
           Trocar de perfil
         </Link>

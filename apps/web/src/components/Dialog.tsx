@@ -7,13 +7,14 @@ interface DialogProps {
   role?: 'dialog' | 'alertdialog';
   /** Trava Esc e o clique no backdrop enquanto uma ação está em andamento. */
   busy?: boolean;
+  wide?: boolean;
   onClose: () => void;
   children: ReactNode;
 }
 
 // <dialog> nativo: foco preso, Esc e backdrop já tratados pelo navegador.
 // O elemento com `data-autofocus` recebe o foco inicial — use a opção segura.
-export function Dialog({ open, title, role = 'dialog', busy, onClose, children }: DialogProps) {
+export function Dialog({ open, title, role = 'dialog', busy, wide, onClose, children }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -40,7 +41,7 @@ export function Dialog({ open, title, role = 'dialog', busy, onClose, children }
       onClick={(e) => {
         if (e.target === e.currentTarget && !busy) onClose(); // clique no backdrop
       }}
-      className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-lg bg-neutral-0 p-0 shadow-card backdrop:bg-neutral-900/60"
+      className={`m-auto w-[calc(100%-2rem)] ${wide ? 'max-w-2xl' : 'max-w-sm'} rounded-lg bg-neutral-0 p-0 shadow-card backdrop:bg-neutral-900/60`}
     >
       {open && (
         <div className="max-h-[85vh] space-y-4 overflow-y-auto p-5">

@@ -175,7 +175,7 @@ Campos mínimos:
 - Botões grandes, alto contraste e textos curtos.
 - Evitar tabelas no celular; preferir cards de tarefa.
 - Ações críticas devem ter confirmação clara.
-- Fluxos importantes: painel do dia, detalhe, confirmar coleta, cancelar/morador ausente e disponibilidade.
+- Fluxos importantes: painel do dia, detalhe, confirmar coleta, cancelar e disponibilidade.
 
 ### Dashboard operacional
 
@@ -213,7 +213,6 @@ Campos mínimos:
 - "Começar rota"
 - "Ver detalhes"
 - "Confirmar coleta"
-- "Morador ausente"
 - "Estou disponível"
 - "Finalizar tarefa"
 - "Chamar suporte"

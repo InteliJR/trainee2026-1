@@ -3,8 +3,10 @@ import type { FastifyPluginAsync, preHandlerHookHandler } from 'fastify';
 import type { CollectorService } from './collector.service.js';
 import { authorizeRoles } from '../../auth/authentication.js';
 import {
+  shareCollectorPositionBodySchema,
   updateCollectorAvailabilityBodySchema,
   type ListCollectorRequestsQuery,
+  type ShareCollectorPositionInput,
   type UpdateCollectorAvailabilityInput,
 } from './collector.schemas.js';
 
@@ -35,5 +37,12 @@ export const collectorRoutes: FastifyPluginAsync<CollectorRoutesOptions> = async
     '/coletor/disponibilidade',
     { preHandler: collectorOnly, schema: { body: updateCollectorAvailabilityBodySchema } },
     async (request) => options.service.updateAvailability(request.actor, request.body),
+  );
+
+  // Recebe a posição do coletor durante a coleta, para o painel do operador acompanhar.
+  app.post<{ Body: ShareCollectorPositionInput }>(
+    '/coletor/posicao',
+    { preHandler: collectorOnly, schema: { body: shareCollectorPositionBodySchema } },
+    async (request) => options.service.sharePosition(request.actor, request.body),
   );
 };

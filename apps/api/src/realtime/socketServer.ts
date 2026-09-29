@@ -5,7 +5,8 @@ import { Server as SocketIOServer, type Namespace, type Socket } from 'socket.io
 // Importa o parser de Cookie usado para extrair a sessão do handshake HTTP.
 import { parse as parseCookie } from 'cookie';
 // Importa o verificador JWT e o nome único do cookie de sessão.
-import { AuthTokenService, SESSION_COOKIE_NAME } from '../auth/authToken.js';
+import { AuthTokenService, parseSessionRole, pickSessionToken } from '../auth/authToken.js';
+import type { CollectorPositionEntry, CollectorPositionStore } from './collectorPositions.js';
 // Importa os contratos dos eventos, solicitações e rotas recebidos da plataforma EcoRota.
 import type { EcoRotaEventMessage, EcoRotaRequest, EcoRotaRoute } from '../integration/ecorotaClient.js';
 // Importa o cache operacional compartilhado e os tipos emitidos quando esse cache muda.
@@ -21,6 +22,7 @@ import {
 } from '../integration/operation-state/index.js';
 // Importa os contratos que consultam no banco quem pode receber cada informação.
 import type { RealtimeAccessRepository, RealtimeActor } from './realtimeAccess.repository.js';
+import type { LocalCollectorSimulation, LocalSimulationState } from '../modules/local-simulation/localCollectorSimulation.js';
 
 // Agrupa os tipos externos que carregam uma solicitação completa dentro do campo data.
 const REQUEST_EVENT_TYPES = new Set([
@@ -44,6 +46,9 @@ interface ServerToClientEvents {
   'operacao:estado-inicial': (snapshot: OperationStateSnapshot) => void;
   // Entrega um novo estado filtrado quando a EcoRota envia um snapshot integral.
   'operacao:estado-atualizado': (snapshot: OperationStateSnapshot) => void;
+  'simulacao-local:estado': (state: LocalSimulationState) => void;
+  // Entrega a posição de um coletor da plataforma a quem pode acompanhá-lo.
+  'coletor-local:posicao': (event: ReturnType<typeof toPositionEvent>) => void;
 }
 
 // Especializa o Socket.IO para garantir que cada conexão autorizada possua um ator confirmado no banco.
@@ -68,6 +73,9 @@ export interface RealtimeBrokerOptions {
   accessRepository: RealtimeAccessRepository;
   // Permite substituir o cache global por um cache isolado em testes.
   state?: OperationStateStore;
+  localSimulation?: LocalCollectorSimulation;
+  // Posições dos coletores cadastrados na plataforma, enviadas pelo app do coletor.
+  collectorPositions?: CollectorPositionStore;
 }
 
 // Expõe os recursos necessários para observar e encerrar a integração Socket.IO.
@@ -148,10 +156,11 @@ export function createRealtimeBroker(
 
   // Executa este middleware antes de aceitar cada conexão no namespace.
   namespace.use(async (socket, next) => {
-    // Faz parse do cabeçalho sem confiar em dados enviados no objeto auth do cliente.
+    // Faz parse do cabeçalho; a identidade vem só do cookie assinado.
     const cookies = parseCookie(socket.handshake.headers.cookie ?? '');
-    // Extrai somente o cookie padronizado pelas rotas de autenticação.
-    const token = cookies[SESSION_COOKIE_NAME];
+    // O objeto auth do cliente apenas indica a área (papel) para escolher qual cookie ler; o token
+    // escolhido passa pela mesma verificação de assinatura e pela confirmação no banco.
+    const token = pickSessionToken(cookies, parseSessionRole(socket.handshake.auth?.papel));
     // Rejeita conexão anônima antes de qualquer consulta ao banco.
     if (!token) return next(new Error('SESSAO_NAO_AUTENTICADA'));
 
@@ -197,12 +206,19 @@ export function createRealtimeBroker(
       // Busca no banco as solicitações que o usuário pode visualizar neste momento.
       const allowed = await options.accessRepository.listAllowedExternalReferences(actor);
       // Envia o primeiro estado para que a tela seja preenchida sem aguardar o próximo evento externo.
-      socket.emit(
-        // Usa um nome público em português para padronizar o contrato com o frontend.
-        'operacao:estado-inicial',
-        // Filtra o cache atual antes de expor qualquer solicitação ou rota ao navegador.
-        filterSnapshotForActor(state.getSnapshot(), actor, new Set(allowed)),
-      );
+       socket.emit(
+         // Usa um nome público em português para padronizar o contrato com o frontend.
+         'operacao:estado-inicial',
+         // Filtra o cache atual antes de expor qualquer solicitação ou rota ao navegador.
+         filterSnapshotForActor(state.getSnapshot(), actor, new Set(allowed)),
+       );
+       if (actor.role === 'OPERADOR' && options.localSimulation) {
+         socket.emit('simulacao-local:estado', options.localSimulation.getSnapshot());
+       }
+       // Posições atuais dos coletores da plataforma que este ator pode ver.
+       if (options.collectorPositions) {
+         sendCurrentCollectorPositions(socket, actor, options.collectorPositions);
+       }
     } catch (error) {
       // Registra qual usuário não teve o estado inicial montado, sem enviar detalhes ao cliente.
       app.log.error({ err: error, userId: actor.id }, 'Falha ao montar estado inicial do Socket.IO.');
@@ -218,6 +234,13 @@ export function createRealtimeBroker(
   };
   // Registra o callback e guarda a função que removerá o listener no encerramento.
   const unsubscribe = state.onUpdate(forwardUpdate);
+  const unsubscribeLocal = options.localSimulation?.onUpdate((simulationState) => {
+    namespace.to(roleRoom('OPERADOR')).emit('simulacao-local:estado', simulationState);
+  });
+  // Repassa cada posição de coletor da plataforma ao operador.
+  const unsubscribePositions = options.collectorPositions?.onUpdate((entry) => {
+    forwardCollectorPosition(namespace, entry);
+  });
 
   // Devolve as referências usadas pelo bootstrap, pelos testes e pelo shutdown.
   return {
@@ -229,6 +252,8 @@ export function createRealtimeBroker(
     close: async () => {
       // Remove o listener do cache para impedir emissões depois do shutdown.
       unsubscribe();
+      unsubscribeLocal?.();
+      unsubscribePositions?.();
       // Desconecta todos os navegadores ligados especificamente ao namespace da aplicação.
       namespace.disconnectSockets(true);
       // Encerra os transportes WebSocket e polling administrados pelo Engine.IO.
@@ -487,4 +512,30 @@ function roleRoom(role: RealtimeActor['role']): string {
 function userRoom(userId: string): string {
   // Prefixa o UUID para separar claramente identidade de outras salas do namespace.
   return `usuario:${userId}`;
+}
+
+// Contrato público da posição de um coletor da plataforma (os da EcoRota usam coletor:posicao-atualizada).
+function toPositionEvent(entry: CollectorPositionEntry) {
+  return {
+    coletorId: entry.collectorUserId,
+    nome: entry.name,
+    posicao: { type: 'Point' as const, coordinates: entry.coordinates },
+    precisaoMetros: entry.accuracyMeters,
+    observadoEm: entry.observedAt,
+  };
+}
+
+// Envia só ao operador e ao próprio coletor: a tela do morador não mostra o coletor ao vivo,
+// então a posição não é repassada a ele.
+function forwardCollectorPosition(namespace: Namespace, entry: CollectorPositionEntry): void {
+  namespace.to([roleRoom('OPERADOR'), userRoom(entry.collectorUserId)]).emit('coletor-local:posicao', toPositionEvent(entry));
+}
+
+// Entrega na conexão as posições recentes que o ator pode ver (operador: todas; coletor: a própria).
+function sendCurrentCollectorPositions(socket: RealtimeSocket, actor: RealtimeActor, store: CollectorPositionStore): void {
+  for (const entry of store.list()) {
+    if (actor.role === 'OPERADOR' || actor.id === entry.collectorUserId) {
+      socket.emit('coletor-local:posicao', toPositionEvent(entry));
+    }
+  }
 }

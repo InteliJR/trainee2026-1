@@ -143,4 +143,5 @@ export class PrismaRealtimeAccessRepository implements RealtimeAccessRepository 
     // Converte o resultado em UUIDs usados diretamente para montar as salas particulares.
     return requests.map((request) => request.residentId);
   }
+
 }

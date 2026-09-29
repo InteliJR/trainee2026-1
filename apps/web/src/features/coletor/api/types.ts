@@ -1,7 +1,7 @@
 import type { RequestStatus } from '@ecorota/shared';
 import type { Material } from '../config';
 
-// Endereço do morador — é para lá que o coletor vai (não existe "ponto de coleta" no backend real).
+// Endereço exibido na coleta: o ponto de coleta (fluxo atual) ou o endereço do morador (coletas antigas).
 export interface CollectorAddress {
   street: string;
   number: string;
@@ -9,11 +9,19 @@ export interface CollectorAddress {
   city: string;
 }
 
+// Para onde o coletor vai, com coordenadas para o mapa e a navegação. Null quando a API não informou.
+export interface CollectorDestination {
+  name: string;
+  // [longitude, latitude]
+  coordinates: [number, number];
+}
+
 export interface CollectorTask {
   id: string;
   status: RequestStatus;
   materials: Material[];
   address: CollectorAddress;
+  destination: CollectorDestination | null;
   scheduledDate: string; // 'YYYY-MM-DD'
   notes?: string;
   updatedAt: string;
@@ -30,15 +38,30 @@ export interface CollectorAvailability {
   updatedAt: string;
 }
 
-// Contrato que o front usa. `mock.ts` sempre funciona; `http.ts` fala com a API real (VITE_USE_MOCK=false).
+// Um lançamento de pontos (crédito por uma coleta concluída).
+export interface PointsEntry {
+  id: string;
+  requestId: string | null;
+  points: number;
+  reason: string;
+  createdAt: string;
+}
+
+export interface CollectorPoints {
+  balance: number;
+  entries: PointsEntry[];
+}
+
+// Contrato que o front usa; `http.ts` fala com a API real e `offlineApi.ts` guarda ações sem conexão.
 export interface CollectorApi {
   listTasks(): Promise<CollectorTask[]>;
+  /** Saldo e extrato de pontos (GET /pontuacao/lancamentos, real para morador e coletor). */
+  getPoints(): Promise<CollectorPoints>;
   /** Início do atendimento: assigned -> in_service. Sem isso não dá para concluir. */
   startTask(id: string): Promise<void>;
   /** A API real exige a URL de uma foto como comprovação (POST .../conclusao). */
-  completeTask(id: string, photoUrl: string): Promise<void>;
+  completeTask(id: string): Promise<void>;
   /** A API real só permite cancelamento pelo morador — em modo real, esta ação fica bloqueada na tela. */
-  cancelTask(id: string, reason: string): Promise<void>;
   getAvailability(): Promise<CollectorAvailability>;
   setAvailability(available: boolean): Promise<CollectorAvailability>;
 }

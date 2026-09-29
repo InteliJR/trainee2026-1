@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import type { CollectionPoint, MaterialCategory } from '../types';
 import { Icon } from './Icon';
+import { PointsMap } from './PointsMap';
 
 interface PointStepProps {
   points: CollectionPoint[];
@@ -24,6 +26,7 @@ export function PointStep({
   const visiblePoints = compatiblePoints.filter(
     (point) => selectedNeighborhood === 'Todos' || point.neighborhood === selectedNeighborhood,
   );
+  const [view, setView] = useState<'lista' | 'mapa'>('lista');
 
   return (
     <section className="space-y-4" aria-labelledby="point-title">
@@ -62,10 +65,19 @@ export function PointStep({
         })}
       </div>
 
-      <div className="grid gap-3">
+      <div className="flex gap-2" role="tablist" aria-label="Ver pontos em lista ou no mapa">
+        <ViewToggleButton label="Lista" active={view === 'lista'} onClick={() => setView('lista')} />
+        <ViewToggleButton label="Mapa" active={view === 'mapa'} onClick={() => setView('mapa')} />
+      </div>
+
+      {view === 'mapa' && visiblePoints.length > 0 ? (
+        <PointsMap points={visiblePoints} selectedPointId={selectedPointId} onSelect={onSelect} />
+      ) : null}
+
+      {view === 'lista' ? (
+        <div className="grid gap-3">
         {visiblePoints.map((point) => {
           const isSelected = point.id === selectedPointId;
-          const activeDemand = point.demand.pending + point.demand.assigned + point.demand.in_service;
 
           return (
             <button
@@ -93,28 +105,15 @@ export function PointStep({
                   </div>
                 </div>
                 <span className="rounded-full border border-operational-100 bg-operational-100 px-3 py-1 text-sm font-semibold text-operational-800">
-                  {point.distanceKm.toFixed(1)} km
+                  Circuito {point.circuit}
                 </span>
               </div>
 
-              <dl className="mt-4 grid gap-3 border-t border-neutral-200 pt-4 text-sm sm:grid-cols-3">
-                <div>
-                  <dt className="text-neutral-500">Bairro</dt>
-                  <dd className="mt-1 font-semibold text-neutral-900">{point.neighborhood}</dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-500">Demandas</dt>
-                  <dd className="mt-1 font-semibold text-neutral-900">{activeDemand}</dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-500">Próximo</dt>
-                  <dd className="mt-1 font-semibold text-neutral-900">{point.nextAvailability}</dd>
-                </div>
-              </dl>
             </button>
           );
         })}
-      </div>
+        </div>
+      ) : null}
 
       {visiblePoints.length === 0 ? (
         <p className="eco-card rounded-lg p-4 text-sm text-neutral-600">
@@ -122,5 +121,30 @@ export function PointStep({
         </p>
       ) : null}
     </section>
+  );
+}
+
+interface ViewToggleButtonProps {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}
+
+function ViewToggleButton({ label, active, onClick }: ViewToggleButtonProps) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={[
+        'min-h-touch flex-1 rounded-md border px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-operational-500',
+        active
+          ? 'border-brand-600 bg-brand-600 text-white shadow-card'
+          : 'border-neutral-200 bg-white/80 text-neutral-700 hover:border-brand-300 hover:bg-brand-50',
+      ].join(' ')}
+    >
+      {label}
+    </button>
   );
 }

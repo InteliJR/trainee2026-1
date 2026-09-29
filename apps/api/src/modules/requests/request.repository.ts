@@ -8,13 +8,15 @@ import type { Actor } from '../../auth/actor.js';
 import type { RequestStatus } from '../../generated/prisma/enums.js';
 import type { CreateCollectionRequestInput } from './request.schemas.js';
 import { API_TO_MATERIAL } from './request.schemas.js';
+import { POINTS_PER_COMPLETED_COLLECTION } from '../gamification/gamification.rules.js';
 
 // Centraliza todas as relações necessárias para devolver uma solicitação completa.
 export const requestInclude = {
   address: true,
+  collectionPoint: true,
   materials: true,
   statusHistory: { orderBy: { occurredAt: 'asc' as const } },
-  collectorProfile: { include: { user: { select: { id: true, name: true } } } },
+  collectorProfile: { include: { user: { select: { id: true, name: true, phone: true } } } },
   pointsLogs: true,
 } as const;
 
@@ -44,7 +46,7 @@ export interface RequestRepository {
   cancel(id: string, actorId: string, reason: string): Promise<RequestDetails>;
   assign(id: string, actorId: string, collectorUserId: string): Promise<RequestDetails>;
   start(id: string, collectorUserId: string): Promise<RequestDetails>;
-  complete(id: string, collectorUserId: string, photoUrl: string): Promise<RequestDetails>;
+  complete(id: string, collectorUserId: string, photoUrl: string | null): Promise<RequestDetails>;
   markSynchronized(id: string, external: { requestId: string; pointId: string; collectorId: string | null }): Promise<RequestDetails>;
   markSyncError(id: string): Promise<RequestDetails>;
 }
@@ -63,20 +65,28 @@ export class PrismaRequestRepository implements RequestRepository {
     dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
 
     return this.database.$transaction(async (transaction) => {
-      const address = await transaction.address.findFirst({
-        where: { id: input.enderecoId, userId: residentId },
-        select: { id: true },
-      });
-      // Impede usar endereço inexistente ou pertencente a outro morador.
-      if (!address) return Promise.reject(new RepositoryRuleError('ENDERECO_NAO_ENCONTRADO'));
+      if (input.enderecoId) {
+        const address = await transaction.address.findFirst({
+          where: { id: input.enderecoId, userId: residentId }, select: { id: true },
+        });
+        if (!address) throw new RepositoryRuleError('ENDERECO_NAO_ENCONTRADO');
+      }
+      if (input.pontoColetaId) {
+        const point = await transaction.collectionPoint.findFirst({
+          where: { id: input.pontoColetaId, active: true, deletedAt: null }, select: { id: true },
+        });
+        if (!point) throw new RepositoryRuleError('PONTO_COLETA_NAO_ENCONTRADO');
+      }
 
       // Serializa criações para o mesmo endereço/dia, evitando que duas
       // requisições concorrentes ultrapassem juntas a verificação da RN06.
-      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`${input.enderecoId}:${dayStart.toISOString()}`}))`;
+      const locationKey = input.pontoColetaId ?? input.enderecoId;
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`${residentId}:${locationKey}:${dayStart.toISOString()}`}))`;
 
       const duplicate = await transaction.collectionRequest.findFirst({
         where: {
-          addressId: input.enderecoId,
+          residentId,
+          ...(input.pontoColetaId ? { collectionPointId: input.pontoColetaId } : { addressId: input.enderecoId }),
           desiredAt: { gte: dayStart, lt: dayEnd },
           status: { in: ['SCHEDULED', 'PENDING', 'ASSIGNED', 'IN_SERVICE'] },
         },
@@ -88,7 +98,8 @@ export class PrismaRequestRepository implements RequestRepository {
       return transaction.collectionRequest.create({
         data: {
           residentId,
-          addressId: input.enderecoId,
+          addressId: input.enderecoId ?? null,
+          collectionPointId: input.pontoColetaId ?? null,
           externalPointId: input.pontoColetaExternoId,
           desiredAt,
           externalReference: `pedido-${randomUUID()}`,
@@ -228,7 +239,7 @@ export class PrismaRequestRepository implements RequestRepository {
               source: 'LOCAL',
               fromStatus: current.status,
               toStatus: 'ASSIGNED',
-              reason: 'Coletor associado pela operação de desenvolvimento.',
+              reason: 'Coletor atribuído pelo operador.',
               occurredAt: new Date(),
             },
           },
@@ -244,7 +255,7 @@ export class PrismaRequestRepository implements RequestRepository {
   }
 
   // Conclui, grava evidência/histórico e concede pontos únicos ao morador e coletor.
-  async complete(id: string, collectorUserId: string, photoUrl: string): Promise<RequestDetails> {
+  async complete(id: string, collectorUserId: string, photoUrl: string | null): Promise<RequestDetails> {
     return this.database.$transaction(async (transaction) => {
       const current = await transaction.collectionRequest.findUniqueOrThrow({
         where: { id },
@@ -280,7 +291,7 @@ export class PrismaRequestRepository implements RequestRepository {
         data: recipientIds.map((userId) => ({
           userId,
           requestId: id,
-          points: 100,
+          points: POINTS_PER_COMPLETED_COLLECTION,
           reason: 'Coleta concluída',
         })),
         skipDuplicates: true,
@@ -326,7 +337,7 @@ export class PrismaRequestRepository implements RequestRepository {
 // Comunica violações detectadas na camada transacional sem acoplar o repositório a códigos HTTP.
 export class RepositoryRuleError extends Error {
   // Armazena a regra violada para o serviço traduzi-la em código HTTP apropriado.
-  constructor(readonly rule: 'ENDERECO_NAO_ENCONTRADO' | 'SOLICITACAO_DUPLICADA' | 'COLETOR_INDISPONIVEL' | 'TRANSICAO_INVALIDA') {
+  constructor(readonly rule: 'ENDERECO_NAO_ENCONTRADO' | 'PONTO_COLETA_NAO_ENCONTRADO' | 'SOLICITACAO_DUPLICADA' | 'COLETOR_INDISPONIVEL' | 'TRANSICAO_INVALIDA') {
     super(rule);
   }
 }

@@ -12,7 +12,6 @@ export interface MaterialOption {
   id: MaterialCategory;
   name: string;
   helper: string;
-  points: number;
   acceptedExamples: string[];
 }
 
@@ -30,7 +29,6 @@ export interface ShiftOption {
   id: Shift;
   label: string;
   window: string;
-  slots: number;
 }
 
 export interface ResidentRequestDraft {
@@ -38,7 +36,8 @@ export interface ResidentRequestDraft {
   pointId: string | null;
   desiredDate: string;
   shift: Shift | null;
-  notes: string;
+  // Quantidade aproximada em kg, como digitada (opcional); enviada à API como quantidadeEstimada.
+  quantityKg: string;
 }
 
 export interface StatusTimelineItem {
@@ -66,5 +65,7 @@ export interface ResidentCollectionRequest {
   collectorPhone: string | null;
   estimatedArrival: string | null;
   pointsPreview: number;
+  // Soma das quantidades informadas em kg na solicitação; null quando nenhuma foi informada.
+  estimatedKg: number | null;
   timeline: StatusTimelineItem[];
 }

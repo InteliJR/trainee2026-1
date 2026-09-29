@@ -4,7 +4,7 @@
  */
 import type { RequestStatus } from '@ecorota/shared';
 import { ApiError, apiRequest } from '../../../lib/api';
-import { materialOptions, shiftOptions } from '../data/mockSolicitacao';
+import { materialOptions, shiftOptions } from '../data/catalogo';
 import type {
   CollectionPoint,
   MaterialCategory,
@@ -40,14 +40,19 @@ export interface RequestDTO {
   id: string;
   referenciaExterna: string;
   status: string;
-  integracao: { pontoColetaExternoId: string };
+  integracao: { pontoColetaExternoId: string | null; pontoColetaId?: string | null };
+  pontoColeta?: { id: string; nome: string; circuito: number; coordenadas: { latitude: number; longitude: number } } | null;
   dataDesejada: string;
   criadoEm: string;
   concluidaEm: string | null;
-  endereco: { logradouro: string; numero: string; bairro: string };
-  materiais: Array<{ tipo: string }>;
-  coletor: { nome: string } | null;
+  endereco: { logradouro: string; numero: string; bairro: string } | null;
+  materiais: Array<{ tipo: string; quantidadeEstimada?: number | null; unidade?: string | null }>;
+  coletor: { nome: string; telefone?: string | null } | null;
   pontosConcedidos: Array<{ pontos: number }>;
+  // Pontos que cada participante recebe ao concluir; vem da regra da API.
+  pontosPrevistos?: number;
+  // Chegada estimada pela rota da EcoRota; null quando não dá para calcular.
+  previsaoChegada?: string | null;
 }
 
 // ---------- Traduções ----------
@@ -148,30 +153,49 @@ export function buildTimeline(createdAt: string | null, completedAt: string | nu
   ];
 }
 
+// Mensagem do campo de quantidade quando o valor não é um número positivo.
+export const QUANTITY_ERROR = 'Informe a quantidade em kg com um número maior que zero, como 2 ou 2,5.';
+
+// Lê a quantidade digitada: vazio = não informada (null); aceita vírgula ou ponto; zero, negativo ou texto = inválida.
+export function parseQuantityKg(value: string): number | null | 'invalida' {
+  const text = value.trim();
+  if (!text) return null;
+  if (!/^\d+([.,]\d+)?$/.test(text)) return 'invalida';
+  const quantity = Number(text.replace(',', '.'));
+  return quantity > 0 ? quantity : 'invalida';
+}
+
+// Soma o que foi informado em quilos; outras unidades não viram peso, e sem informação o resultado é null.
+export function estimatedKg(materials: RequestDTO['materiais']): number | null {
+  const inKg = materials.filter((material) => material.quantidadeEstimada != null && /^kg$/i.test(material.unidade ?? ''));
+  return inKg.length === 0 ? null : inKg.reduce((sum, material) => sum + (material.quantidadeEstimada ?? 0), 0);
+}
+
 // Converte uma solicitação da API no formato das telas "Acompanhar status" e "Histórico".
 export function requestFromApi(dto: RequestDTO, pointNames: ReadonlyMap<string, string>): ResidentCollectionRequest {
   const materialId = MATERIAL_FROM_API[dto.materiais[0]?.tipo ?? 'OUTRO'] ?? 'oleo';
   const material = materialOptions.find((option) => option.id === materialId)!;
   const desired = new Date(dto.dataDesejada);
   const shift = shiftOptions.find((option) => option.id === shiftFromDate(desired))!;
-  const grantedPoints = dto.pontosConcedidos.reduce((sum, entry) => sum + entry.pontos, 0);
   return {
     id: dto.id,
     externalReference: dto.referenciaExterna,
     protocol: `ECO-${dto.id.slice(-6).toUpperCase()}`,
     materialId,
     materialName: material.name,
-    pointName: pointNames.get(dto.integracao.pontoColetaExternoId) ?? 'Ponto de coleta',
-    pointAddress: `${dto.endereco.logradouro}, ${dto.endereco.numero}`,
-    neighborhood: dto.endereco.bairro,
+    pointName: dto.pontoColeta?.nome ?? pointNames.get(dto.integracao.pontoColetaExternoId ?? '') ?? 'Ponto de coleta',
+    pointAddress: dto.pontoColeta ? `Circuito ${dto.pontoColeta.circuito}` : dto.endereco ? `${dto.endereco.logradouro}, ${dto.endereco.numero}` : 'Ponto de coleta',
+    neighborhood: dto.pontoColeta ? `Circuito ${dto.pontoColeta.circuito}` : dto.endereco?.bairro ?? '',
     scheduledDate: localDate(desired),
     shiftLabel: shift.label,
     shiftWindow: shift.window,
     status: STATUS_FROM_API[dto.status] ?? 'pending',
     collectorName: dto.coletor?.nome ?? null,
-    collectorPhone: null,
-    estimatedArrival: null,
-    pointsPreview: grantedPoints > 0 ? grantedPoints : material.points,
+    collectorPhone: dto.coletor?.telefone ?? null,
+    estimatedArrival: clock(dto.previsaoChegada ?? null),
+    // pontosConcedidos traz os lançamentos do morador e do coletor; o morador vê só a sua parte.
+    pointsPreview: dto.pontosPrevistos ?? 0,
+    estimatedKg: estimatedKg(dto.materiais),
     timeline: buildTimeline(dto.criadoEm, dto.concluidaEm),
   };
 }
@@ -184,36 +208,54 @@ export async function fetchDefaultAddress(): Promise<AddressDTO | null> {
   return dados.find((address) => address.padrao) ?? dados[0] ?? null;
 }
 
-// Pontos reais da EcoRota, com distância calculada a partir do endereço quando ele é informado.
+// Pontos ativos cadastrados pelo operador.
 export async function fetchCollectionPoints(near?: { latitude: number; longitude: number }): Promise<CollectionPoint[]> {
-  const query = near ? `?latitude=${near.latitude}&longitude=${near.longitude}` : '';
-  const { dados } = await apiRequest<{ dados: PointDTO[] }>('GET', `/pontos-coleta${query}`);
-  return dados.map(pointFromApi);
+  void near;
+  const { dados } = await apiRequest<{ dados: Array<{ id: string; nome: string; tipo: string; coordenadas: { latitude: number; longitude: number }; circuito: number; descricao: string | null }> }>('GET', '/pontos-coleta-locais');
+  return dados.map((point) => ({
+    id: point.id, name: point.nome, kind: point.tipo === 'ADICIONAL' ? 'additional' : 'habitual',
+    coordinates: [point.coordenadas.longitude, point.coordenadas.latitude], circuit: point.circuito,
+    demand: { pending: 0, assigned: 0, in_service: 0, completed: 0, cancelled: 0 },
+    address: point.descricao ?? `Circuito ${point.circuito}`, neighborhood: `Circuito ${point.circuito}`,
+    distanceKm: 0, accepts: materialOptions.map((material) => material.id), nextAvailability: 'Conforme a rota do coletor',
+  }));
+}
+
+// Quantos pontos cada coleta concluída rende, pela regra da própria API.
+export async function fetchPointsPerCollection(): Promise<number> {
+  const { pontosPorColetaConcluida } = await apiRequest<{ pontosPorColetaConcluida: number }>('GET', '/pontuacao/regras');
+  return pontosPorColetaConcluida;
 }
 
 // Solicitações do morador autenticado, já no formato das telas.
 export async function fetchResidentRequests(): Promise<ResidentCollectionRequest[]> {
-  const [{ dados }, points] = await Promise.all([
-    apiRequest<{ dados: RequestDTO[] }>('GET', '/solicitacoes-coleta'),
+  const [firstPage, points] = await Promise.all([
+    apiRequest<{ dados: RequestDTO[]; paginacao: { totalPaginas: number } }>('GET', '/solicitacoes-coleta?pagina=1&limite=100'),
     // Sem os pontos, as solicitações aparecem com nome genérico em vez de falhar a tela inteira.
     apiRequest<{ dados: PointDTO[] }>('GET', '/pontos-coleta').then((response) => response.dados).catch(() => [] as PointDTO[]),
   ]);
+  const dados = [...firstPage.dados];
+  for (let page = 2; page <= firstPage.paginacao.totalPaginas; page += 1) {
+    const next = await apiRequest<{ dados: RequestDTO[] }>('GET', `/solicitacoes-coleta?pagina=${page}&limite=100`);
+    dados.push(...next.dados);
+  }
   const pointNames = new Map(points.map((point) => [point.id, point.nome]));
   return dados.map((dto) => requestFromApi(dto, pointNames));
 }
 
-// Cria a solicitação no endereço padrão do morador.
+// Cria a solicitação no ponto cadastrado pelo operador, sem endereço residencial.
 export async function createRequestInApi(draft: ResidentRequestDraft, point: CollectionPoint): Promise<ResidentCollectionRequest> {
   if (!draft.materialId || !draft.shift || !draft.desiredDate) {
     throw new ApiError(400, 'Complete os dados da coleta antes de continuar.');
   }
-  const address = await fetchDefaultAddress();
-  if (!address) throw new ApiError(400, 'Cadastre um endereço antes de solicitar uma coleta.');
+  const quantity = parseQuantityKg(draft.quantityKg);
+  if (quantity === 'invalida') throw new ApiError(400, QUANTITY_ERROR);
   const dto = await apiRequest<RequestDTO>('POST', '/solicitacoes-coleta', {
-    enderecoId: address.id,
-    pontoColetaExternoId: point.id,
+    pontoColetaId: point.id,
     dataDesejada: desiredDateToIso(draft.desiredDate, draft.shift),
-    materiais: [{ tipo: MATERIAL_TO_API[draft.materialId] }],
+    materiais: [quantity === null
+      ? { tipo: MATERIAL_TO_API[draft.materialId] }
+      : { tipo: MATERIAL_TO_API[draft.materialId], quantidadeEstimada: quantity, unidade: 'kg' }],
   });
   return requestFromApi(dto, new Map([[point.id, point.name]]));
 }

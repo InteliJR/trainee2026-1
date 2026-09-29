@@ -9,6 +9,7 @@ import {
   type RealtimeCollectorPositionEvent,
   type RealtimeRequestEvent,
   type RealtimeRequestStatus,
+  type LocalCollectorPositionEvent,
   type RealtimeRouteEvent,
   type RealtimeSnapshot,
 } from './socketClient';
@@ -26,6 +27,8 @@ export interface RealtimeState {
   errorMessage: string | null;
   // Guarda o último evento de solicitação para permitir feedback visual posterior.
   lastRequestEvent: RealtimeRequestEvent | null;
+  // Posição mais recente de cada coletor da plataforma, por UUID do usuário (fora da geração da EcoRota).
+  localCollectorPositions: Record<string, LocalCollectorPositionEvent>;
 }
 
 // Descreve os argumentos públicos aceitos pelo hook.
@@ -43,7 +46,8 @@ export type RealtimeAction =
   | { type: 'snapshot'; snapshot: RealtimeSnapshot }
   | { type: 'posicao-coletor'; event: RealtimeCollectorPositionEvent }
   | { type: 'solicitacao'; event: RealtimeRequestEvent }
-  | { type: 'rota'; event: RealtimeRouteEvent };
+  | { type: 'rota'; event: RealtimeRouteEvent }
+  | { type: 'posicao-coletor-local'; event: LocalCollectorPositionEvent }
 
 // Define o estado exibido antes que o primeiro handshake seja iniciado.
 export const INITIAL_REALTIME_STATE: RealtimeState = {
@@ -51,6 +55,7 @@ export const INITIAL_REALTIME_STATE: RealtimeState = {
   snapshot: null,
   errorMessage: null,
   lastRequestEvent: null,
+  localCollectorPositions: {},
 };
 
 // Traduz o status público em português para o status técnico armazenado no snapshot.
@@ -84,6 +89,16 @@ export function realtimeReducer(state: RealtimeState, action: RealtimeAction): R
     if (!shouldAcceptSnapshot(state.snapshot, action.snapshot)) return state;
     // Substitui as coleções integralmente e preserva o último evento usado para feedback visual.
     return { ...state, snapshot: action.snapshot };
+  }
+
+  // Posições dos coletores da plataforma não seguem geração/revisão da EcoRota: vale a observação mais nova.
+  if (action.type === 'posicao-coletor-local') {
+    const current = state.localCollectorPositions[action.event.coletorId];
+    if (current && Date.parse(current.observadoEm) > Date.parse(action.event.observadoEm)) return state;
+    return {
+      ...state,
+      localCollectorPositions: { ...state.localCollectorPositions, [action.event.coletorId]: action.event },
+    };
   }
 
   // Eventos incrementais dependem de um snapshot da mesma geração para terem uma base consistente.
@@ -176,7 +191,7 @@ export function shouldAcceptSnapshot(current: RealtimeSnapshot | null, incoming:
 // Verifica se um delta pode ser aplicado sobre o snapshot atualmente exibido.
 function shouldAcceptIncrement(snapshot: RealtimeSnapshot, action: RealtimeAction): boolean {
   // Ações sem metadados de versão já foram tratadas antes desta função.
-  if (action.type === 'conexao' || action.type === 'erro' || action.type === 'snapshot') return false;
+  if (action.type === 'conexao' || action.type === 'erro' || action.type === 'snapshot' || action.type === 'posicao-coletor-local') return false;
   // Um delta só é seguro quando pertence exatamente à geração usada como base.
   if (action.event.geracao !== snapshot.generation) return false;
   // Revisões menores já foram incorporadas ao estado e não devem sobrescrever dados recentes.
@@ -248,6 +263,8 @@ export function useTempoReal(options: UseTempoRealOptions): UseTempoRealResult {
     const handleRequest = (event: RealtimeRequestEvent): void => dispatch({ type: 'solicitacao', event });
     // Encaminha a rota recalculada para substituição por coletor.
     const handleRoute = (event: RealtimeRouteEvent): void => dispatch({ type: 'rota', event });
+    // Encaminha a posição de um coletor da plataforma.
+    const handleLocalCollectorPosition = (event: LocalCollectorPositionEvent): void => dispatch({ type: 'posicao-coletor-local', event });
 
     // Registra todos os listeners do namespace antes de chamar connect.
     socket.on('connect', handleConnect);
@@ -260,6 +277,7 @@ export function useTempoReal(options: UseTempoRealOptions): UseTempoRealResult {
     socket.on('solicitacao:status-atualizado', handleRequest);
     socket.on('solicitacao:concluida', handleRequest);
     socket.on('rota:atualizada', handleRoute);
+    socket.on('coletor-local:posicao', handleLocalCollectorPosition);
     socket.io.on('reconnect_attempt', handleReconnectAttempt);
     // Abre o transporte somente depois que os handlers estão prontos.
     socket.connect();
@@ -276,6 +294,7 @@ export function useTempoReal(options: UseTempoRealOptions): UseTempoRealResult {
       socket.off('solicitacao:status-atualizado', handleRequest);
       socket.off('solicitacao:concluida', handleRequest);
       socket.off('rota:atualizada', handleRoute);
+      socket.off('coletor-local:posicao', handleLocalCollectorPosition);
       socket.io.off('reconnect_attempt', handleReconnectAttempt);
       socket.disconnect();
       socketRef.current = null;

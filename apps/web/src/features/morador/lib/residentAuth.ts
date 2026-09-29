@@ -22,5 +22,5 @@ export async function loginResident(email: string, senha: string): Promise<Sessi
 // Encerra a sessão e limpa o cache local, para outra pessoa no mesmo aparelho não ver as solicitações.
 export async function logoutResident(): Promise<void> {
   clearResidentCache();
-  await logout();
+  await logout('MORADOR');
 }

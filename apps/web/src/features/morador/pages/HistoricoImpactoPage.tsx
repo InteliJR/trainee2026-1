@@ -6,15 +6,6 @@ import { Icon } from '../components/Icon';
 import { ResidentBottomNav } from '../components/ResidentBottomNav';
 import { getResidentRequests, refreshResidentRequests } from '../lib/residentRequests';
 
-const kgByMaterial: Record<string, number> = {
-  papel: 3.2,
-  plastico: 2.1,
-  vidro: 4.5,
-  metal: 1.8,
-  eletronicos: 1.2,
-  oleo: 1.5,
-};
-
 export function HistoricoImpactoPage() {
   const [requests, setRequests] = useState(getResidentRequests);
 
@@ -30,7 +21,14 @@ export function HistoricoImpactoPage() {
   }, []);
   const completed = useMemo(() => requests.filter((request) => request.status === 'completed'), [requests]);
   const points = completed.reduce((sum, request) => sum + request.pointsPreview, 0);
-  const kilograms = completed.reduce((sum, request) => sum + (kgByMaterial[request.materialId] ?? 1), 0);
+  // Só entra no peso o que foi informado em kg na solicitação; nada é estimado por tipo de material.
+  const withKg = completed.filter((request) => request.estimatedKg !== null);
+  const kilograms = withKg.reduce((sum, request) => sum + (request.estimatedKg ?? 0), 0);
+  const kgDetail = withKg.length === 0
+    ? 'A quantidade ainda não é informada ao solicitar'
+    : withKg.length === completed.length
+      ? 'Quantidade informada nas coletas concluídas'
+      : `Informado em ${withKg.length} de ${completed.length} coletas`;
   const weekKeys = new Set(completed.map((request) => weekKey(request.scheduledDate)));
   let streak = 0;
   const currentWeek = weekStart(new Date());
@@ -56,7 +54,7 @@ export function HistoricoImpactoPage() {
 
         <section aria-label="Resumo do impacto" className="grid gap-4 sm:grid-cols-3">
           <ImpactCard icon="award" label="Pontos disponíveis" value={`${points}`} detail="Somente coletas concluídas" />
-          <ImpactCard icon="leaf" label="Material reciclado" value={`${kilograms.toFixed(1)} kg`} detail="Estimativa acumulada" />
+          <ImpactCard icon="leaf" label="Material reciclado" value={withKg.length > 0 ? `${kilograms.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kg` : '—'} detail={kgDetail} />
           <ImpactCard icon="cycle" label="Sequência" value={`${streak} semana${streak === 1 ? '' : 's'}`} detail="Semanas seguidas com coleta concluída" />
         </section>
 

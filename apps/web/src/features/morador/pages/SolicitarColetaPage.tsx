@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { InlineNotice } from '../../../components/InlineNotice';
+import { Link } from 'react-router-dom';
 import { EcoPageHeader } from '../components/EcoPageHeader';
 import { MaterialStep } from '../components/MaterialStep';
 import { Icon } from '../components/Icon';
@@ -8,13 +7,8 @@ import { PointStep } from '../components/PointStep';
 import { ResidentBottomNav } from '../components/ResidentBottomNav';
 import { ScheduleStep } from '../components/ScheduleStep';
 import { StepIndicator } from '../components/StepIndicator';
-import {
-  collectionPoints,
-  materialOptions,
-  neighborhoodFilters,
-  shiftOptions,
-} from '../data/mockSolicitacao';
-import { fetchCollectionPoints, fetchDefaultAddress, type AddressDTO } from '../lib/residentApi';
+import { materialOptions, shiftOptions } from '../data/catalogo';
+import { QUANTITY_ERROR, fetchCollectionPoints, fetchPointsPerCollection, parseQuantityKg } from '../lib/residentApi';
 import { createResidentRequest, type CreateRequestResult } from '../lib/residentRequests';
 import type { CollectionPoint, MaterialCategory, ResidentRequestDraft, Shift } from '../types';
 
@@ -23,7 +17,7 @@ const initialDraft: ResidentRequestDraft = {
   pointId: null,
   desiredDate: '',
   shift: null,
-  notes: '',
+  quantityKg: '',
 };
 
 export function SolicitarColetaPage() {
@@ -35,21 +29,30 @@ export function SolicitarColetaPage() {
   const [submission, setSubmission] = useState<CreateRequestResult | null>(null);
   const [submitError, setSubmitError] = useState('');
   // Começa com os pontos de exemplo e troca pelos pontos reais da EcoRota assim que a API responder.
-  const [points, setPoints] = useState<CollectionPoint[]>(collectionPoints);
-  // Endereço padrão do morador: undefined enquanto não se sabe (ou API fora do ar), null quando não há nenhum.
-  const [address, setAddress] = useState<AddressDTO | null | undefined>(undefined);
-  // Mostra a confirmação quando a pessoa volta da tela de cadastro de endereço.
-  const justSavedAddress = Boolean((useLocation().state as { enderecoCadastrado?: boolean } | null)?.enderecoCadastrado);
+  const [points, setPoints] = useState<CollectionPoint[]>([]);
+  const [pointsError, setPointsError] = useState('');
+
+  // Regra de pontos da API, mostrada no resumo antes de enviar.
+  const [pointsPerCollection, setPointsPerCollection] = useState<number | null>(null);
+  useEffect(() => {
+    let active = true;
+    fetchPointsPerCollection()
+      .then((value) => active && setPointsPerCollection(value))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
-      // O endereço padrão permite que a API calcule a distância até cada ponto.
-      const found = await fetchDefaultAddress().catch(() => undefined);
-      if (active) setAddress(found);
-      const near = found ? { latitude: found.latitude, longitude: found.longitude } : undefined;
-      const apiPoints = await fetchCollectionPoints(near).catch(() => null);
-      if (active && apiPoints && apiPoints.length > 0) setPoints(apiPoints);
+      try {
+        const apiPoints = await fetchCollectionPoints();
+        if (active) setPoints(apiPoints);
+      } catch (error) {
+        if (active) setPointsError(error instanceof Error ? error.message : 'Não foi possível consultar os pontos de coleta.');
+      }
     };
     void load();
     return () => {
@@ -57,11 +60,8 @@ export function SolicitarColetaPage() {
     };
   }, []);
 
-  // Com pontos reais, os filtros viram os circuitos presentes; com exemplos, mantém os bairros fixos.
   const neighborhoods = useMemo(
-    () => (points === collectionPoints
-      ? neighborhoodFilters
-      : ['Todos', ...Array.from(new Set(points.map((point) => point.neighborhood))).sort()]),
+    () => ['Todos', ...Array.from(new Set(points.map((point) => point.neighborhood))).sort()],
     [points],
   );
 
@@ -75,8 +75,11 @@ export function SolicitarColetaPage() {
     [draft.pointId, points],
   );
 
+  // A quantidade é opcional, mas se foi digitada precisa ser um número positivo.
+  const quantityError = parseQuantityKg(draft.quantityKg) === 'invalida' ? QUANTITY_ERROR : undefined;
+
   const canContinue =
-    (currentStep === 1 && Boolean(draft.materialId)) ||
+    (currentStep === 1 && Boolean(draft.materialId) && !quantityError) ||
     (currentStep === 2 && Boolean(draft.pointId)) ||
     (currentStep === 3 && Boolean(draft.desiredDate && draft.shift));
 
@@ -97,8 +100,8 @@ export function SolicitarColetaPage() {
     setDraft((previous) => ({ ...previous, shift }));
   }
 
-  function setNotes(notes: string) {
-    setDraft((previous) => ({ ...previous, notes }));
+  function setQuantityKg(quantityKg: string) {
+    setDraft((previous) => ({ ...previous, quantityKg }));
   }
 
   function goBack() {
@@ -155,15 +158,9 @@ export function SolicitarColetaPage() {
             <p className="mt-3 text-sm leading-6 text-neutral-600">
               Vamos avisar quando um coletor assumir. Você também pode acompanhar o status pelo app.
             </p>
-            {submission?.source === 'demo' ? (
-              <p role="status" className="mt-4 rounded-md border border-reward-100 bg-reward-100/70 p-3 text-sm text-reward-900">
-                API indisponível. Solicitação salva neste dispositivo em modo demonstração.
-              </p>
-            ) : (
-              <p role="status" className="mt-4 rounded-md border border-neutral-200 bg-brand-50 p-3 text-sm text-brand-700">
-                Solicitação enviada para a EcoRota. Protocolo {submission?.request.protocol}.
-              </p>
-            )}
+            <p role="status" className="mt-4 rounded-md border border-neutral-200 bg-brand-50 p-3 text-sm text-brand-700">
+              Solicitação enviada para a EcoRota. Protocolo {submission?.request.protocol}.
+            </p>
 
             <dl className="mt-6 divide-y divide-neutral-200 border-y border-neutral-200 text-sm">
               <div className="flex justify-between gap-3 py-3">
@@ -186,7 +183,7 @@ export function SolicitarColetaPage() {
               <div className="flex gap-3">
                 <Icon name="leaf" className="mt-0.5 h-5 w-5 shrink-0 text-brand-700" />
                 <p>
-                  <strong>Impacto previsto:</strong> +{selectedMaterial.points} pontos ao confirmar a
+                  <strong>Impacto previsto:</strong> +{submission?.request.pointsPreview} pontos ao confirmar a
                   coleta concluída.
                 </p>
               </div>
@@ -227,25 +224,8 @@ export function SolicitarColetaPage() {
           />
           <StepIndicator currentStep={currentStep} />
 
-          {address === null ? (
-            <InlineNotice
-              tone="warning"
-              action={
-                <Link
-                  to="/morador/enderecos/novo"
-                  state={{ from: '/morador/solicitar' }}
-                  className="eco-primary-button inline-flex min-h-touch items-center rounded-md px-4 text-sm font-bold text-white"
-                >
-                  Cadastrar endereço
-                </Link>
-              }
-            >
-              Antes de solicitar, cadastre o endereço onde o coletor vai retirar o material.
-            </InlineNotice>
-          ) : null}
-          {justSavedAddress && address ? (
-            <InlineNotice tone="success">Endereço salvo. Agora é só escolher o material.</InlineNotice>
-          ) : null}
+          {pointsError && <p role="alert" className="rounded-md bg-danger-50 p-3 text-danger-800">{pointsError}</p>}
+          {!pointsError && points.length === 0 && <p role="status" className="rounded-md bg-neutral-0 p-3 text-neutral-700">Nenhum ponto de coleta disponível. A operação precisa cadastrar e ativar um ponto.</p>}
 
           <div>
             {currentStep === 1 ? (
@@ -253,6 +233,9 @@ export function SolicitarColetaPage() {
                 materials={materialOptions}
                 selectedMaterialId={draft.materialId}
                 onSelect={selectMaterial}
+                quantityKg={draft.quantityKg}
+                quantityError={quantityError}
+                onQuantityChange={setQuantityKg}
               />
             ) : null}
 
@@ -276,7 +259,7 @@ export function SolicitarColetaPage() {
                 shifts={shiftOptions}
                 onDateChange={setDesiredDate}
                 onShiftChange={setShift}
-                onNotesChange={setNotes}
+                pointsPerCollection={pointsPerCollection}
               />
             ) : null}
           </div>
@@ -316,11 +299,6 @@ export function SolicitarColetaPage() {
           <div className="mt-5 grid gap-3 text-sm">
             <SummaryLine icon="trash" label="Material" value={selectedMaterial?.name ?? 'Não escolhido'} />
             <SummaryLine icon="map-pin" label="Ponto" value={selectedPoint?.name ?? 'Não escolhido'} />
-            <SummaryLine
-              icon="home"
-              label="Endereço da retirada"
-              value={address ? `${address.logradouro}, ${address.numero}` : address === null ? 'Não cadastrado' : '—'}
-            />
             <SummaryLine icon="calendar" label="Data" value={draft.desiredDate || 'Não escolhida'} />
             <SummaryLine
               icon="clock"

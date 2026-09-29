@@ -1,10 +1,15 @@
 /**
  * Testes das traduções entre a API em português e os tipos das telas do morador.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   addressToApi,
+  createRequestInApi,
   desiredDateToIso,
+  estimatedKg,
+  fetchResidentRequests,
+  fetchCollectionPoints,
+  parseQuantityKg,
   pointFromApi,
   requestFromApi,
   validateAddress,
@@ -58,6 +63,54 @@ describe('pointFromApi', () => {
   });
 });
 
+describe('pontos do operador', () => {
+  it('lista pontos ativos e solicita no ponto escolhido sem enviar endereço', async () => {
+    const calls: Array<{ path: string; body?: string }> = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: string, init?: RequestInit) => {
+      const path = String(input);
+      calls.push({ path, body: init?.body as string | undefined });
+      const data = path.includes('/pontos-coleta-locais')
+        ? { dados: [{ id: POINT.id, nome: 'Ecoponto Centro', tipo: 'HABITUAL', coordenadas: POINT.coordenadas, circuito: 2, descricao: 'Praça central' }] }
+        : createRequestDto({ endereco: null, integracao: { pontoColetaExternoId: null, pontoColetaId: POINT.id },
+          pontoColeta: { id: POINT.id, nome: 'Ecoponto Centro', circuito: 2, coordenadas: POINT.coordenadas } });
+      return { ok: true, json: async () => data };
+    }));
+    try {
+      const points = await fetchCollectionPoints();
+      expect(points[0]).toMatchObject({ name: 'Ecoponto Centro', address: 'Praça central' });
+      await createRequestInApi({ materialId: 'papel', pointId: POINT.id, desiredDate: '2026-12-01', shift: 'manha', quantityKg: '' }, points[0]!);
+      const body = JSON.parse(calls.find((call) => call.path.includes('/solicitacoes-coleta'))!.body!);
+      expect(body).toMatchObject({ pontoColetaId: POINT.id, materiais: [{ tipo: 'PAPEL' }] });
+      expect(body).not.toHaveProperty('enderecoId');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe('fetchResidentRequests', () => {
+  it('inclui todas as páginas para o resumo contar todas as coletas', async () => {
+    const paths: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: string) => {
+      const path = String(input);
+      paths.push(path);
+      const data = path.includes('/pontos-coleta')
+        ? { dados: [] }
+        : path.includes('pagina=2')
+          ? { dados: [createRequestDto({ id: 'segunda-coleta', status: 'CONCLUIDA' })] }
+          : { dados: [createRequestDto({ id: 'primeira-coleta', status: 'CONCLUIDA' })], paginacao: { totalPaginas: 2 } };
+      return { ok: true, json: async () => data };
+    }));
+    try {
+      const requests = await fetchResidentRequests();
+      expect(requests.map((request) => request.id)).toEqual(['primeira-coleta', 'segunda-coleta']);
+      expect(paths.some((path) => path.includes('pagina=2&limite=100'))).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 describe('desiredDateToIso', () => {
   it('combina o dia escolhido com o início do turno no fuso local', () => {
     expect(new Date(desiredDateToIso('2026-09-30', 'manha')).getHours()).toBe(8);
@@ -68,6 +121,14 @@ describe('desiredDateToIso', () => {
 });
 
 describe('requestFromApi', () => {
+  it('usa o ponto do operador quando a coleta não tem endereço residencial', () => {
+    const request = requestFromApi(createRequestDto({
+      endereco: null,
+      integracao: { pontoColetaExternoId: null, pontoColetaId: POINT.id },
+      pontoColeta: { id: POINT.id, nome: 'Ecoponto Centro', circuito: 2, coordenadas: POINT.coordenadas },
+    }), new Map());
+    expect(request).toMatchObject({ pointName: 'Ecoponto Centro', pointAddress: 'Circuito 2' });
+  });
   it('traduz status, material, turno, ponto e coletor', () => {
     const request = requestFromApi(createRequestDto(), new Map([[POINT.id, 'Ponto 01']]));
     expect(request).toMatchObject({
@@ -97,17 +158,18 @@ describe('requestFromApi', () => {
     expect(request.collectorName).toBeNull();
   });
 
-  it('usa os pontos concedidos quando existem e registra o horário da conclusão', () => {
+  it('usa os pontos previstos da API (não soma os lançamentos do coletor) e registra a conclusão', () => {
     const request = requestFromApi(
       createRequestDto({
         status: 'CONCLUIDA',
         concluidaEm: new Date(2026, 8, 30, 14, 10).toISOString(),
-        pontosConcedidos: [{ pontos: 10 }, { pontos: 5 }],
+        pontosConcedidos: [{ pontos: 100 }, { pontos: 100 }],
+        pontosPrevistos: 100,
       }),
       new Map(),
     );
     expect(request.status).toBe('completed');
-    expect(request.pointsPreview).toBe(15);
+    expect(request.pointsPreview).toBe(100);
     expect(request.timeline[3].occurredAt).toMatch(/^\d{2}:\d{2}$/);
   });
 });
@@ -158,5 +220,72 @@ describe('addressToApi', () => {
     const body = addressToApi(createAddressForm({ referencia: '  portão azul ' }));
     expect(body).toMatchObject({ latitude: -23.5545, longitude: -46.7345, estado: 'SP', referencia: 'portão azul', padrao: true });
     expect(body.complemento).toBeUndefined();
+  });
+});
+
+describe('estimatedKg', () => {
+  it('soma só as quantidades informadas em kg', () => {
+    expect(estimatedKg([
+      { tipo: 'PAPEL', quantidadeEstimada: 2, unidade: 'kg' },
+      { tipo: 'VIDRO', quantidadeEstimada: 1.5, unidade: 'KG' },
+      { tipo: 'METAL', quantidadeEstimada: 3, unidade: 'unidades' },
+    ])).toBe(3.5);
+  });
+
+  it('devolve null quando nada foi informado em kg, sem inventar peso', () => {
+    expect(estimatedKg([{ tipo: 'PAPEL' }])).toBeNull();
+    expect(estimatedKg([{ tipo: 'PAPEL', quantidadeEstimada: null, unidade: 'kg' }])).toBeNull();
+  });
+});
+
+describe('parseQuantityKg', () => {
+  it('aceita vírgula ou ponto e trata vazio como não informado', () => {
+    expect(parseQuantityKg('2,5')).toBe(2.5);
+    expect(parseQuantityKg(' 3.25 ')).toBe(3.25);
+    expect(parseQuantityKg('10')).toBe(10);
+    expect(parseQuantityKg('')).toBeNull();
+    expect(parseQuantityKg('   ')).toBeNull();
+  });
+
+  it('recusa zero, negativo e texto', () => {
+    expect(parseQuantityKg('0')).toBe('invalida');
+    expect(parseQuantityKg('-2')).toBe('invalida');
+    expect(parseQuantityKg('dois')).toBe('invalida');
+    expect(parseQuantityKg('2,5kg')).toBe('invalida');
+  });
+});
+
+describe('createRequestInApi com quantidade', () => {
+  it('envia a quantidade em kg junto com o material', async () => {
+    let body: Record<string, unknown> | undefined;
+    vi.stubGlobal('fetch', vi.fn(async (_input: string, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body));
+      return { ok: true, json: async () => createRequestDto() };
+    }));
+    try {
+      const point = pointFromApi(POINT);
+      await createRequestInApi({ materialId: 'vidro', pointId: POINT.id, desiredDate: '2026-12-01', shift: 'tarde', quantityKg: '2,5' }, point);
+      expect(body?.materiais).toEqual([{ tipo: 'VIDRO', quantidadeEstimada: 2.5, unidade: 'kg' }]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe('requestFromApi com dados do coletor', () => {
+  it('mostra o telefone do coletor e a chegada prevista calculada pela API', () => {
+    const arrival = new Date(2026, 8, 30, 13, 42);
+    const request = requestFromApi(createRequestDto({
+      coletor: { nome: 'Coletor base 1', telefone: '(11) 98888-7777' },
+      previsaoChegada: arrival.toISOString(),
+    }), new Map());
+    expect(request.collectorPhone).toBe('(11) 98888-7777');
+    expect(request.estimatedArrival).toBe('13:42');
+  });
+
+  it('deixa telefone e previsão vazios quando a API não os informa', () => {
+    const request = requestFromApi(createRequestDto({ coletor: { nome: 'Coletor base 1' }, previsaoChegada: null }), new Map());
+    expect(request.collectorPhone).toBeNull();
+    expect(request.estimatedArrival).toBeNull();
   });
 });

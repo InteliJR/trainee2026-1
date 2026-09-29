@@ -6,7 +6,7 @@ import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createAuthenticationMiddleware } from '../src/auth/authentication.js';
-import { AuthTokenService, SESSION_COOKIE_NAME } from '../src/auth/authToken.js';
+import { AuthTokenService, SESSION_COOKIE_NAME, sessionCookieNameFor } from '../src/auth/authToken.js';
 import { errorHandler } from '../src/errors/errorHandler.js';
 import type { Actor } from '../src/auth/actor.js';
 import {
@@ -106,12 +106,18 @@ function createApp(repository: FakeAuthRepository): FastifyInstance {
 }
 
 // Extrai somente o primeiro par nome=valor do Set-Cookie para simular o armazenamento do navegador.
-function extractCookie(setCookie: string | string[] | undefined): string {
-  // Normaliza múltiplos cabeçalhos e falha claramente quando o login não criou cookie.
-  const header = Array.isArray(setCookie) ? setCookie[0] : setCookie;
-  if (!header) throw new Error('O endpoint não devolveu Set-Cookie.');
+function extractCookie(setCookie: string | string[] | undefined, name = sessionCookieNameFor('MORADOR')): string {
+  // Normaliza múltiplos cabeçalhos e procura o cookie pedido; falha claramente quando ele não veio.
+  const headers = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
+  const header = headers.find((value) => value.startsWith(`${name}=`));
+  if (!header) throw new Error(`O endpoint não devolveu o cookie ${name}.`);
   // Descarta atributos porque o cabeçalho Cookie envia somente nome e valor.
   return header.split(';')[0]!;
+}
+
+// Junta todos os Set-Cookie num texto só, para conferir nomes e atributos.
+function allCookies(setCookie: string | string[] | undefined): string {
+  return (Array.isArray(setCookie) ? setCookie : [setCookie ?? '']).join('\n');
 }
 
 // Agrupa a jornada completa de uma sessão real.
@@ -166,9 +172,13 @@ describe('autenticação JWT', () => {
     // Confirma que o token não aparece no JSON e que as flags de segurança foram emitidas.
     expect(login.statusCode).toBe(200);
     expect(login.body).not.toContain('token');
-    expect(login.headers['set-cookie']).toContain(`${SESSION_COOKIE_NAME}=`);
-    expect(login.headers['set-cookie']).toContain('HttpOnly');
-    expect(login.headers['set-cookie']).toContain('SameSite=Lax');
+    // O token vai no cookie do papel da conta, com as flags de segurança.
+    expect(sessionCookie.startsWith(`${sessionCookieNameFor('MORADOR')}=`)).toBe(true);
+    const roleCookieHeader = allCookies(login.headers['set-cookie'])
+      .split('\n')
+      .find((value) => value.startsWith(`${sessionCookieNameFor('MORADOR')}=`))!;
+    expect(roleCookieHeader).toContain('HttpOnly');
+    expect(roleCookieHeader).toContain('SameSite=Lax');
 
     // Consulta a sessão usando somente o cookie criado no login.
     const session = await app.inject({
@@ -188,8 +198,71 @@ describe('autenticação JWT', () => {
     });
     // Confirma ausência de corpo e expiração imediata do cookie.
     expect(logout.statusCode).toBe(204);
-    expect(logout.headers['set-cookie']).toContain(`${SESSION_COOKIE_NAME}=`);
-    expect(logout.headers['set-cookie']).toMatch(/Max-Age=0|Expires=/);
+    expect(allCookies(logout.headers['set-cookie'])).toContain(`${sessionCookieNameFor('MORADOR')}=;`);
+    expect(allCookies(logout.headers['set-cookie'])).toMatch(/Max-Age=0|Expires=/);
+  });
+
+  // Garante que morador e coletor possam ficar logados ao mesmo tempo no mesmo navegador.
+  it('mantém sessões de papéis diferentes em cookies separados', async () => {
+    app = createApp(new FakeAuthRepository());
+    // Cria e autentica uma conta de cada papel.
+    const accounts = [
+      { papel: 'MORADOR', email: 'morador@exemplo.com' },
+      { papel: 'COLETOR', email: 'coletor@exemplo.com' },
+    ] as const;
+    const cookies: string[] = [];
+    for (const account of accounts) {
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/autenticacao/cadastro',
+        payload: { nome: account.papel, email: account.email, telefone: '11999999999', senha: 'Senha123!', papel: account.papel },
+      });
+      const login = await app.inject({
+        method: 'POST',
+        url: '/api/v1/autenticacao/entrar',
+        headers: { 'x-ecorota-papel': account.papel },
+        payload: { email: account.email, senha: 'Senha123!' },
+      });
+      expect(login.statusCode).toBe(200);
+      cookies.push(extractCookie(login.headers['set-cookie'], sessionCookieNameFor(account.papel)));
+    }
+    // O navegador envia os dois cookies; o cabeçalho da área escolhe qual sessão vale.
+    const browserCookies = cookies.join('; ');
+    for (const account of accounts) {
+      const session = await app.inject({
+        method: 'GET',
+        url: '/api/v1/autenticacao/sessao',
+        headers: { cookie: browserCookies, 'x-ecorota-papel': account.papel },
+      });
+      expect(session.json().usuario).toMatchObject({ email: account.email, papel: account.papel });
+    }
+    // Sair na área do morador apaga só o cookie do morador.
+    const logout = await app.inject({
+      method: 'POST',
+      url: '/api/v1/autenticacao/sair',
+      headers: { cookie: browserCookies, 'x-ecorota-papel': 'MORADOR' },
+    });
+    expect(allCookies(logout.headers['set-cookie'])).toContain(`${sessionCookieNameFor('MORADOR')}=;`);
+    expect(allCookies(logout.headers['set-cookie'])).not.toContain(`${sessionCookieNameFor('COLETOR')}=`);
+  });
+
+  // Garante que a conta errada numa área seja recusada sem criar cookie que derrubaria outra aba.
+  it('recusa login de outro papel sem criar cookie', async () => {
+    app = createApp(new FakeAuthRepository());
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/autenticacao/cadastro',
+      payload: { nome: 'Morador', email: 'morador@exemplo.com', telefone: '11999999999', senha: 'Senha123!', papel: 'MORADOR' },
+    });
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/v1/autenticacao/entrar',
+      headers: { 'x-ecorota-papel': 'OPERADOR' },
+      payload: { email: 'morador@exemplo.com', senha: 'Senha123!' },
+    });
+    expect(login.statusCode).toBe(403);
+    expect(login.json().codigo).toBe('PAPEL_NAO_AUTORIZADO');
+    expect(login.headers['set-cookie']).toBeUndefined();
   });
 
   // Garante que mensagens de login não revelam se o e-mail existe.

@@ -4,11 +4,14 @@
  */
 import type { Collector, CollectorPosition, Point } from '@ecorota/shared';
 import { io, type Socket } from 'socket.io-client';
+import { currentAreaRole, type Role } from '../lib/area';
 
 // Define os valores necessários para criar uma conexão de tempo real no frontend.
 export interface RealtimeClientOptions {
   // Permite substituir a URL configurada no ambiente, principalmente em testes ou previews.
   apiUrl?: string;
+  // Papel da sessão usada no handshake; sem ele, vale o da tela aberta.
+  role?: Role;
 }
 
 // Restringe o status técnico recebido dentro dos snapshots da EcoRota.
@@ -108,6 +111,16 @@ export interface RealtimeRequestEvent {
   geracao: number;
 }
 
+// Posição de um coletor cadastrado na plataforma, enviada pelo app dele (não vem da EcoRota).
+export interface LocalCollectorPositionEvent {
+  // UUID do usuário coletor.
+  coletorId: string;
+  nome: string;
+  posicao: CollectorPosition;
+  precisaoMetros: number | null;
+  observadoEm: string;
+}
+
 // Descreve os dados usados para mover um coletor no mapa.
 export interface RealtimeCollectorPositionEvent {
   // Indica qual marcador do coletor deve ser atualizado.
@@ -166,6 +179,8 @@ export interface ServerToClientEvents {
   'solicitacao:concluida': (event: RealtimeRequestEvent) => void;
   // Entrega a posição mais recente de um coletor autorizado.
   'coletor:posicao-atualizada': (event: RealtimeCollectorPositionEvent) => void;
+  // Entrega a posição de um coletor da plataforma ao operador.
+  'coletor-local:posicao': (event: LocalCollectorPositionEvent) => void;
   // Entrega ao coletor ou operador uma rota recalculada pela EcoRota.
   'rota:atualizada': (event: RealtimeRouteEvent) => void;
 }
@@ -176,7 +191,7 @@ export function createRealtimeClient(
   options: RealtimeClientOptions,
 ): Socket<ServerToClientEvents> {
   // Prioriza a URL informada pela tela, depois o .env do Vite e por fim o servidor local padrão.
-  const apiUrl = options.apiUrl ?? import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+  const apiUrl = options.apiUrl ?? (import.meta.env.DEV ? window.location.origin : (import.meta.env.VITE_API_URL ?? 'http://localhost:3000'));
   // Cria o cliente apontando para o namespace lógico /tempo-real.
   return io(`${apiUrl.replace(/\/$/, '')}/tempo-real`, {
     // Usa o mesmo caminho técnico configurado no servidor Socket.IO.
@@ -187,6 +202,8 @@ export function createRealtimeClient(
     transports: ['websocket', 'polling'],
     // Envia o cookie httpOnly da sessão no handshake e nas tentativas de reconexão.
     withCredentials: true,
+    // Diz à API qual cookie de papel ler; é avaliado a cada conexão, inclusive nas reconexões.
+    auth: (callback) => callback({ papel: options.role ?? currentAreaRole() }),
     // Solicita novas tentativas automáticas após quedas temporárias de rede.
     reconnection: true,
     // Aguarda inicialmente um segundo entre tentativas de reconexão.
@@ -194,4 +211,19 @@ export function createRealtimeClient(
     // Limita a espera máxima a trinta segundos para que a recuperação não fique lenta indefinidamente.
     reconnectionDelayMax: 30_000,
   });
+}
+
+// Converte as posições dos coletores da plataforma no formato de coletor usado pelo mapa.
+export function localCollectorsForMap(positions: Record<string, LocalCollectorPositionEvent>): Collector[] {
+  return Object.values(positions).map((event) => ({
+    id: `local:${event.coletorId}`,
+    name: event.nome,
+    origin: 'custom',
+    // Só coletores em coleta compartilham posição; disponibilidade real fica no perfil.
+    available: false,
+    status: 'EM_COLETA',
+    circuit: 0,
+    position: event.posicao,
+    observedAt: event.observadoEm,
+  }));
 }

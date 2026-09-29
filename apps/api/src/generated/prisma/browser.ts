@@ -19,41 +19,46 @@ export * as $Enums from './enums.js'
 export * from './enums.js';
 /**
  * Model User
- * 
+ * Identidade central de moradores, coletores e operadores.
  */
 export type User = Prisma.UserModel
 /**
  * Model Address
- * 
+ * Local de coleta pertencente a um morador, com coordenadas usadas no mapa.
  */
 export type Address = Prisma.AddressModel
 /**
  * Model CollectorProfile
- * 
+ * Extensão de User para coletores, incluindo disponibilidade e vínculo externo.
  */
 export type CollectorProfile = Prisma.CollectorProfileModel
 /**
  * Model CollectionRequest
- * 
+ * Agregado principal da coleta, conectando morador, endereço, coletor, integração e estado atual.
  */
 export type CollectionRequest = Prisma.CollectionRequestModel
 /**
  * Model RequestMaterial
- * 
+ * Item de material informado dentro de uma solicitação.
  */
 export type RequestMaterial = Prisma.RequestMaterialModel
 /**
  * Model RequestStatusHistory
- * 
+ * Registro imutável de cada transição local ou externa de uma solicitação.
  */
 export type RequestStatusHistory = Prisma.RequestStatusHistoryModel
 /**
  * Model PointsLog
- * 
+ * Crédito de gamificação concedido a um usuário por uma coleta concluída.
  */
 export type PointsLog = Prisma.PointsLogModel
 /**
- * Model SystemState
+ * Model CollectionPoint
  * 
+ */
+export type CollectionPoint = Prisma.CollectionPointModel
+/**
+ * Model SystemState
+ * Cursor técnico usado para observar geração e revisão processadas do stream EcoRota.
  */
 export type SystemState = Prisma.SystemStateModel
