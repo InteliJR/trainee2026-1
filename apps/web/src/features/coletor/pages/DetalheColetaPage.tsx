@@ -20,9 +20,7 @@ import { STATUS_HINT } from '../lib/statusCopy';
 
 type Notice = { tone: 'success' | 'warning' | 'error'; text: string };
 
-// A API não tem upload de foto — não haverá tela pra isso. `fotoUrl` é obrigatória no endpoint
-// de conclusão, então manda um valor fixo (produto decidiu: sem captura de foto no app).
-const PLACEHOLDER_PHOTO_URL = 'https://ecorota.example/sem-foto.jpg';
+// Sem captura de foto no app (decisão de produto): a conclusão vai sem foto, e a API aceita.
 
 // Detalhe da coleta.
 //  - Iniciar atendimento (assigned -> in_service): exigido pela API real antes de poder confirmar.
@@ -72,7 +70,7 @@ export default function DetalheColetaPage() {
   async function confirmComplete() {
     setCompleting(true);
     try {
-      await api.completeTask(id!, PLACEHOLDER_PHOTO_URL);
+      await api.completeTask(id!);
       const queued = pendingActions().some((action) => action.taskId === id && action.type === 'complete');
       setNotice({ tone: queued ? 'warning' : 'success', text: queued ? 'Conclusão salva neste aparelho. Será enviada quando houver conexão.' : 'Coleta confirmada. Bom trabalho!' });
     } catch (e) {

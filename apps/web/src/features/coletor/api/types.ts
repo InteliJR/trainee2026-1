@@ -60,7 +60,7 @@ export interface CollectorApi {
   /** Início do atendimento: assigned -> in_service. Sem isso não dá para concluir. */
   startTask(id: string): Promise<void>;
   /** A API real exige a URL de uma foto como comprovação (POST .../conclusao). */
-  completeTask(id: string, photoUrl: string): Promise<void>;
+  completeTask(id: string): Promise<void>;
   /** A API real só permite cancelamento pelo morador — em modo real, esta ação fica bloqueada na tela. */
   getAvailability(): Promise<CollectorAvailability>;
   setAvailability(available: boolean): Promise<CollectorAvailability>;

@@ -328,7 +328,7 @@ export class RequestService {
   }
 
   // Confirma conclusão externa/local e deixa o repositório conceder pontos idempotentes.
-  async complete(actor: Actor, id: string, photoUrl: string) {
+  async complete(actor: Actor, id: string, photoUrl: string | null) {
     // Conclusão só pode ser executada por um usuário coletor.
     if (actor.role !== 'COLETOR') {
       throw new AppError({ statusCode: 403, code: 'PAPEL_NAO_AUTORIZADO', message: 'Apenas o coletor responsável pode concluir o atendimento.' });

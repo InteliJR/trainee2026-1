@@ -97,9 +97,9 @@ export const requestRoutes: FastifyPluginAsync<RequestRoutesOptions> = async (ap
   );
 
   // Conclui o atendimento exigindo a URL da foto comprobatória.
-  app.post<{ Params: RequestParams; Body: { fotoUrl: string } }>(
+  app.post<{ Params: RequestParams; Body: { fotoUrl?: string } | undefined }>(
     '/solicitacoes-coleta/:solicitacaoId/conclusao',
     { preHandler: collectorOnly, schema: { params: requestParamsSchema, body: conclusionBodySchema } },
-    async (request) => options.service.complete(request.actor, request.params.solicitacaoId, request.body.fotoUrl),
+    async (request) => options.service.complete(request.actor, request.params.solicitacaoId, request.body?.fotoUrl ?? null),
   );
 };

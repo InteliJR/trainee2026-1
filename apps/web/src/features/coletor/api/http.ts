@@ -2,14 +2,15 @@
 // esta é a única camada que traduz isso para o vocabulário em inglês usado no resto da tela (RNF07).
 import type { RequestStatus } from '@ecorota/shared';
 import { endpoints } from './endpoints';
+import { API_BASE } from '../../../lib/api';
 import { ROLE_HEADER } from '../../../lib/area';
 import { ApiError } from './errors';
 import type { Material } from '../config';
 import type { CollectorApi, CollectorAvailability, CollectorPoints, CollectorTask } from './types';
 
-// Usa VITE_API_URL quando definida (bypassa o proxy do Vite — no Windows ele tenta ::1 e falha contra
-// um Fastify escutando só em IPv4). A API já libera CORS com credenciais para WEB_ORIGIN.
-const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api/v1`;
+// Mesma base do restante do app: proxy do Vite em desenvolvimento (funciona pelo IP da rede, no celular)
+// e VITE_API_URL em produção. O proxy aponta para 127.0.0.1, evitando o ::1 que falha no Windows.
+const BASE = API_BASE;
 
 export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   let res: Response;
@@ -130,7 +131,7 @@ export const httpApi: CollectorApi = {
     } satisfies CollectorPoints;
   },
   startTask: (id) => request('POST', endpoints.startTask(id)),
-  completeTask: (id, photoUrl) => request('POST', endpoints.completeTask(id), { fotoUrl: photoUrl }),
+  completeTask: (id) => request('POST', endpoints.completeTask(id), {}),
   async getAvailability() {
     return fromAvailabilityDTO(await request<AvailabilityDTO>('GET', endpoints.availability));
   },

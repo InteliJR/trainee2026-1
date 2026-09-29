@@ -20,7 +20,7 @@ export function isAlreadyDone(action: Pick<PendingAction, 'type'>, task: Pick<Co
 async function send(action: PendingAction): Promise<void> {
   try {
     if (action.type === 'start') await httpApi.startTask(action.taskId);
-    else await httpApi.completeTask(action.taskId, action.photoUrl!);
+    else await httpApi.completeTask(action.taskId);
   } catch (error) {
     if (error instanceof ApiError && error.status === 409) {
       const tasks = await httpApi.listTasks().catch(() => [] as CollectorTask[]);
@@ -75,7 +75,7 @@ export const offlineApi: CollectorApi = {
   },
   getPoints: () => httpApi.getPoints(),
   startTask: (id) => offlineAction({ taskId: id, type: 'start' }),
-  completeTask: (id, photoUrl) => offlineAction({ taskId: id, type: 'complete', photoUrl }),
+  completeTask: (id) => offlineAction({ taskId: id, type: 'complete' }),
   getAvailability: () => httpApi.getAvailability(),
   setAvailability: (available) => httpApi.setAvailability(available),
 };

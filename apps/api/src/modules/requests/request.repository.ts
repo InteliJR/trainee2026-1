@@ -46,7 +46,7 @@ export interface RequestRepository {
   cancel(id: string, actorId: string, reason: string): Promise<RequestDetails>;
   assign(id: string, actorId: string, collectorUserId: string): Promise<RequestDetails>;
   start(id: string, collectorUserId: string): Promise<RequestDetails>;
-  complete(id: string, collectorUserId: string, photoUrl: string): Promise<RequestDetails>;
+  complete(id: string, collectorUserId: string, photoUrl: string | null): Promise<RequestDetails>;
   markSynchronized(id: string, external: { requestId: string; pointId: string; collectorId: string | null }): Promise<RequestDetails>;
   markSyncError(id: string): Promise<RequestDetails>;
 }
@@ -255,7 +255,7 @@ export class PrismaRequestRepository implements RequestRepository {
   }
 
   // Conclui, grava evidência/histórico e concede pontos únicos ao morador e coletor.
-  async complete(id: string, collectorUserId: string, photoUrl: string): Promise<RequestDetails> {
+  async complete(id: string, collectorUserId: string, photoUrl: string | null): Promise<RequestDetails> {
     return this.database.$transaction(async (transaction) => {
       const current = await transaction.collectionRequest.findUniqueOrThrow({
         where: { id },

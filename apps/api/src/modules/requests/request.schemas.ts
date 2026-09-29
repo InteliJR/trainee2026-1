@@ -108,6 +108,6 @@ export const assignmentBodySchema = {
 export const conclusionBodySchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['fotoUrl'],
+  // A foto é opcional: o app não captura foto (decisão de produto); integrações podem enviar a URL.
   properties: { fotoUrl: { type: 'string', format: 'uri', maxLength: 500 } },
 } as const;
