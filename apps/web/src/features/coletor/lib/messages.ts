@@ -7,7 +7,6 @@ export const MESSAGES = {
   serviceUnstable: 'O serviço está instável agora. Tente de novo em instantes.',
   notOnSite: 'Ainda não dá para confirmar. Inicie o atendimento primeiro.',
   notAssigned: 'Esta coleta não está atribuída a você.',
-  cannotCancel: 'Esta coleta não pode mais ser cancelada.',
 } as const;
 
 export function friendlyError(error: unknown, fallback: string = MESSAGES.loadError): string {

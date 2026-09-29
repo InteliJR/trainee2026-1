@@ -3,7 +3,6 @@ export const endpoints = {
   tasks: '/coletor/solicitacoes', // GET — coletas atribuídas ao coletor logado (resposta paginada: { dados, paginacao })
   startTask: (id: string) => `/solicitacoes-coleta/${id}/inicio`, // POST — assigned -> in_service
   completeTask: (id: string) => `/solicitacoes-coleta/${id}/conclusao`, // POST — exige { fotoUrl }
-  cancelTask: (id: string) => `/solicitacoes-coleta/${id}/cancelamento`, // POST — só MORADOR/OPERADOR; coletor recebe 403
   availability: '/coletor/disponibilidade', // GET/PATCH — { disponivel, turno }
   points: '/pontuacao/lancamentos', // GET — { saldo, dados }, mesma rota que o morador usa
 } as const;

@@ -6,6 +6,7 @@ import {
   addressToApi,
   createRequestInApi,
   desiredDateToIso,
+  estimatedKg,
   fetchResidentRequests,
   fetchCollectionPoints,
   pointFromApi,
@@ -217,5 +218,20 @@ describe('addressToApi', () => {
     const body = addressToApi(createAddressForm({ referencia: '  portão azul ' }));
     expect(body).toMatchObject({ latitude: -23.5545, longitude: -46.7345, estado: 'SP', referencia: 'portão azul', padrao: true });
     expect(body.complemento).toBeUndefined();
+  });
+});
+
+describe('estimatedKg', () => {
+  it('soma só as quantidades informadas em kg', () => {
+    expect(estimatedKg([
+      { tipo: 'PAPEL', quantidadeEstimada: 2, unidade: 'kg' },
+      { tipo: 'VIDRO', quantidadeEstimada: 1.5, unidade: 'KG' },
+      { tipo: 'METAL', quantidadeEstimada: 3, unidade: 'unidades' },
+    ])).toBe(3.5);
+  });
+
+  it('devolve null quando nada foi informado em kg, sem inventar peso', () => {
+    expect(estimatedKg([{ tipo: 'PAPEL' }])).toBeNull();
+    expect(estimatedKg([{ tipo: 'PAPEL', quantidadeEstimada: null, unidade: 'kg' }])).toBeNull();
   });
 });

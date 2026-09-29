@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { Icon, type IconName } from '../../../components/Icon';
 import { InlineNotice } from '../../../components/InlineNotice';
-import { USE_MOCK } from '../api';
 import { synchronizeCollectorQueue } from '../api/offlineApi';
 import { discardFailedAction, pendingActions } from '../api/offlineQueue';
 
@@ -13,7 +12,6 @@ export function ColetorShell() {
   const [online, setOnline] = useState(() => navigator.onLine);
 
   useEffect(() => {
-    if (USE_MOCK) return;
     const update = () => setQueue(pendingActions());
     const synchronize = () => {
       setOnline(navigator.onLine);
@@ -59,8 +57,8 @@ export function ColetorShell() {
       </header>
 
       <main className="mx-auto w-full max-w-app flex-1 px-screen pb-10 pt-section">
-        {!USE_MOCK && !online && <div className="mb-4"><InlineNotice tone="warning">Sem conexão. As coletas já carregadas continuam disponíveis.</InlineNotice></div>}
-        {!USE_MOCK && queue.length > 0 && (
+        {!online && <div className="mb-4"><InlineNotice tone="warning">Sem conexão. As coletas já carregadas continuam disponíveis.</InlineNotice></div>}
+        {queue.length > 0 && (
           <div className="mb-4">
             <InlineNotice tone={failed ? 'error' : 'info'} action={failed && (
               <button

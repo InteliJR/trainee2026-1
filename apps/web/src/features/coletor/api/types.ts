@@ -44,7 +44,7 @@ export interface CollectorPoints {
   entries: PointsEntry[];
 }
 
-// Contrato que o front usa. `mock.ts` sempre funciona; `http.ts` fala com a API real (VITE_USE_MOCK=false).
+// Contrato que o front usa; `http.ts` fala com a API real e `offlineApi.ts` guarda ações sem conexão.
 export interface CollectorApi {
   listTasks(): Promise<CollectorTask[]>;
   /** Saldo e extrato de pontos (GET /pontuacao/lancamentos, real para morador e coletor). */
@@ -54,7 +54,6 @@ export interface CollectorApi {
   /** A API real exige a URL de uma foto como comprovação (POST .../conclusao). */
   completeTask(id: string, photoUrl: string): Promise<void>;
   /** A API real só permite cancelamento pelo morador — em modo real, esta ação fica bloqueada na tela. */
-  cancelTask(id: string, reason: string): Promise<void>;
   getAvailability(): Promise<CollectorAvailability>;
   setAvailability(available: boolean): Promise<CollectorAvailability>;
 }

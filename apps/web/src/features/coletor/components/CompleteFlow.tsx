@@ -8,7 +8,7 @@ interface Props {
   onConfirm: () => void;
 }
 
-// Dupla confirmação (mesmo padrão de CancelFlow): depois de confirmada, não dá para desfazer.
+// Dupla confirmação: depois de confirmada, não dá para desfazer.
 // Só o segundo diálogo confirma de fato. Foco inicial sempre na opção segura (voltar).
 export function CompleteFlow({ open, loading, onClose, onConfirm }: Props) {
   const [step, setStep] = useState<1 | 2>(1);

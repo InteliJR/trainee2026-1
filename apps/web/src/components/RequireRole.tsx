@@ -1,6 +1,6 @@
 /**
  * Libera uma área só com sessão do papel certo; sem sessão, leva ao login da área guardando a rota de origem.
- * Se a API não responder, a tela abre assim mesmo e mostra seu próprio estado offline ou demonstração.
+ * Se a API não responder, a tela abre assim mesmo e mostra seu próprio aviso de falta de conexão.
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';

@@ -284,10 +284,12 @@ function StatusDetail({
                 <span className="block text-neutral-500">Chegada prevista</span>
                 <strong className="text-neutral-950">{request.estimatedArrival ?? 'Sem previsão'}</strong>
               </p>
-              <p className="flex items-center gap-2 text-neutral-700">
-                <Icon name="phone" className="h-4 w-4 text-operational-700" />
-                {request.collectorPhone}
-              </p>
+              {request.collectorPhone ? (
+                <p className="flex items-center gap-2 text-neutral-700">
+                  <Icon name="phone" className="h-4 w-4 text-operational-700" />
+                  {request.collectorPhone}
+                </p>
+              ) : null}
             </div>
           ) : (
             <p className="mt-4 text-sm leading-6 text-neutral-600">

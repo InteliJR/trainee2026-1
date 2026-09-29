@@ -7,13 +7,11 @@ import { InlineNotice } from '../../../components/InlineNotice';
 import { PageTitle } from '../../../components/PageTitle';
 import { StatusBadge } from '../../../components/StatusBadge';
 import { EmptyState, ErrorState, LoadingState } from '../../../components/StateView';
-import { api, USE_MOCK } from '../api';
+import { api } from '../api';
 import { useTasks } from '../api/hooks';
 import { pendingActions } from '../api/offlineQueue';
-import { FailedPickupFlow } from '../components/FailedPickupFlow';
-import { CancelFlow } from '../components/CancelFlow';
 import { CompleteFlow } from '../components/CompleteFlow';
-import { ACTIVE_STATUSES, CANCELABLE_STATUSES, COMPLETABLE_STATUSES, ISSUE_STATUSES, STARTABLE_STATUSES, materialLabel } from '../config';
+import { ACTIVE_STATUSES, COMPLETABLE_STATUSES, STARTABLE_STATUSES, materialLabel } from '../config';
 import { formatAddress, formatDistrict } from '../lib/address';
 import { formatDateBR, formatTime } from '../lib/dates';
 import { MESSAGES, friendlyError, statusOf } from '../lib/messages';
@@ -28,8 +26,7 @@ const PLACEHOLDER_PHOTO_URL = 'https://ecorota.example/sem-foto.jpg';
 // Detalhe da coleta.
 //  - Iniciar atendimento (assigned -> in_service): exigido pela API real antes de poder confirmar.
 //  - Confirmar (RF10): dupla confirmação (CompleteFlow), conectada à API real.
-//  - Cancelar (RF11) e "Não deu para coletar": a API real só deixa o MORADOR cancelar — o coletor
-//    não tem essa ação fora do mock.
+//  - Cancelar é só do morador na API real; o coletor não tem essa ação.
 export default function DetalheColetaPage() {
   const { id } = useParams();
   const list = useTasks({
@@ -55,17 +52,13 @@ export default function DetalheColetaPage() {
   const [starting, setStarting] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
-  const [issueOpen, setIssueOpen] = useState(false);
-  const [reporting, setReporting] = useState(false);
   const [notice, setNotice] = useState<Notice>();
 
   async function handleStart() {
     setStarting(true);
     try {
       await api.startTask(id!);
-      const queued = !USE_MOCK && pendingActions().some((action) => action.taskId === id && action.type === 'start');
+      const queued = pendingActions().some((action) => action.taskId === id && action.type === 'start');
       setNotice({ tone: queued ? 'warning' : 'success', text: queued ? 'Início salvo neste aparelho. Será enviado quando houver conexão.' : 'Atendimento iniciado.' });
     } catch (e) {
       setNotice({ tone: 'error', text: statusOf(e) === 409 ? MESSAGES.notAssigned : friendlyError(e, MESSAGES.actionError) });
@@ -79,41 +72,13 @@ export default function DetalheColetaPage() {
     setCompleting(true);
     try {
       await api.completeTask(id!, PLACEHOLDER_PHOTO_URL);
-      const queued = !USE_MOCK && pendingActions().some((action) => action.taskId === id && action.type === 'complete');
+      const queued = pendingActions().some((action) => action.taskId === id && action.type === 'complete');
       setNotice({ tone: queued ? 'warning' : 'success', text: queued ? 'Conclusão salva neste aparelho. Será enviada quando houver conexão.' : 'Coleta confirmada. Bom trabalho!' });
     } catch (e) {
       setNotice({ tone: 'error', text: statusOf(e) === 409 ? MESSAGES.notOnSite : friendlyError(e, MESSAGES.actionError) });
     } finally {
       setCompleting(false);
       setCompleteOpen(false);
-      list.refresh();
-    }
-  }
-
-  async function confirmCancel() {
-    setCancelling(true);
-    try {
-      await api.cancelTask(id!, 'Cancelado pelo coletor');
-      setNotice({ tone: 'success', text: 'Coleta cancelada.' });
-    } catch (e) {
-      setNotice({ tone: 'error', text: statusOf(e) === 409 ? MESSAGES.cannotCancel : friendlyError(e, MESSAGES.actionError) });
-    } finally {
-      setCancelling(false);
-      setCancelOpen(false);
-      list.refresh();
-    }
-  }
-
-  async function confirmIssue(reason: string) {
-    setReporting(true);
-    try {
-      await api.cancelTask(id!, reason);
-      setNotice({ tone: 'success', text: 'Registrado. A coleta foi encerrada.' });
-    } catch (e) {
-      setNotice({ tone: 'error', text: statusOf(e) === 409 ? MESSAGES.notOnSite : friendlyError(e, MESSAGES.actionError) });
-    } finally {
-      setReporting(false);
-      setIssueOpen(false);
       list.refresh();
     }
   }
@@ -162,8 +127,6 @@ export default function DetalheColetaPage() {
 
   const canStart = STARTABLE_STATUSES.includes(task.status);
   const canComplete = COMPLETABLE_STATUSES.includes(task.status);
-  const canCancel = CANCELABLE_STATUSES.includes(task.status);
-  const canReportIssue = ISSUE_STATUSES.includes(task.status);
   const isActionable = task.status === 'assigned' || task.status === 'in_service';
   const isClosed = task.status === 'completed' || task.status === 'cancelled';
 
@@ -209,18 +172,6 @@ export default function DetalheColetaPage() {
               Confirmar coleta
             </Button>
           )}
-
-          {canReportIssue && USE_MOCK && (
-            <Button size="lg" variant="secondary" fullWidth icon={<Icon name="alert" />} onClick={() => setIssueOpen(true)}>
-              Não deu para coletar
-            </Button>
-          )}
-
-          {canCancel && USE_MOCK && (
-            <Button size="lg" variant="danger" fullWidth icon={<Icon name="ban" />} onClick={() => setCancelOpen(true)}>
-              Cancelar coleta
-            </Button>
-          )}
         </div>
       )}
 
@@ -231,10 +182,6 @@ export default function DetalheColetaPage() {
       )}
 
       <CompleteFlow open={completeOpen} loading={completing} onClose={() => setCompleteOpen(false)} onConfirm={confirmComplete} />
-
-      <CancelFlow open={cancelOpen} loading={cancelling} onClose={() => setCancelOpen(false)} onConfirm={confirmCancel} />
-
-      <FailedPickupFlow open={issueOpen} loading={reporting} onClose={() => setIssueOpen(false)} onConfirm={confirmIssue} />
     </div>
   );
 }

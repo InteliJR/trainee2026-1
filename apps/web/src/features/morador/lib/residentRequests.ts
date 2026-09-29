@@ -1,15 +1,7 @@
 import type { CollectionPoint, ResidentRequestDraft, ResidentCollectionRequest } from '../types';
-import { materialOptions, shiftOptions } from '../data/mockSolicitacao';
 import { ApiError } from '../../../lib/api';
-import {
-  buildTimeline,
-  cancelRequestInApi,
-  createRequestInApi,
-  fetchResidentRequests,
-} from './residentApi';
+import { cancelRequestInApi, createRequestInApi, fetchResidentRequests } from './residentApi';
 
-// Solicitações criadas em modo demonstração (API fora do ar) ficam só neste dispositivo.
-const STORAGE_KEY = 'ecorota:resident-requests:v1';
 // Última lista recebida da API, para abrir as telas já com dados reais antes da nova consulta.
 const API_CACHE_KEY = 'ecorota:resident-requests:api:v1';
 // Muda a cada limpeza do cache; uma consulta iniciada antes de sair da conta não pode regravá-lo depois.
@@ -17,7 +9,6 @@ let cacheEpoch = 0;
 
 export interface CreateRequestResult {
   request: ResidentCollectionRequest;
-  source: 'api' | 'demo';
 }
 
 function readList(key: string): ResidentCollectionRequest[] | null {
@@ -44,20 +35,15 @@ export function getResidentRequests(): ResidentCollectionRequest[] {
   return readList(API_CACHE_KEY) ?? [];
 }
 
-// O resumo pessoal usa apenas solicitações retornadas pela API, nunca os exemplos da demonstração.
+// O resumo pessoal usa apenas solicitações retornadas pela API; null enquanto nada foi carregado.
 export function getCachedResidentRequests(): ResidentCollectionRequest[] | null {
   return readList(API_CACHE_KEY);
 }
 
-// Atualiza uma solicitação na lista de onde ela veio (cache da API ou demonstração).
+// Atualiza uma solicitação no cache da última lista vinda da API.
 export function updateResidentRequest(request: ResidentCollectionRequest) {
-  const fromApi = readList(API_CACHE_KEY);
-  if (fromApi?.some((item) => item.id === request.id)) {
-    writeList(API_CACHE_KEY, fromApi.map((item) => (item.id === request.id ? request : item)));
-    return;
-  }
-  const stored = readList(STORAGE_KEY) ?? [];
-  writeList(STORAGE_KEY, [request, ...stored.filter((item) => item.id !== request.id)]);
+  const fromApi = readList(API_CACHE_KEY) ?? [];
+  writeList(API_CACHE_KEY, fromApi.map((item) => (item.id === request.id ? request : item)));
 }
 
 // Busca as solicitações reais; devolve null quando a API está fora do ar ou o morador não está logado.
@@ -75,49 +61,22 @@ export async function refreshResidentRequests(): Promise<ResidentCollectionReque
   }
 }
 
-// Cria na API; só cai no modo demonstração quando não há conexão. Erros de validação chegam à tela.
+// Cria na API; qualquer erro (validação ou falta de conexão) chega à tela.
 export async function createResidentRequest(
   draft: ResidentRequestDraft,
   point: CollectionPoint,
 ): Promise<CreateRequestResult> {
   const request = await createRequestInApi(draft, point);
   writeList(API_CACHE_KEY, [request, ...(readList(API_CACHE_KEY) ?? [])]);
-  return { request, source: 'api' };
+  return { request };
 }
 
-// Cancela na API quando a solicitação veio de lá; pedidos de demonstração são cancelados só localmente.
+// Cancela na API e só então marca como cancelada no cache.
 export async function cancelResidentRequest(request: ResidentCollectionRequest): Promise<ResidentCollectionRequest> {
-  const fromApi = readList(API_CACHE_KEY)?.some((item) => item.id === request.id) ?? false;
-  if (fromApi) await cancelRequestInApi(request.id);
+  await cancelRequestInApi(request.id);
   const cancelled = { ...request, status: 'cancelled' as const };
   updateResidentRequest(cancelled);
   return cancelled;
-}
-
-function buildDemoRequest(draft: ResidentRequestDraft, point: CollectionPoint): ResidentCollectionRequest {
-  const material = materialOptions.find((item) => item.id === draft.materialId);
-  const shift = shiftOptions.find((item) => item.id === draft.shift);
-  if (!material || !shift) throw new Error('Complete os dados da coleta antes de continuar.');
-  const id = `pedido-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
-  return {
-    id,
-    externalReference: id,
-    protocol: `ECO-${id.slice(-6).toUpperCase()}`,
-    materialId: material.id,
-    materialName: material.name,
-    pointName: point.name,
-    pointAddress: point.address,
-    neighborhood: point.neighborhood,
-    scheduledDate: draft.desiredDate,
-    shiftLabel: shift.label,
-    shiftWindow: shift.window,
-    status: 'pending',
-    collectorName: null,
-    collectorPhone: null,
-    estimatedArrival: null,
-    pointsPreview: material.points,
-    timeline: buildTimeline(new Date().toISOString()),
-  };
 }
 
 // Apaga a lista da API guardada no aparelho; usada ao sair da conta.

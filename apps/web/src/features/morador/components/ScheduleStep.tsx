@@ -1,4 +1,5 @@
 import type { CollectionPoint, MaterialOption, ResidentRequestDraft, ShiftOption } from '../types';
+import { POINTS_PER_COMPLETED_COLLECTION } from '../data/catalogo';
 import { Icon } from './Icon';
 
 interface ScheduleStepProps {
@@ -72,9 +73,6 @@ export function ScheduleStep({
                 >
                   <span className="block text-base font-bold text-neutral-950">{shift.label}</span>
                   <span className="mt-1 block text-sm text-neutral-600">{shift.window}</span>
-                  <span className="mt-3 inline-flex rounded-full bg-earth-50 px-3 py-1 text-sm font-semibold text-earth-700">
-                    {shift.slots} vagas
-                  </span>
                 </button>
               );
             })}
@@ -116,7 +114,7 @@ export function ScheduleStep({
           </div>
           <div className="flex justify-between gap-3">
             <dt>Pontos previstos</dt>
-            <dd className="text-right font-semibold text-reward-800">+{material.points}</dd>
+            <dd className="text-right font-semibold text-reward-800">+{POINTS_PER_COMPLETED_COLLECTION}</dd>
           </div>
         </dl>
       </div>

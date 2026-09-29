@@ -4,7 +4,7 @@
  */
 import type { RequestStatus } from '@ecorota/shared';
 import { ApiError, apiRequest } from '../../../lib/api';
-import { materialOptions, shiftOptions } from '../data/mockSolicitacao';
+import { POINTS_PER_COMPLETED_COLLECTION, materialOptions, shiftOptions } from '../data/catalogo';
 import type {
   CollectionPoint,
   MaterialCategory,
@@ -46,7 +46,7 @@ export interface RequestDTO {
   criadoEm: string;
   concluidaEm: string | null;
   endereco: { logradouro: string; numero: string; bairro: string } | null;
-  materiais: Array<{ tipo: string }>;
+  materiais: Array<{ tipo: string; quantidadeEstimada?: number | null; unidade?: string | null }>;
   coletor: { nome: string } | null;
   pontosConcedidos: Array<{ pontos: number }>;
 }
@@ -149,6 +149,12 @@ export function buildTimeline(createdAt: string | null, completedAt: string | nu
   ];
 }
 
+// Soma o que foi informado em quilos; outras unidades não viram peso, e sem informação o resultado é null.
+export function estimatedKg(materials: RequestDTO['materiais']): number | null {
+  const inKg = materials.filter((material) => material.quantidadeEstimada != null && /^kg$/i.test(material.unidade ?? ''));
+  return inKg.length === 0 ? null : inKg.reduce((sum, material) => sum + (material.quantidadeEstimada ?? 0), 0);
+}
+
 // Converte uma solicitação da API no formato das telas "Acompanhar status" e "Histórico".
 export function requestFromApi(dto: RequestDTO, pointNames: ReadonlyMap<string, string>): ResidentCollectionRequest {
   const materialId = MATERIAL_FROM_API[dto.materiais[0]?.tipo ?? 'OUTRO'] ?? 'oleo';
@@ -172,7 +178,8 @@ export function requestFromApi(dto: RequestDTO, pointNames: ReadonlyMap<string, 
     collectorName: dto.coletor?.nome ?? null,
     collectorPhone: null,
     estimatedArrival: null,
-    pointsPreview: grantedPoints > 0 ? grantedPoints : material.points,
+    pointsPreview: grantedPoints > 0 ? grantedPoints : POINTS_PER_COMPLETED_COLLECTION,
+    estimatedKg: estimatedKg(dto.materiais),
     timeline: buildTimeline(dto.criadoEm, dto.concluidaEm),
   };
 }

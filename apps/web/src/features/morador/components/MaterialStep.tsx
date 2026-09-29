@@ -63,9 +63,6 @@ export function MaterialStep({ materials, selectedMaterialId, onSelect }: Materi
                   </span>
                 ))}
               </span>
-              <span className="mt-3 inline-flex rounded-full bg-reward-100 px-3 py-1 text-sm font-semibold text-reward-800">
-                +{material.points} pontos
-              </span>
             </button>
           );
         })}

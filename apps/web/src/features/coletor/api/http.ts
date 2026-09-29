@@ -119,7 +119,6 @@ export const httpApi: CollectorApi = {
   },
   startTask: (id) => request('POST', endpoints.startTask(id)),
   completeTask: (id, photoUrl) => request('POST', endpoints.completeTask(id), { fotoUrl: photoUrl }),
-  cancelTask: (id, reason) => request('POST', endpoints.cancelTask(id), { motivo: reason, confirmado: true }),
   async getAvailability() {
     return fromAvailabilityDTO(await request<AvailabilityDTO>('GET', endpoints.availability));
   },

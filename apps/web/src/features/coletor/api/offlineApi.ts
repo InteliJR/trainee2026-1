@@ -55,7 +55,6 @@ export const offlineApi: CollectorApi = {
   getPoints: () => httpApi.getPoints(),
   startTask: (id) => offlineAction({ taskId: id, type: 'start' }),
   completeTask: (id, photoUrl) => offlineAction({ taskId: id, type: 'complete', photoUrl }),
-  cancelTask: (id, reason) => httpApi.cancelTask(id, reason),
   getAvailability: () => httpApi.getAvailability(),
   setAvailability: (available) => httpApi.setAvailability(available),
 };

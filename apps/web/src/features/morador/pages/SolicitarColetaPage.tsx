@@ -7,10 +7,7 @@ import { PointStep } from '../components/PointStep';
 import { ResidentBottomNav } from '../components/ResidentBottomNav';
 import { ScheduleStep } from '../components/ScheduleStep';
 import { StepIndicator } from '../components/StepIndicator';
-import {
-  materialOptions,
-  shiftOptions,
-} from '../data/mockSolicitacao';
+import { POINTS_PER_COMPLETED_COLLECTION, materialOptions, shiftOptions } from '../data/catalogo';
 import { fetchCollectionPoints } from '../lib/residentApi';
 import { createResidentRequest, type CreateRequestResult } from '../lib/residentRequests';
 import type { CollectionPoint, MaterialCategory, ResidentRequestDraft, Shift } from '../types';
@@ -146,15 +143,9 @@ export function SolicitarColetaPage() {
             <p className="mt-3 text-sm leading-6 text-neutral-600">
               Vamos avisar quando um coletor assumir. Você também pode acompanhar o status pelo app.
             </p>
-            {submission?.source === 'demo' ? (
-              <p role="status" className="mt-4 rounded-md border border-reward-100 bg-reward-100/70 p-3 text-sm text-reward-900">
-                API indisponível. Solicitação salva neste dispositivo em modo demonstração.
-              </p>
-            ) : (
-              <p role="status" className="mt-4 rounded-md border border-neutral-200 bg-brand-50 p-3 text-sm text-brand-700">
-                Solicitação enviada para a EcoRota. Protocolo {submission?.request.protocol}.
-              </p>
-            )}
+            <p role="status" className="mt-4 rounded-md border border-neutral-200 bg-brand-50 p-3 text-sm text-brand-700">
+              Solicitação enviada para a EcoRota. Protocolo {submission?.request.protocol}.
+            </p>
 
             <dl className="mt-6 divide-y divide-neutral-200 border-y border-neutral-200 text-sm">
               <div className="flex justify-between gap-3 py-3">
@@ -177,7 +168,7 @@ export function SolicitarColetaPage() {
               <div className="flex gap-3">
                 <Icon name="leaf" className="mt-0.5 h-5 w-5 shrink-0 text-brand-700" />
                 <p>
-                  <strong>Impacto previsto:</strong> +{selectedMaterial.points} pontos ao confirmar a
+                  <strong>Impacto previsto:</strong> +{POINTS_PER_COMPLETED_COLLECTION} pontos ao confirmar a
                   coleta concluída.
                 </p>
               </div>
