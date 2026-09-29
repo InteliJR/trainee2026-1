@@ -1,0 +1,71 @@
+import type { Point, RequestStatus } from '@ecorota/shared';
+
+export type MaterialCategory =
+  | 'papel'
+  | 'plastico'
+  | 'vidro'
+  | 'metal'
+  | 'eletronicos'
+  | 'oleo';
+
+export interface MaterialOption {
+  id: MaterialCategory;
+  name: string;
+  helper: string;
+  acceptedExamples: string[];
+}
+
+export interface CollectionPoint extends Point {
+  address: string;
+  neighborhood: string;
+  distanceKm: number;
+  accepts: MaterialCategory[];
+  nextAvailability: string;
+}
+
+export type Shift = 'manha' | 'tarde' | 'noite';
+
+export interface ShiftOption {
+  id: Shift;
+  label: string;
+  window: string;
+}
+
+export interface ResidentRequestDraft {
+  materialId: MaterialCategory | null;
+  pointId: string | null;
+  desiredDate: string;
+  shift: Shift | null;
+  // Quantidade aproximada em kg, como digitada (opcional); enviada à API como quantidadeEstimada.
+  quantityKg: string;
+}
+
+export interface StatusTimelineItem {
+  status: RequestStatus;
+  label: string;
+  occurredAt: string | null;
+  description: string;
+}
+
+export interface ResidentCollectionRequest {
+  id: string;
+  // Referência usada pelo backend e pelo Socket.IO para identificar a solicitação.
+  externalReference?: string;
+  protocol: string;
+  materialId: MaterialCategory;
+  materialName: string;
+  pointName: string;
+  pointAddress: string;
+  neighborhood: string;
+  scheduledDate: string;
+  shiftLabel: string;
+  shiftWindow: string;
+  status: RequestStatus;
+  collectorName: string | null;
+  collectorPhone: string | null;
+  estimatedArrival: string | null;
+  pointsPreview: number;
+  // Soma das quantidades informadas em kg na solicitação; null quando nenhuma foi informada.
+  estimatedKg: number | null;
+  timeline: StatusTimelineItem[];
+}
